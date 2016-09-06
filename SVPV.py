@@ -12,10 +12,6 @@ from svpv.refgene import RefgeneManager
 from svpv.plot import Plot
 import svpv.GUI as GUI
 
-# ('-vcf','-aln', '-samples', '-manifest', '-o', '-gui', '-ref_gene', '-ref_vcf', '-alt_vcf')
-# ('-max_len', '-min_len', '-af', '-rgi', '-gene_list', '-sgt', '-chrom', '-exonic', '-svtype')
-# ('-d', '-or', '-v', '-ss', '-se', '-su', '-hc', '-i', '-r', '-af', '-l')
-
 
 usage = 'Usage example:\n' \
         'SVPV.py -vcf input_svs.vcf -samples sample1,sample2 -aln alignment1.bam,alignment2.sam -o /out/directory/ \n\n' \
@@ -27,7 +23,7 @@ usage = 'Usage example:\n' \
             '\n\t\tNames must be the same as in vcf.\n' \
         '-o\t\tOutput directory.\n' \
         '[optional]\n' \
-        '-gui\t\tRun in gui mode\n' \
+        '-gui\t\tRun in gui mode.\n' \
         '-alt_vcf\tAlternate structural variant prediction vcf/bcf file,' \
             '\n\t\tCalled on the same set of samples as primary.\n' \
         '-ref_vcf\tReference structural variant vcf/bcf file for annotation.\n' \
@@ -40,14 +36,27 @@ usage = 'Usage example:\n' \
         '-min_len\tminimum length of structural variants (bp).\n' \
         '-af\t\tAllele frequency threshold, \n' \
             '\t\teg \'-af <0.1\' for SV with frequency less than 0.1.\n' \
-        '-gts\t\tReference structural variant vcf/bcf file for annotation.\n' \
-        '-chrom\t\tReference structural variant vcf/bcf file for annotation.\n' \
-        '-svtype\t\tReference structural variant vcf/bcf file for annotation.\n' \
-        '-exonic\t\tReference structural variant vcf/bcf file for annotation.\n' \
-        '-rgi\t\tReference structural variant vcf/bcf file for annotation.\n' \
+        '-gts\t\tSpecify genotypes of given samples.' \
+            '\n\t\teg sample1:0/1,1/1;sample3:1/1\n' \
+        '-chrom\t\tRestrict to comma separated list of chromosomes.\n' \
+        '-svtype\t\tRestrict to given SV type (DEL/DUP/CNV/INV).\n' \
+        '-rgi\t\tRestrict to SVs that intersect refGenes, \'-ref_gene\' must be supplied.\n' \
+        '-exonic\t\tRestrict to SVs that intersect exons of refGenes,' \
+        '\n\t\t\'-ref_gene\' must be supplied.\n' \
         'Plot args:\n' \
+        '-d\t0/[1]\tforce sequencing depth plot on or off.\n' \
+        '-or\t0/[1]\tforce orphaned reads plot on or off.\n' \
+        '-v\t0/[1]\tforce inverted pairs plot on or off.\n' \
+        '-ss\t0/[1]\tforce same strand pairs plot on or off.\n' \
+        '-hc\t0/[1]\tforce hardclipped reads plot on or off.\n' \
+        '-se\t[0]/1\tforce SAM \'secondary alignment\' plot on or off.\n' \
+        '-su\t[0]/1\tforce SAM \'supplementary alignment\' plot on or off.\n' \
+        '-i\t0/[1]\tforce inferred insert size plot on or off.\n' \
+        '-r\t0/[1]\tforce refgenes plot on or off.\n' \
+        '-af\t0/[1]\tforce allele frequency plot on or off.\n' \
+        '-l\t0/[1]\tforce plot legend on or off.\n' \
 
-
+    # ('-d', '-or', '-v', '-ss', '-se', '-su', '-hc', '-i', '-r', '-af', '-l')
 def check_file_exists(path):
     if not os.path.isfile(path):
         print usage
@@ -150,8 +159,7 @@ class Params:
                                 self.filter.gene_list.append(word.strip().upper())
                         self.filter.gene_list_intersection = True
                     elif a == '-gts':
-                        # specify genotypes of given samples in form:
-                        # -sgt sample1:0/1,1/1;sample3:1/1
+                        # specify genotypes of given samples in form: sample1:0/1,1/1;sample3:1/1
                         self.filter.sampleGTs = {}
                         for sample in args[i + 1].split(';'):
                             filter.sampleGTs[sample.split(':')[0]] = sample.split(':')[1].split(',')
