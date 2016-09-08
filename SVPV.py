@@ -11,7 +11,6 @@ from svpv.VCF import VCFManager
 from svpv.refgene import RefgeneManager
 from svpv.plot import Plot
 import svpv.GUI as GUI
-import example
 
 
 usage = 'Usage example:\n' \
@@ -379,15 +378,15 @@ class PlotParams:
         return args
 
 
-def main():
+def main(argv=sys.argv):
     print "\nStructural Variant Prediction Viewer\n"
-    if len(sys.argv) <= 1:
+    if len(argv) <= 1:
         print usage
         exit(1)
-    if '-test' in sys.argv:
-        test(gui='-gui' in sys.argv)
+    if '-example' in argv:
+        example(gui='-gui' in argv)
     else:
-        par = Params(sys.argv)
+        par = Params(argv)
         if not par.run.all:
             par.run.vcf.remove_absent_svs(par.run.samples)
 
@@ -400,8 +399,21 @@ def main():
                 plot = Plot(sv, par.run.samples, par)
                 plot.plot_figure(display=False)
 
-def test(gui):
-    path = os.path.dirname(os.path.abspath(example.__file__))
+
+def example(gui):
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'example')
+    if not os.path.exists(path):
+        print 'Error: example directory not found'
+        exit(1)
+
+    samples = {}
+    samples['NA12877'] = os.path.join(path, 'NA12877.bam')
+    samples['NA12878'] = os.path.join(path, 'NA12878.bam')
+    samples['NA12884'] = os.path.join(path, 'NA12884.bam')
+    for s in samples:
+        if not os.path.isfile(samples[s]):
+            print 'Error: file not found.\n%s' % samples[s]
+            exit(1)
 
 if __name__ == "__main__":
     main()
