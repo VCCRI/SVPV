@@ -7,6 +7,15 @@ Structural Variant Prediction Viewer
 * samtools and bcftools
 * Linux environment, or access to linux via ssh
 
+###Installation
+* clone this repository  
+`git clone https://github.com/VCCRI/SVPV.git /destination/folder/`
+* test everything is working  
+`python /desitination/folder/SVPV.py -test`
+* test the gui is working  
+`python /desitination/folder/SVPV.py -test -gui`
+* all done!
+
 ###Usage
 
 **example:**  
