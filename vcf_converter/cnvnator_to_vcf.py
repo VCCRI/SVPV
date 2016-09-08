@@ -11,11 +11,13 @@ import math
 import os
 
 def main():
-    usage = "[Required args]\n" \
-        "-samples\t/file/with/samples/and/call_file/paths.txt\n" \
-        "-o\t\t/out/location/and/name.vcf\n" \
-        "-thresh\tjaccard index threshold to use for clustering\n" \
-        "-chroms\tcomma separated list of chromosomes to process. defaults to all.\n"
+    usage = "[Required]\n" \
+        "-samples\tWhitespace delimited file, first column sample names,\n" \
+        "\t\tsecond column CNVnator calls file.\n" \
+        "-o\t\toutput VCF file\n" \
+        "[Optional]\n" \
+        "-thresh\t\tJaccard index threshold to use for clustering. Default 0.7\n" \
+        "-chroms\t\tComma separated list of chromosomes to process. Default all.\n"
 
     sample_calls = None
     out_vcf = None
@@ -230,88 +232,27 @@ def cluster(all_calls, edges, thresh):
 
 
 # print out vcf entries
-def print_vcf(samples, clustered, out_vcf, debug=False):
-    if debug:
-        count = 0
-        for chrom in clustered:
-            for svtype in clustered[chrom]:
-                clustered[chrom][svtype].sort(key=lambda x: x.start)
-                for i, sv in enumerate(clustered[chrom][svtype]):
-                    j = i+1
-                    if j >= len(clustered[chrom][svtype]):
-                        break
-                    other = clustered[chrom][svtype][j]
-                    while sv.overlaps(other) and j < (len(clustered[chrom][svtype])-1):
-                        if sv.jaccard(other) > 0.7:
-                            count += 1
-                            if count < 10:
-                                print sv.jaccard(other)
-                                print sv
-                                print '%s,%d %d bp' % (sv.chrom, sv.start, (sv.end - sv.start))
-
-                                print other
-                                print '%s,%d %d bp\n' % (other.chrom, other.start, (other.end - other.start))
-                        j += 1
-                        other = clustered[chrom][svtype][j]
-        print count
-
-    else:
-        sample_names = []
-        default_gts = []
-        for s in samples:
-            sample_names.append(s.name)
-            default_gts.append('0/0')
-
-        out_vcf.write(Header + '\t'.join(sample_names) + '\n')
-
-        for chrom in sorted(clustered.keys()):
-            merged_types = []
-            for svtype in clustered[chrom]:
-                merged_types.extend(clustered[chrom][svtype])
-            merged_types.sort(key=lambda x: x.start)
-            for sv in merged_types:
-                gts = copy.copy(default_gts)
-                if isinstance(sv, Cluster):
-                    for call in sv.members:
-                        gts[sample_names.index(call.sample_name)] = call.genotype()
-                else:
-                    gts[sample_names.index(sv.sample_name)] = sv.genotype()
-                out_vcf.write(sv.to_vcf() + '\t' + '\t'.join(gts) + '\n')
-
-
-Header = '##fileformat=VCFv4.2\n' \
-    '##ALT=<ID=DEL,Description="Deletion">\n' \
-    '##ALT=<ID=DUP,Description="Duplication">\n' \
-    '##INFO=<ID=SVTYPE,Number=1,Type=String,Description="Type of structural variant">\n' \
-    '##INFO=<ID=END,Number=1,Type=Integer,Description="End position of the structural variant">\n' \
-    '##INFO=<ID=IMPRECISE,Number=0,Type=Flag,Description="Imprecise structural variation">\n' \
-    '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">\n' \
-    '##contig=<ID=chr1,length=248956422>\n' \
-    '##contig=<ID=chr10,length=133797422>\n' \
-    '##contig=<ID=chr11,length=135086622>\n' \
-    '##contig=<ID=chr12,length=133275309>\n' \
-    '##contig=<ID=chr13,length=114364328>\n' \
-    '##contig=<ID=chr14,length=107043718>\n' \
-    '##contig=<ID=chr15,length=101991189>\n' \
-    '##contig=<ID=chr16,length=90338345>\n' \
-    '##contig=<ID=chr17,length=83257441>\n' \
-    '##contig=<ID=chr18,length=80373285>\n' \
-    '##contig=<ID=chr19,length=58617616>\n' \
-    '##contig=<ID=chr2,length=242193529>\n' \
-    '##contig=<ID=chr20,length=64444167>\n' \
-    '##contig=<ID=chr21,length=46709983>\n' \
-    '##contig=<ID=chr22,length=50818468>\n' \
-    '##contig=<ID=chr3,length=198295559>\n' \
-    '##contig=<ID=chr4,length=190214555>\n' \
-    '##contig=<ID=chr5,length=181538259>\n' \
-    '##contig=<ID=chr6,length=170805979>\n' \
-    '##contig=<ID=chr7,length=159345973>\n' \
-    '##contig=<ID=chr8,length=145138636>\n' \
-    '##contig=<ID=chr9,length=138394717>\n' \
-    '##contig=<ID=chrX,length=156040895>\n' \
-    '##contig=<ID=chrY,length=57227415>\n' \
-    '#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t'
-
+def print_vcf(samples, clustered, out_vcf):
+    sample_names = []
+    default_gts = []
+    for s in samples:
+        sample_names.append(s.name)
+        default_gts.append('0/0')
+    header = file(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'vcf_header.txt'), 'r').read()
+    out_vcf.write(header + '\t'.join(sample_names) + '\n')
+    for chrom in sorted(clustered.keys()):
+        merged_types = []
+        for svtype in clustered[chrom]:
+            merged_types.extend(clustered[chrom][svtype])
+        merged_types.sort(key=lambda x: x.start)
+        for sv in merged_types:
+            gts = copy.copy(default_gts)
+            if isinstance(sv, Cluster):
+                for call in sv.members:
+                    gts[sample_names.index(call.sample_name)] = call.genotype()
+            else:
+                gts[sample_names.index(sv.sample_name)] = sv.genotype()
+            out_vcf.write(sv.to_vcf() + '\t' + '\t'.join(gts) + '\n')
 
 class SV:
     def __init__(self, chrom, start, end, svtype, rd=None):
@@ -364,14 +305,6 @@ class SV:
 
 
 class Cluster(SV):
-    merges = 0
-    clusters = 0
-    additions = 0
-
-    @staticmethod
-    def get_progress():
-        return (Cluster.merges, Cluster.clusters, Cluster.additions)
-
     def __init__(self, r1, r2):
         SV.__init__(self, r1.chrom, (r1.start + r2.start) / 2, (r1.end + r2.end) / 2, r1.svtype)
         self.members = [r1, r2]
