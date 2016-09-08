@@ -29,12 +29,12 @@ Filter args: | Description | Example
 -------------|-------------|---------
 -max_len | maximum length of structural variants (bp)
 -min_len | minimum length of structural variants (bp)
--af | Allele frequency threshold | '-af <0.1' <br> for SV with frequency less than 0.1.
+-af | Allele frequency threshold |  '-af <0.1' <br> for SV with frequency less than 0.1.
 -gts | Specify genotypes of given samples | sample1:0/1,1/1;sample2:1/1
 -chrom | Restrict to comma separated list of chromosomes
 -svtype | Restrict to given SV type (DEL/DUP/CNV/INV)
 -rgi | Restrict to SVs that intersect refGenes, <br>'-ref_gene' must be supplied
--exonic | Restrict to SVs that intersect exons of refGenes,	<br>'-ref_gene' must be supplied
+-exonic | Restrict to SVs that intersect exons of refGenes, <br>'-ref_gene' must be supplied
 
 Plot args: | Default | Description
 -----------|---------|------------
