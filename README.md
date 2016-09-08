@@ -38,7 +38,7 @@ Filter args: | Description | Example
 -------------|-------------|---------
 -max_len | maximum length of structural variants (bp)
 -min_len | minimum length of structural variants (bp)
--af | Allele frequency threshold |  '-af <0.1' <br> for SV with frequency less than 0.1.
+-af | Allele frequency threshold |  -af <0.1  <br> for SV with frequency less than 0.1.
 -gts | Specify genotypes of given samples | sample1:0/1,1/1;sample2:1/1
 -chrom | Restrict to comma separated list of chromosomes
 -svtype | Restrict to given SV type (DEL/DUP/CNV/INV)
@@ -58,3 +58,6 @@ Plot args: | Default | Description
 -r | 1 | force refgenes plot on or off
 -af | 1 | force allele frequency plot on or off
 -l | 1 | force plot legend on or off
+
+**extended example:**  
+python SVPV.py -vcf caller1_svs.vcf -samples sample1,sample2,sample3 -aln alignment1.bam,alignment2.bam,alignment3.bam -o /out/directory/ -alt_vcf caller2_svs.vcf -ref_vcf 1000_genomes_svs.vcf -ref_gene hg38.refgene.txt -max_len 100000 -af <0.25 -gts sample1:1/1,0/1;sample3:0/0 -svtype DEL -exonic -ss 0 -se 1
