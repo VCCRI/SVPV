@@ -10,6 +10,7 @@ import re
 import math
 import os
 
+
 def main():
     usage = "[Required]\n" \
         "-samples\tWhitespace delimited file, first column sample names,\n" \
@@ -63,61 +64,6 @@ def parse_samples(sample_calls, chroms):
         samples[-1].parse_calls(sample_file, chroms)
     print('\tdone.\t\n')
     return samples
-
-
-class Edges():
-    def __init__(self):
-        self.dict = {}
-
-    def add(self, chrom, svtype, sv1, sv2):
-        if chrom not in self.dict:
-            self.dict[chrom] = {}
-        if svtype not in self.dict[chrom]:
-            self.dict[chrom][svtype] = {}
-
-        if sv1 not in self.dict[chrom][svtype]:
-            self.dict[chrom][svtype][sv1] = [sv2]
-        elif sv2 not in self.dict[chrom][svtype][sv1]:
-            self.dict[chrom][svtype][sv1].append(sv2)
-        self.dict[chrom][svtype][sv1].sort(key=sv1.jaccard, reverse=True)
-
-        if sv2 not in self.dict[chrom][svtype]:
-            self.dict[chrom][svtype][sv2] = [sv1]
-        elif sv1 not in self.dict[chrom][svtype][sv2]:
-            self.dict[chrom][svtype][sv2].append(sv1)
-        self.dict[chrom][svtype][sv2].sort(key=sv2.jaccard, reverse=True)
-
-    def update(self, chrom, svtype, sv1, sv2, new):
-        if new not in self.dict[chrom][svtype]:
-            self.dict[chrom][svtype][new] = []
-
-        for n in self.dict[chrom][svtype][sv1]:
-            if n is sv1 or n is sv2:
-                continue
-            while sv1 in self.dict[chrom][svtype][n]:
-                self.dict[chrom][svtype][n].remove(sv1)
-            self.dict[chrom][svtype][n].append(new)
-            self.dict[chrom][svtype][n].sort(key=n.jaccard, reverse=True)
-            if n not in self.dict[chrom][svtype][new] and n is not new:
-                self.dict[chrom][svtype][new].append(n)
-
-        for n in self.dict[chrom][svtype][sv2]:
-            if n is sv1 or n is sv2:
-                continue
-            while sv2 in self.dict[chrom][svtype][n]:
-                self.dict[chrom][svtype][n].remove(sv2)
-            self.dict[chrom][svtype][n].append(new)
-            self.dict[chrom][svtype][n].sort(key=n.jaccard, reverse=True)
-            if n not in self.dict[chrom][svtype][new] and n is not new:
-                self.dict[chrom][svtype][new].append(n)
-
-        while sv1 in self.dict[chrom][svtype][new]:
-            self.dict[chrom][svtype][new].remove(sv1)
-        while sv2 in self.dict[chrom][svtype][new]:
-            self.dict[chrom][svtype][new].remove(sv2)
-        while new in self.dict[chrom][svtype][new]:
-            self.dict[chrom][svtype][new].remove(new)
-        self.dict[chrom][svtype][new].sort(key=new.jaccard, reverse=True)
 
 
 def get_all_calls(samples, thresh):
@@ -254,17 +200,44 @@ def print_vcf(samples, clustered, out_vcf):
                 gts[sample_names.index(sv.sample_name)] = sv.genotype()
             out_vcf.write(sv.to_vcf() + '\t' + '\t'.join(gts) + '\n')
 
+# data structure to store sv calls originating from a given sample
+class Sample:
+    def __init__(self, name):
+        self.name = name
+        # dict[chrom] of dict[svtype] of dict[bin] of lists of svs
+        self.calls = {}
+
+    def parse_calls(self, CNVnator_file, chroms, f1=1e-6, f2=1e-6, f3=1e-6, f4=1e-6 ):
+        for line in file(CNVnator_file):
+            (svtype, coor, length, read_depth, e1, e2, e3, e4) = line.split()[0:8]
+            if float(e1) > f1 and float(e2) > f2 and float(e3) > f3 and float(e4) > f4:
+                continue
+            (chrom, start, end) =  re.split('[:-]', coor)
+            if chroms and chrom not in chroms:
+                continue
+            sv = SV(chrom, start, end, re.sub('deletion', 'DEL', re.sub('duplication', 'DUP', svtype)), rd=float(read_depth))
+            self.add_call(sv)
+
+    def add_call(self, call):
+        if call.chrom not in self.calls:
+            self.calls[call.chrom] = {}
+        if call.svtype not in self.calls[call.chrom]:
+            self.calls[call.chrom][call.svtype] = {}
+        bin = int(math.log((call.end - call.start), 2))
+        if bin not in self.calls[call.chrom][call.svtype]:
+            self.calls[call.chrom][call.svtype][bin] = []
+        call.sample_name = self.name
+        self.calls[call.chrom][call.svtype][bin].append(call)
+
+# data structure to store details of a structural variant call
 class SV:
-    def __init__(self, chrom, start, end, svtype, rd=None):
+    def __init__(self, chrom, start, end, svtype, rd):
         self.chrom = chrom
         self.start = int(start)
         self.end = int(end)
         self.svtype = svtype
         self.sample_name = None
-        if rd:
-            self.rd = float(rd)
-        else:
-            self.rd = None
+        self.rd = float(rd)
 
     def jaccard(self, other):
         if not self.chrom == other.chrom:
@@ -304,6 +277,7 @@ class SV:
         return '\t'.join([self.chrom, str(self.start), '.', '.', '<'+self.svtype+'>', '.', '.', 'IMPRECISE;SVTYPE=%s;END=%d' % (self.svtype, self.end), 'GT'])
 
 
+# data structure to store result of merging similar structural variant calls
 class Cluster(SV):
     def __init__(self, r1, r2):
         SV.__init__(self, r1.chrom, (r1.start + r2.start) / 2, (r1.end + r2.end) / 2, r1.svtype)
@@ -346,34 +320,62 @@ class Cluster(SV):
                 Cluster.clusters += 1
                 return Cluster(r1, r2)
 
+# data structure to store interval graph or structural variant calls
+# used to speed up merging process
+class Edges():
+    def __init__(self):
+        self.dict = {}
 
-class Sample:
-    def __init__(self, name):
-        self.name = name
-        # dict[chrom] of dict[svtype] of dict[bin] of lists of svs
-        self.calls = {}
+    def add(self, chrom, svtype, sv1, sv2):
+        if chrom not in self.dict:
+            self.dict[chrom] = {}
+        if svtype not in self.dict[chrom]:
+            self.dict[chrom][svtype] = {}
 
-    def parse_calls(self, CNVnator_file, chroms, f1=1e-6, f2=1e-6, f3=1e-6, f4=1e-6 ):
-        for line in file(CNVnator_file):
-            (svtype, coor, length, read_depth, e1, e2, e3, e4) = line.split()[0:8]
-            if float(e1) > f1 and float(e2) > f2 and float(e3) > f3 and float(e4) > f4:
+        if sv1 not in self.dict[chrom][svtype]:
+            self.dict[chrom][svtype][sv1] = [sv2]
+        elif sv2 not in self.dict[chrom][svtype][sv1]:
+            self.dict[chrom][svtype][sv1].append(sv2)
+        self.dict[chrom][svtype][sv1].sort(key=sv1.jaccard, reverse=True)
+
+        if sv2 not in self.dict[chrom][svtype]:
+            self.dict[chrom][svtype][sv2] = [sv1]
+        elif sv1 not in self.dict[chrom][svtype][sv2]:
+            self.dict[chrom][svtype][sv2].append(sv1)
+        self.dict[chrom][svtype][sv2].sort(key=sv2.jaccard, reverse=True)
+
+    def update(self, chrom, svtype, sv1, sv2, new):
+        if new not in self.dict[chrom][svtype]:
+            self.dict[chrom][svtype][new] = []
+
+        for n in self.dict[chrom][svtype][sv1]:
+            if n is sv1 or n is sv2:
                 continue
-            (chrom, start, end) =  re.split('[:-]', coor)
-            if chroms and chrom not in chroms:
-                continue
-            sv = SV(chrom, start, end, re.sub('deletion', 'DEL', re.sub('duplication', 'DUP', svtype)), rd=float(read_depth))
-            self.add_call(sv)
+            while sv1 in self.dict[chrom][svtype][n]:
+                self.dict[chrom][svtype][n].remove(sv1)
+            self.dict[chrom][svtype][n].append(new)
+            self.dict[chrom][svtype][n].sort(key=n.jaccard, reverse=True)
+            if n not in self.dict[chrom][svtype][new] and n is not new:
+                self.dict[chrom][svtype][new].append(n)
 
-    def add_call(self, call):
-        if call.chrom not in self.calls:
-            self.calls[call.chrom] = {}
-        if call.svtype not in self.calls[call.chrom]:
-            self.calls[call.chrom][call.svtype] = {}
-        bin = int(math.log((call.end - call.start), 2))
-        if bin not in self.calls[call.chrom][call.svtype]:
-            self.calls[call.chrom][call.svtype][bin] = []
-        call.sample_name = self.name
-        self.calls[call.chrom][call.svtype][bin].append(call)
+        for n in self.dict[chrom][svtype][sv2]:
+            if n is sv1 or n is sv2:
+                continue
+            while sv2 in self.dict[chrom][svtype][n]:
+                self.dict[chrom][svtype][n].remove(sv2)
+            self.dict[chrom][svtype][n].append(new)
+            self.dict[chrom][svtype][n].sort(key=n.jaccard, reverse=True)
+            if n not in self.dict[chrom][svtype][new] and n is not new:
+                self.dict[chrom][svtype][new].append(n)
+
+        while sv1 in self.dict[chrom][svtype][new]:
+            self.dict[chrom][svtype][new].remove(sv1)
+        while sv2 in self.dict[chrom][svtype][new]:
+            self.dict[chrom][svtype][new].remove(sv2)
+        while new in self.dict[chrom][svtype][new]:
+            self.dict[chrom][svtype][new].remove(new)
+        self.dict[chrom][svtype][new].sort(key=new.jaccard, reverse=True)
+
 
 if __name__ == "__main__":
     main()

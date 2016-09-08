@@ -6,7 +6,7 @@
 
 import Tkinter as tk
 import GUI_Widgets as gw
-from Plot import Plot
+from plot import Plot
 
 
 class SVPVGui(tk.Tk):
