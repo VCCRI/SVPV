@@ -11,9 +11,9 @@ Structural Variant Prediction Viewer
 * clone this repository  
 `git clone https://github.com/VCCRI/SVPV.git /destination/folder/`
 * test everything is working  
-`python /desitination/folder/SVPV.py -test`
+`python /desitination/folder/SVPV.py -example`
 * test the gui is working  
-`python /desitination/folder/SVPV.py -test -gui`
+`python /desitination/folder/SVPV.py -example -gui`
 * all done!
 
 ###Usage
