@@ -412,8 +412,18 @@ def example(gui):
     samples['NA12884'] = os.path.join(path, 'NA12884.bam')
     for s in samples:
         if not os.path.isfile(samples[s]):
-            print 'Error: file not found.\n%s' % samples[s]
+            print 'Error: example file not found.\n%s' % samples[s]
             exit(1)
+
+
+    argv = []
+    argv.append('-samples')
+    argv.append(','.join(samples.keys()))
+    argv.append('-aln')
+    argv.append(','.join(samples.values()))
+    if gui:
+        argv.append('-gui')
+    main(argv=argv)
 
 if __name__ == "__main__":
     main()
