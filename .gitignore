@@ -1,3 +1,4 @@
 *examples.txt
 *.pyc
 *.idea
+*output/

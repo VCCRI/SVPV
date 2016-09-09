@@ -6,7 +6,7 @@
 
 
 class RefgeneManager:
-    def __init__(self, ref_genes):
+    def __init__(self, ref_genes, keep_all=False):
         # dict by chrom (as with SVs in VCF_Manager)
         self.entries = {}
         for line in file(ref_genes):
@@ -16,7 +16,7 @@ class RefgeneManager:
             if not len(fields) == 16:
                 print "Incorrect Number of Fields for RefGene Schema"
                 return None
-            e = RefGeneEntry(fields)
+            e = RefGeneEntry(fields, keep_all=keep_all)
             if e.chrom in self.entries:
                 self.entries[e.chrom].append(e)
             else:
@@ -38,7 +38,7 @@ class RefgeneManager:
 class RefGeneEntry:
     header = '\t'.join(['chrom', 'strand', 'txStart', 'txEnd', 'exonStarts', 'exonEnds', 'name2']) + '\n'
 
-    def __init__(self, fields):
+    def __init__(self, fields, keep_all=False):
         self.chrom = fields[RGF.chrom]
         self.strand = fields[RGF.strand]
         self.txStart = int(fields[RGF.txStart])
@@ -46,6 +46,8 @@ class RefGeneEntry:
         self.exonStarts = fields[RGF.exonStarts]
         self.exonEnds = fields[RGF.exonEnds]
         self.name2 = fields[RGF.name2]
+        if keep_all:
+            self.fields = fields
 
     def intersects_exon(self, other_start, other_end):
         starts = self.exonStarts.split(',')

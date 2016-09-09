@@ -1,0 +1,75 @@
+##fileformat=VCFv4.1
+##FILTER=<ID=PASS,Description="All filters passed">
+##reference=ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/reference/GRCh38_reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa
+##source=1000GenomesPhase3Pipeline
+##contig=<ID=chr1,assembly=b38,length=248956422>
+##contig=<ID=chr2,assembly=b38,length=242193529>
+##contig=<ID=chr3,assembly=b38,length=198295559>
+##contig=<ID=chr4,assembly=b38,length=190214555>
+##contig=<ID=chr5,assembly=b38,length=181538259>
+##contig=<ID=chr6,assembly=b38,length=170805979>
+##contig=<ID=chr7,assembly=b38,length=159345973>
+##contig=<ID=chr8,assembly=b38,length=145138636>
+##contig=<ID=chr9,assembly=b38,length=138394717>
+##contig=<ID=chr10,assembly=b38,length=133797422>
+##contig=<ID=chr11,assembly=b38,length=135086622>
+##contig=<ID=chr12,assembly=b38,length=133275309>
+##contig=<ID=chr13,assembly=b38,length=114364328>
+##contig=<ID=chr14,assembly=b38,length=107043718>
+##contig=<ID=chr15,assembly=b38,length=101991189>
+##contig=<ID=chr16,assembly=b38,length=90338345>
+##contig=<ID=chr17,assembly=b38,length=83257441>
+##contig=<ID=chr18,assembly=b38,length=80373285>
+##contig=<ID=chr19,assembly=b38,length=58617616>
+##contig=<ID=chr20,assembly=b38,length=64444167>
+##contig=<ID=chr21,assembly=b38,length=46709983>
+##contig=<ID=chr22,assembly=b38,length=50818468>
+##contig=<ID=chrX,assembly=b38,length=156040895>
+##INFO=<ID=TSD,Number=1,Type=String,Description="Precise Target Site Duplication for bases, if unknown, value will be NULL">
+##INFO=<ID=SVTYPE,Number=1,Type=String,Description="Type of structural variant">
+##INFO=<ID=MSTART,Number=1,Type=Integer,Description="Mitochondrial start coordinate of inserted sequence">
+##INFO=<ID=MLEN,Number=1,Type=Integer,Description="Estimated length of mitochondrial insert">
+##INFO=<ID=MEND,Number=1,Type=Integer,Description="Mitochondrial end coordinate of inserted sequence">
+##INFO=<ID=MEINFO,Number=4,Type=String,Description="Mobile element info of the form NAME,START,END<POLARITY; If there is only 5' OR 3' support for this call, will be NULL NULL for START and END">
+##INFO=<ID=SVLEN,Number=.,Type=Integer,Description="Difference in length between REF and ALT alleles">
+##INFO=<ID=IMPRECISE,Number=0,Type=Flag,Description="Imprecise structural variation">
+##INFO=<ID=CIEND,Number=2,Type=Integer,Description="Confidence interval around END for imprecise variants">
+##INFO=<ID=CIPOS,Number=2,Type=Integer,Description="Confidence interval around POS for imprecise variants">
+##INFO=<ID=END,Number=1,Type=Integer,Description="End coordinate of this variant">
+##INFO=<ID=CS,Number=1,Type=String,Description="Source call set.">
+##INFO=<ID=MC,Number=.,Type=String,Description="Merged calls.">
+##INFO=<ID=AC,Number=A,Type=Integer,Description="Total number of alternate alleles in called genotypes">
+##INFO=<ID=AF,Number=A,Type=Float,Description="Estimated allele frequency in the range (0,1)">
+##INFO=<ID=NS,Number=1,Type=Integer,Description="Number of samples with data">
+##INFO=<ID=AN,Number=1,Type=Integer,Description="Total number of alleles in called genotypes">
+##INFO=<ID=EAS_AF,Number=A,Type=Float,Description="Allele frequency in the EAS populations calculated from AC and AN, in the range (0,1)">
+##INFO=<ID=EUR_AF,Number=A,Type=Float,Description="Allele frequency in the EUR populations calculated from AC and AN, in the range (0,1)">
+##INFO=<ID=AFR_AF,Number=A,Type=Float,Description="Allele frequency in the AFR populations calculated from AC and AN, in the range (0,1)">
+##INFO=<ID=AMR_AF,Number=A,Type=Float,Description="Allele frequency in the AMR populations calculated from AC and AN, in the range (0,1)">
+##INFO=<ID=SAS_AF,Number=A,Type=Float,Description="Allele frequency in the SAS populations calculated from AC and AN, in the range (0,1)">
+##INFO=<ID=SITEPOST,Number=1,Type=Float,Description="Site Median posterior probability from MVNcall.">
+##ALT=<ID=INV,Description="Inversion">
+##ALT=<ID=INS:MT,Description="Nuclear Mitochondrial Insertion">
+##ALT=<ID=INS:ME:SVA,Description="Insertion of SVA element">
+##ALT=<ID=INS:ME:LINE1,Description="Insertion of LINE1 element">
+##ALT=<ID=INS:ME:ALU,Description="Insertion of ALU element">
+##ALT=<ID=DUP,Description="Duplication">
+##ALT=<ID=DEL,Description="Deletion">
+##ALT=<ID=CNV,Description="Copy Number Polymorphism">
+##ALT=<ID=CN9,Description="Copy number allele: 9 copies">
+##ALT=<ID=CN8,Description="Copy number allele: 8 copies">
+##ALT=<ID=CN7,Description="Copy number allele: 7 copies">
+##ALT=<ID=CN6,Description="Copy number allele: 6 copies">
+##ALT=<ID=CN5,Description="Copy number allele: 5 copies">
+##ALT=<ID=CN4,Description="Copy number allele: 4 copies">
+##ALT=<ID=CN3,Description="Copy number allele: 3 copies">
+##ALT=<ID=CN2,Description="Copy number allele: 2 copies">
+##ALT=<ID=CN1,Description="Copy number allele: 1 copy">
+##ALT=<ID=CN0,Description="Copy number allele: 0 copies">
+##bcftools_viewVersion=1.3+htslib-1.3
+##bcftools_viewCommand=view -O v -G -h /short/a32/References_and_Databases/SV_maps/ALL.wgs.integrated_sv_map_v2_GRCh38.20130502.svs.genotypes.vcf
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+chr1	59582956	UW_VH_10127	C	<CN0>	100	PASS	SVTYPE=DEL;CIEND=0,384;CIPOS=-445,0;END=59583983;CS=DEL_union;MC=UW_VH_2563,BI_GS_DEL1_B2_P0061_40,SI_BD_441;AC=1141;AF=0.227835;NS=2504;AN=5008;EAS_AF=0.1667;EUR_AF=0.1292;AFR_AF=0.2958;AMR_AF=0.1282;SAS_AF=0.3712
+chr12	71315770	CINV_delly_INV00023095	C	<INV>	.	PASS	SVTYPE=INV;IMPRECISE;CIEND=-130,130;CIPOS=-130,130;END=71316506;CS=CINV_delly;AC=238;AF=0.047524;NS=2504;AN=5008;EAS_AF=0.002;EUR_AF=0.0835;AFR_AF=0.0083;AMR_AF=0.0663;SAS_AF=0.0971
+chr13	33618457	UW_VH_3220	A	<CN0>	100	PASS	SVTYPE=DEL;CIEND=0,299;CIPOS=-314,0;END=33619198;CS=DEL_union;MC=BI_GS_DEL1_B1_P2128_164,SI_BD_12805;AC=19;AF=0.00379393;NS=2504;AN=5008;EAS_AF=0.001;EUR_AF=0.0129;AFR_AF=0.0008;AMR_AF=0;SAS_AF=0.0041
+chr5	141174827	DUP_gs_CNV_5_140554408_140558942	C	<CN0>,<CN2>,<CN3>,<CN4>,<CN5>,<CN6>,<CN7>	.	PASS	SVTYPE=CNV;END=141179361;CS=DUP_gs;AC=38,484,870,34,9,4,10;AF=0.00758786,0.0966454,0.173722,0.00678914,0.00179712,0.00079872,0.00199681;NS=2504;AN=5008;EAS_AF=0.004,0.12,0.1062,0.005,0.002,0.001,0.001;EUR_AF=0.0149,0.0944,0.3072,0.0149,0.005,0.002,0.007;AFR_AF=0,0.121,0.0212,0,0,0.0008,0;AMR_AF=0.0058,0.0735,0.2709,0.0058,0.0014,0,0.0014;SAS_AF=0.0153,0.0583,0.2434,0.0102,0.001,0,0.001;SITEPOST=0.9973

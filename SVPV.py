@@ -82,16 +82,15 @@ class Params:
                             check_file_exists(args[i + 1])
                             self.run.vcf = VCFManager(args[i + 1])
                     elif a == '-alt_vcf':
-                        for vcf in args[i + 1].split(','):
-                            if ':' in args[i + 1]:
-                                check_file_exists(args[i + 1].split(':')[1])
-                                self.run.alt_vcf = VCFManager(vcf.split(':')[1], name=vcf.split(':')[0])
-                            else:
-                                check_file_exists(args[i + 1])
-                                self.run.alt_vcf.append(VCFManager(vcf))
+                        if ':' in args[i + 1]:
+                            check_file_exists(args[i + 1].split(':')[1])
+                            self.run.alt_vcf = VCFManager( args[i + 1].split(':')[1], name= args[i + 1].split(':')[0])
+                        else:
+                            check_file_exists(args[i + 1])
+                            self.run.alt_vcf = VCFManager(args[i + 1])
                     elif a == '-aln':
                         self.run.alns = args[i + 1].split(',')
-                    elif a == '-ll':
+                    elif a == '-all':
                         self.run.all = True
                     elif a == '-samples':
                         self.run.samples = args[i + 1].split(',')
@@ -407,20 +406,29 @@ def example(gui):
         exit(1)
 
     samples = {}
-    samples['NA12877'] = os.path.join(path, 'NA12877.bam')
-    samples['NA12878'] = os.path.join(path, 'NA12878.bam')
-    samples['NA12884'] = os.path.join(path, 'NA12884.bam')
+    samples['NA12877_S1'] = os.path.join(path, 'NA12877_S1.partial.bam')
+    samples['NA12878_S1'] = os.path.join(path, 'NA12878_S1.partial.bam')
+    samples['NA12884_S1'] = os.path.join(path, 'NA12884_S1.partial.bam')
     for s in samples:
         if not os.path.isfile(samples[s]):
             print 'Error: example file not found.\n%s' % samples[s]
             exit(1)
-
 
     argv = []
     argv.append('-samples')
     argv.append(','.join(samples.keys()))
     argv.append('-aln')
     argv.append(','.join(samples.values()))
+    argv.append('-vcf')
+    argv.append('delly:' + os.path.join(path, 'delly.vcf'))
+    argv.append('-alt_vcf')
+    argv.append('cnvnator:' + os.path.join(path, 'cnvnator.vcf'))
+    argv.append('-ref_vcf')
+    argv.append('1000G:' + os.path.join(path, '1000G.vcf'))
+    argv.append('-ref_gene')
+    argv.append(os.path.join(path, 'hg38.refgene.partial.txt'))
+    argv.append('-o')
+    argv.append(os.path.join(path, 'output'))
     if gui:
         argv.append('-gui')
     main(argv=argv)
