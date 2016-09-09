@@ -4,7 +4,7 @@ Structural Variant Prediction Viewer
 ###Requirements
 * Python 2.7
 * R
-* samtools and bcftools
+* samtools and bcftools (version 1.3)
 * Linux environment, or access to linux via ssh
 
 ###Installation
