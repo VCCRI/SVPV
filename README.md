@@ -14,7 +14,9 @@ Structural Variant Prediction Viewer
 `python /desitination/folder/SVPV.py -example`
 * test the gui is working  
 `python /desitination/folder/SVPV.py -example -gui`
-* all done!
+* all done!  
+
+**Note:** SAMtools and BCFtools must be executable by typing 'samtools' and 'bcftools' into the terminal.
 
 ###Usage
 
