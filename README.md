@@ -6,6 +6,7 @@ Structural Variant Prediction Viewer
 * R
 * [SAMtools and BCFtools](https://github.com/samtools) (version 1.3)
 * Linux environment, or access to linux via ssh (X11 required for GUI)
+* ImageMagick (GUI only, for viewing pdfs)
 
 ###Installation
 * clone this repository  
