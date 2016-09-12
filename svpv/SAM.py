@@ -1,7 +1,6 @@
 # # -*- coding: utf-8 -*-
 # """
-# @author: j.munro@victorchang.edu.au
-#
+# author: Jacob Munro, Victor Chang Cardiac Research Institute
 # """
 
 import re

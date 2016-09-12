@@ -1,12 +1,12 @@
 # # -*- coding: utf-8 -*-
 # """
-# @author: j.munro@victorchang.edu.au
-#
+# author: Jacob Munro, Victor Chang Cardiac Research Institute
 # """
 
 import sys
 import os
 import re
+import subprocess
 from svpv.VCF import VCFManager, BCFtools
 from svpv.SAM import SAMtools
 from svpv.refgene import RefgeneManager
@@ -86,6 +86,15 @@ def check_file_exists(path):
     if not os.path.isfile(path):
         print usage
         print "Error: file does not exist!\n'%s'\n" % path
+        exit(1)
+
+
+def test_display():
+    cmd = ['display', '-version']
+    try:
+        subprocess.call(cmd)
+    except OSError:
+        print 'Error: could not run ImageMagick via \'display\'. Are you sure it is installed?'
         exit(1)
 
 
@@ -435,6 +444,7 @@ def example(gui):
     if gui:
         argv.append('-gui')
     main(argv=argv)
+    print '\nSuccess!\n'
 
 if __name__ == "__main__":
     main()

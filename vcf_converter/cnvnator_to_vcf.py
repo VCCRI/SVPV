@@ -1,7 +1,6 @@
 # # -*- coding: utf-8 -*-
 # """
-# @author: j.munro@victorchang.edu.au
-#
+# author: Jacob Munro, Victor Chang Cardiac Research Institute
 # """
 
 import sys
@@ -18,12 +17,21 @@ def main():
         "-o\t\toutput VCF file\n" \
         "[Optional]\n" \
         "-thresh\t\tJaccard index threshold to use for clustering. Default 0.7\n" \
-        "-chroms\t\tComma separated list of chromosomes to process. Default all.\n"
-
+        "-chroms\t\tComma separated list of chromosomes to process. Default all.\n" \
+        "-header\t\toutput vcf file header.\n" \
+        "-e[1-4]\t\tthreshold for given CNVnator e-value [default 1e6].\n" \
+        "\t\te.g. e1 1e5\n"
+    # set defaults
     sample_calls = None
     out_vcf = None
     chroms = []
     thresh = 0.7
+    e1 = 1e6
+    e2 = 1e6
+    e3 = 1e6
+    e4 = 1e6
+    header = file(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'vcf_header.txt'), 'r').read()
+
     # parse arguments
     for i, arg in enumerate(sys.argv):
         if arg == '-samples':
@@ -32,6 +40,16 @@ def main():
             out_vcf = file(sys.argv[i+1], 'w')
         elif arg == '-chroms':
             chroms = sys.argv[i+1].split(',')
+        elif arg == '-e1':
+            e1 = float(sys.argv[i+1])
+        elif arg == '-e2':
+            e2 = float(sys.argv[i+1])
+        elif arg == '-e3':
+            e3 = float(sys.argv[i+1])
+        elif arg == '-e4':
+            e4 = float(sys.argv[i+1])
+        elif arg == '-header':
+            header = file(sys.argv[i+1], 'r').read()
         elif arg == '-thresh':
             thresh = float(sys.argv[i+1])
             if thresh < 0.5:
@@ -42,13 +60,13 @@ def main():
         print usage
         exit(1)
 
-    samples = parse_samples(sample_calls, chroms)
+    samples = parse_samples(sample_calls, chroms, e1, e2, e3, e4)
     all_calls, edges = get_all_calls(samples, thresh)
     clustered = cluster(all_calls, edges, thresh)
     print_vcf(samples, clustered, out_vcf)
 
 
-def parse_samples(sample_calls, chroms):
+def parse_samples(sample_calls, chroms, e1, e2, e3, e4):
     print 'parsing sample files'
     samples = []
     for line in sample_calls:
@@ -61,7 +79,7 @@ def parse_samples(sample_calls, chroms):
             print 'file not found: %s' % sample_file
             continue
         samples.append(Sample(sample_name))
-        samples[-1].parse_calls(sample_file, chroms)
+        samples[-1].parse_calls(sample_file, chroms, f1=e1, f2=e2, f3=e3, f4=e4)
     print('\tdone.\t\n')
     return samples
 
@@ -178,13 +196,12 @@ def cluster(all_calls, edges, thresh):
 
 
 # print out vcf entries
-def print_vcf(samples, clustered, out_vcf):
+def print_vcf(samples, clustered, out_vcf, header):
     sample_names = []
     default_gts = []
     for s in samples:
         sample_names.append(s.name)
         default_gts.append('0/0')
-    header = file(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'vcf_header.txt'), 'r').read()
     out_vcf.write(header + '\t'.join(sample_names) + '\n')
     for chrom in sorted(clustered.keys()):
         merged_types = []
