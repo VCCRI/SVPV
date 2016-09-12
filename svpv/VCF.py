@@ -258,7 +258,7 @@ class BCFtools:
     def check_installation():
         cmd = ['bcftools']
         try:
-            subprocess.call(cmd)
+            subprocess.Popen(cmd)
         except OSError:
             print 'Error: could not run bcftools. Are you sure it is installed?'
             exit(1)

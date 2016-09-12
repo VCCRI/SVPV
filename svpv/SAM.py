@@ -333,7 +333,7 @@ class SAMtools:
     def check_installation():
         cmd = ['samtools']
         try:
-            subprocess.call(cmd)
+            subprocess.Popen(cmd)
         except OSError:
             print 'Error: could not run samtools. Are you sure it is installed?'
             exit(1)

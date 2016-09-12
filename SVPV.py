@@ -92,7 +92,7 @@ def check_file_exists(path):
 def test_display():
     cmd = ['display', '-version']
     try:
-        subprocess.call(cmd)
+        subprocess.Popen(cmd)
     except OSError:
         print 'Error: could not run ImageMagick via \'display\'. Are you sure it is installed?'
         exit(1)
