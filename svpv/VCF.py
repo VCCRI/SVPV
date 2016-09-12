@@ -15,7 +15,7 @@ class VCFManager:
     def __init__(self, vcf_file, name='VCF ' + str(vcf_count), db_mode=False):
         VCFManager.vcf_count += 1
         self.name = name
-        self.samples = bcftools.get_samples(vcf_file)
+        self.samples = BCFtools.get_samples(vcf_file)
         # count of svs in vcf
         self.count = 0
         #dict of Structural variants
@@ -47,7 +47,7 @@ class VCFManager:
 
     # read in all SV sites
     def set_svs(self, vcf, db_mode):
-        p = bcftools.get_SV_sites(vcf, db_mode)
+        p = BCFtools.get_SV_sites(vcf, db_mode)
         line = p.stdout.readline()
         while line:
             sv = SV.attempt_sv_parse(line.split(), db_mode)
@@ -254,8 +254,17 @@ class SV:
             out.write('\t'.join(['vcf', 'chrom', 'start', 'end', 'svtype', 'MAF']) + '\n')
 
 
-class bcftools:
-    #return a pipe to the set of sv sites
+class BCFtools:
+    @staticmethod
+    def check_installation():
+        cmd = ['bcftools']
+        try:
+            subprocess.call(cmd)
+        except OSError:
+            print 'Error: could not run bcftools. Are you sure it is installed?'
+            exit(1)
+
+    # return a pipe to the set of sv sites
     @staticmethod
     def get_SV_sites(vcf, db_mode=False):
         cmd = []

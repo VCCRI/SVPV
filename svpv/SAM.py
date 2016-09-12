@@ -321,7 +321,7 @@ class SamStats():
         sam_stats = []
         for s in sams:
             sam_stats.append(SamStats(depth_bins, bkpt_bins=bkpt_bins))
-            p = samtools_view(s, region)
+            p = SAMtools.view(s, region)
             line = p.stdout.readline()
             while line:
                 sam_stats[-1].process(SamEntry(line.split()))
@@ -329,22 +329,33 @@ class SamStats():
         return sam_stats
 
 
-def samtools_view(sam, region, include_flag=None, exclude_flag=
-        (SamEntry.duplicate + SamEntry.fails_QC + SamEntry.read_unmapped), samtools='samtools'):
-    cmd = []
-    cmd.append(samtools)
-    cmd.append('view')
-    if include_flag:
-        cmd.append('-f')
-        cmd.append(str(include_flag))
-    if exclude_flag:
-        cmd.append('-F')
-        cmd.append(str(exclude_flag))
-    cmd.append(sam)
-    cmd.append(region)
-    print ' '.join(cmd) + '\n'
-    p = subprocess.Popen(cmd, bufsize=1024, stdout=PIPE)
-    if p.poll():
-        print "Error code %d from command:\n%s\n" % (' '.join(cmd) + '\n')
-        exit(1)
-    return p
+class SAMtools:
+    @staticmethod
+    def check_installation():
+        cmd = ['samtools']
+        try:
+            subprocess.call(cmd)
+        except OSError:
+            print 'Error: could not run samtools. Are you sure it is installed?'
+            exit(1)
+
+    @staticmethod
+    def view(sam, region, include_flag=None, exclude_flag=
+            (SamEntry.duplicate + SamEntry.fails_QC + SamEntry.read_unmapped), samtools='samtools'):
+        cmd = []
+        cmd.append(samtools)
+        cmd.append('view')
+        if include_flag:
+            cmd.append('-f')
+            cmd.append(str(include_flag))
+        if exclude_flag:
+            cmd.append('-F')
+            cmd.append(str(exclude_flag))
+        cmd.append(sam)
+        cmd.append(region)
+        print ' '.join(cmd) + '\n'
+        p = subprocess.Popen(cmd, bufsize=1024, stdout=PIPE)
+        if p.poll():
+            print "Error code %d from command:\n%s\n" % (' '.join(cmd) + '\n')
+            exit(1)
+        return p

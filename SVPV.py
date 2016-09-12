@@ -7,11 +7,36 @@
 import sys
 import os
 import re
-from svpv.VCF import VCFManager
+from svpv.VCF import VCFManager, BCFtools
+from svpv.SAM import SAMtools
 from svpv.refgene import RefgeneManager
 from svpv.plot import Plot
 import svpv.GUI as GUI
 
+
+def main(argv=sys.argv):
+    print "\nStructural Variant Prediction Viewer\n"
+    if len(argv) <= 1:
+        print usage
+        exit(1)
+    BCFtools.check_installation()
+    SAMtools.check_installation()
+
+    if '-example' in argv:
+        example(gui='-gui' in argv)
+    else:
+        par = Params(argv)
+        if not par.run.all:
+            par.run.vcf.remove_absent_svs(par.run.samples)
+
+        if par.run.gui:
+            par.filter.gene_list_intersection = False
+            GUI.main(par)
+        else:
+            svs = par.run.vcf.filter_svs(par.filter, as_list=True)
+            for sv in svs:
+                plot = Plot(sv, par.run.samples, par)
+                plot.plot_figure(display=False)
 
 usage = 'Usage example:\n' \
         'SVPV.py -vcf input_svs.vcf -samples sample1,sample2 -aln alignment1.bam,alignment2.sam -o /out/directory/ \n\n' \
@@ -375,28 +400,6 @@ class PlotParams:
         if self.legend:
             args.append("-l")
         return args
-
-
-def main(argv=sys.argv):
-    print "\nStructural Variant Prediction Viewer\n"
-    if len(argv) <= 1:
-        print usage
-        exit(1)
-    if '-example' in argv:
-        example(gui='-gui' in argv)
-    else:
-        par = Params(argv)
-        if not par.run.all:
-            par.run.vcf.remove_absent_svs(par.run.samples)
-
-        if par.run.gui:
-            par.filter.gene_list_intersection = False
-            GUI.main(par)
-        else:
-            svs = par.run.vcf.filter_svs(par.filter, as_list=True)
-            for sv in svs:
-                plot = Plot(sv, par.run.samples, par)
-                plot.plot_figure(display=False)
 
 
 def example(gui):
