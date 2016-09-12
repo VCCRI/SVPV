@@ -331,9 +331,9 @@ class SamStats():
 class SAMtools:
     @staticmethod
     def check_installation():
-        cmd = ['samtools']
+        cmd = ['samtools', '--version-only']
         try:
-            subprocess.Popen(cmd)
+            subprocess.check_output(cmd)
         except OSError:
             print 'Error: could not run samtools. Are you sure it is installed?'
             exit(1)

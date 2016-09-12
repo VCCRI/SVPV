@@ -19,8 +19,10 @@ def main(argv=sys.argv):
     if len(argv) <= 1:
         print usage
         exit(1)
+
     BCFtools.check_installation()
     SAMtools.check_installation()
+    test_display()
 
     if '-example' in argv:
         example(gui='-gui' in argv)
@@ -92,7 +94,7 @@ def check_file_exists(path):
 def test_display():
     cmd = ['display', '-version']
     try:
-        subprocess.Popen(cmd)
+        subprocess.check_output(cmd)
     except OSError:
         print 'Error: could not run ImageMagick via \'display\'. Are you sure it is installed?'
         exit(1)

@@ -256,9 +256,9 @@ class SV:
 class BCFtools:
     @staticmethod
     def check_installation():
-        cmd = ['bcftools']
+        cmd = ['bcftools', '--version-only']
         try:
-            subprocess.Popen(cmd)
+            subprocess.check_output(cmd)
         except OSError:
             print 'Error: could not run bcftools. Are you sure it is installed?'
             exit(1)
