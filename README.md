@@ -10,7 +10,7 @@ Structural Variant Prediction Viewer
 
 ###Installation
 * clone this repository  
-`git clone https://github.com/VCCRI/SVPV.git /SVPV/`
+`git clone https://github.com/VCCRI/SVPV.git SVPV`
 * test everything is working  
 `python /SVPV/SVPV.py -example`
 * test the gui is working  
