@@ -209,7 +209,7 @@ class SVPVGui(tk.Tk):
     def samples_update(self, idxs):
         self.current_samples = []
         for idx in idxs:
-            self.current_samples.append(self.par.run.samples[idx])
+            self.current_samples.append(self.par.run.samples[int(idx)])
         self.genotype_selector.destroy()
         self.genotype_selector = gw.SampleGenotypeSelector(self, self.current_samples)
         self.genotype_selector.grid(row=1, column=1, sticky=tk.NSEW, padx=10)

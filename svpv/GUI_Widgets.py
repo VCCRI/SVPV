@@ -309,7 +309,7 @@ class FieldedListbox(tk.Frame):
         self.scroll.grid(row=1, column=self.c, sticky=tk.NS)
 
     def select(self, val):
-        idx = val.widget.curselection()[0]
+        idx = int(val.widget.curselection()[0])
         for lb in self.lbs:
             if self.selected_idx is not None:
                 lb.itemconfig(self.selected_idx, background='white')
@@ -331,4 +331,4 @@ class FieldedListbox(tk.Frame):
 
     # return the index of selection
     def get_selection(self):
-        return self.lbs[0].curselection()
+        return int(self.lbs[0].curselection())
