@@ -7,11 +7,11 @@ import sys
 import os
 import re
 import subprocess
+import config
 from svpv.VCF import VCFManager, BCFtools
 from svpv.SAM import SAMtools
 from svpv.refgene import RefgeneManager
 from svpv.plot import Plot
-import svpv.GUI as GUI
 
 
 def main(argv=sys.argv):
@@ -22,7 +22,6 @@ def main(argv=sys.argv):
 
     BCFtools.check_installation()
     SAMtools.check_installation()
-    test_display()
 
     if '-example' in argv:
         example(gui='-gui' in argv)
@@ -32,13 +31,14 @@ def main(argv=sys.argv):
             par.run.vcf.remove_absent_svs(par.run.samples)
 
         if par.run.gui:
+            import svpv.GUI as GUI
             par.filter.gene_list_intersection = False
             GUI.main(par)
         else:
             svs = par.run.vcf.filter_svs(par.filter, as_list=True)
             for sv in svs:
                 plot = Plot(sv, par.run.samples, par)
-                plot.plot_figure(display=False)
+                plot.plot_figure(display=par.run.display)
 
 usage = 'Usage example:\n' \
         'SVPV.py -vcf input_svs.vcf -samples sample1,sample2 -aln alignment1.bam,alignment2.sam -o /out/directory/ \n\n' \
@@ -84,20 +84,12 @@ usage = 'Usage example:\n' \
         '-af\t0/[1]\tforce allele frequency plot on or off.\n' \
         '-l\t0/[1]\tforce plot legend on or off.\n' \
 
-    # ('-d', '-or', '-v', '-ss', '-se', '-su', '-hc', '-i', '-r', '-af', '-l')
+
+
 def check_file_exists(path):
     if not os.path.isfile(path):
         print usage
         print "Error: file does not exist!\n'%s'\n" % path
-        exit(1)
-
-
-def test_display():
-    cmd = ['display', '-version']
-    try:
-        subprocess.check_output(cmd)
-    except OSError:
-        print 'Error: could not run ImageMagick via \'display\'. Are you sure it is installed?'
         exit(1)
 
 
@@ -106,6 +98,7 @@ class Params:
         self.run = RunParams()
         self.filter = FilterParams(self)
         self.plot = PlotParams()
+
 
         for i, a in enumerate(args):
             if a[0] == '-':
@@ -287,7 +280,7 @@ class RunParams:
         #set of alternate sv callsets to visualise against
         self.alt_vcf = None
         self.all = False
-        self.display = True
+        self.display = config.display.split()
 
     def get_bams(self, samples):
         bams = []
@@ -450,7 +443,8 @@ def example(gui):
     if gui:
         argv.append('-gui')
     main(argv=argv)
-    print '\nSuccess!\n'
+    if not gui:
+        print '\nSuccess!\n'
 
 if __name__ == "__main__":
     main()

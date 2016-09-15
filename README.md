@@ -2,13 +2,17 @@ Structural Variant Prediction Viewer
 ------------------------------------
 
 ###Requirements
-* Python 2.7
-  * numpy
-  * tkinter
+**Basic**  
+* Python 2.7 and numpy
 * R
 * [SAMtools and BCFtools](https://github.com/samtools) (version 1.3)
-* Linux environment, or access to linux via ssh (X11 required for GUI)
-* ImageMagick (GUI only, for viewing pdfs)
+* Linux environment, or access to linux via ssh  
+  
+**GUI**  
+* X11 if running over ssh
+* python 2.7 tkinter
+* ImageMagick ('display')
+  * or other pdf viewer specified in 'config.py'
 
 ###Installation
 * clone this repository  

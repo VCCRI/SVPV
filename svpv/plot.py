@@ -6,6 +6,7 @@
 import os
 import subprocess
 from hashlib import sha1
+import copy
 from SAM import SamStats
 from VCF import SV
 from refgene import RefGeneEntry
@@ -80,7 +81,7 @@ class Plot:
             SV.print_SVs(ref_svs, svs_file, self.par.run.ref_vcf.name)
         svs_file.close()
 
-    def plot_figure(self, display=True):
+    def plot_figure(self, display=False):
         # split into groups of 8 or less so don't go over R layout limit
         out = ''
         current_samples = self.samples[0:8]
@@ -96,11 +97,23 @@ class Plot:
             cmd.append(out)
             cmd.append('"%s at %s:%d-%d"' % (self.sv.svtype, self.sv.chrom, self.sv.start, self.sv.end))
             cmd.extend(self.par.plot.get_R_args())
-            print ' '.join(cmd) +'\n'
-            subprocess.call(cmd)
+            print ' '.join(cmd) + '\n'
+
+            try:
+                subprocess.call(cmd)
+            except OSError:
+                print 'Error: could not run Rscript. Are you sure it is installed?'
+                exit(1)
+
             if display:
-                print "display %s\n" % out
-                subprocess.Popen(["display", out])
+                cmd = copy.copy(display)
+                cmd.append(out)
+                try:
+                    subprocess.call(cmd)
+                except OSError:
+                    print 'Error: could not run %s. Are you sure it is installed?' % ' '.join(display)
+                    exit(1)
+                print ' '.join(cmd) + '\n'
             else:
                 print "created %s\n" % out
             current_samples = next_samples[0:8]
