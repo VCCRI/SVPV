@@ -51,6 +51,7 @@ usage = 'Usage example:\n' \
         '-o\t\tOutput directory.\n' \
         '[optional]\n' \
         '-gui\t\tRun in gui mode.\n' \
+        '-no_display\tdon\'t attempt to display pdf files in gui mode \n' \
         '-alt_vcf\tAlternate structural variant prediction vcf/bcf file,' \
             '\n\t\tCalled on the same set of samples as primary.\n' \
         '-ref_vcf\tReference structural variant vcf/bcf file for annotation.\n' \
@@ -138,6 +139,8 @@ class Params:
                         self.run.out_dir = args[i + 1]
                     elif a == '-gui':
                         self.run.gui = True
+                    elif a == '-no_display':
+                        self.run.display = False
                     elif a == '-ref_gene':
                         self.run.ref_genes = RefgeneManager(args[i + 1])
                         self.filter.ref_genes = self.run.ref_genes
@@ -265,7 +268,7 @@ class Params:
 
 # class to store run parameters
 class RunParams:
-    valid = ('-vcf','-aln', '-samples', '-manifest', '-o', '-gui', '-ref_gene', '-ref_vcf', '-alt_vcf')
+    valid = ('-vcf','-aln', '-samples', '-manifest', '-o', '-gui', '-ref_gene', '-ref_vcf', '-alt_vcf', '-no_display')
     def __init__(self):
         # path to vcf
         self.vcf = None
@@ -284,6 +287,7 @@ class RunParams:
         #set of alternate sv callsets to visualise against
         self.alt_vcf = None
         self.all = False
+        self.display = True
 
     def get_bams(self, samples):
         bams = []

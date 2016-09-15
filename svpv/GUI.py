@@ -197,7 +197,7 @@ class SVPVGui(tk.Tk):
             self.info_box.message.config(text="Error: No Samples Selected")
         else:
             plot = Plot(self.svs[self.sv_chooser.sv_fl.selected_idx], self.current_samples, self.par)
-            self.filename = plot.plot_figure()
+            self.filename = plot.plot_figure(display=self.par.run.display)
 
     def window_size(self):
         sw = self.winfo_screenwidth()
