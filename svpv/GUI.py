@@ -111,10 +111,13 @@ class SVPVGui(tk.Tk):
         self.sv_chooser.grid(row=4, column=0, sticky=tk.NSEW, padx=10, columnspan=2)
 
     def set_info_box(self, message=''):
+        if self.info_box:
+            self.info_box.destroy()
         self.info_box = gw.InfoBox(self, message)
         self.info_box.grid(row=6, column=0, sticky=tk.NSEW, padx=10, columnspan=2)
 
     def reset(self):
+        self.set_info_box()
         self.current_samples = []
         self.set_genotype_selector()
         self.filters.reset()
@@ -122,9 +125,11 @@ class SVPVGui(tk.Tk):
         self.set_sv_chooser()
 
     def view_gts(self):
+        self.set_info_box()
         self.info_box.genotypes(self.svs[self.sv_chooser.sv_fl.selected_idx], self.par.run.vcf.samples, self.par.run.samples)
 
     def apply_filters(self):
+        self.set_info_box()
         self.par.filter.sample_GTs = {}
         if self.genotype_selector.GT_CBs:
             for i, gt_cb in enumerate(self.genotype_selector.GT_CBs):
@@ -193,8 +198,11 @@ class SVPVGui(tk.Tk):
         self.set_sv_chooser()
 
     def view_sv(self):
+        self.set_info_box()
         if not self.current_samples:
             self.info_box.message.config(text="Error: No Samples Selected")
+        elif not self.sv_chooser.sv_fl.selected_idx:
+            self.info_box.message.config(text="Error: No SV Selected")
         else:
             plot = Plot(self.svs[self.sv_chooser.sv_fl.selected_idx], self.current_samples, self.par)
             self.filename = plot.plot_figure(display=self.par.run.display)
@@ -207,6 +215,7 @@ class SVPVGui(tk.Tk):
         self.geometry('+%d+%d' % (x, y))
 
     def samples_update(self, idxs):
+        self.set_info_box()
         self.current_samples = []
         for idx in idxs:
             self.current_samples.append(self.par.run.samples[int(idx)])
