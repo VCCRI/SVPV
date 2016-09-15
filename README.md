@@ -1,5 +1,6 @@
 Structural Variant Prediction Viewer  
 ------------------------------------
+View predicted structural variant regions from sequence alignment files. Statistics related to structural variants are presented in a form that allows for visual identification of good calls and bad calls. Input is alignment files (SAM/BAM/CRAM format) and structural variant predictions (VCF files). Output is pdf of structural variant regions.
 
 ###Requirements
 **Basic**  
