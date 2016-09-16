@@ -1,6 +1,8 @@
 Structural Variant Prediction Viewer  
 ------------------------------------
-View predicted structural variant regions from sequence alignment files. Statistics related to structural variants are presented in a form that allows for visual identification of good calls and bad calls. Input is alignment files (SAM/BAM/CRAM format) and structural variant predictions (VCF files). Output is pdf of structural variant regions.
+View predicted structural variant regions from sequence alignment files and compare calls from differenct structural variant prediction algorithms. Statistics related to structural variants are presented in a form that allows users to visually identify false postive calls. Input is a set alignment files (SAM/BAM/CRAM format), and a set of structural variant predictions on these alignments (VCF files). Output is a set of pdf files of structural variant regions.
+
+Deletions (DEL), duplications (DUP), copy number variations (CNV) and inversions (INV) are supported. Translocations (TRA) are not supported.
 
 ###Requirements
 **Basic**  
@@ -37,15 +39,17 @@ Run args: | Description | Notes
 ----------|-------------|------
 -vcf | Primary structural variant prediction vcf/bcf file | required
 -o | Output directory | required
--aln | Comma separated list of alignment files | required*
--samples | Comma separated list of samples to view, names must be the same as in vcf | required*
+-aln | Comma separated list of alignment files | required <sup>1</sup>
+-samples | Comma separated list of samples to view, names must be the same as in vcf | required <sup>1</sup>
 -gui | run in gui mode | optional
 -no_display | don't attempt to display pdf files in gui mode | optional  
 -alt_vcf | Alternate structural variant prediction vcf/bcf file, <br> called on the same set of samples as primary | optional
 -ref_vcf | Reference structural variant vcf/bcf file for annotation | optional
--ref_gene | Refseq genes file for annotation | optional
--manifest | Whitespace delimited file, first column sample names, <br> second column alignment file path. Overrides '-samples' and '-aln' if also given. | optional
-*'-samples' and '-aln' not required if '-manifest' is supplied.  
+-ref_gene | <sup>2</sup>Refseq genes regene table file for annotation | optional
+-manifest | Whitespace delimited file, first column sample names, <br> second column alignment file path. Overrides '-samples' and '-aln' if also given. | optional  
+<sup>1</sup>'-samples' and '-aln' not required if '-manifest' is supplied.  
+<sup>2</sup> Availble for a variety of reference geneomes at [UCSC Table Browser] (https://genome.ucsc.edu/cgi-bin/hgTables)  
+<br>
 
 Filter args: | Description | Example  
 -------------|-------------|---------
@@ -57,6 +61,7 @@ Filter args: | Description | Example
 -svtype | Restrict to given SV type (DEL/DUP/CNV/INV)
 -rgi | Restrict to SVs that intersect refGenes, <br>'-ref_gene' must be supplied
 -exonic | Restrict to SVs that intersect exons of refGenes, <br>'-ref_gene' must be supplied
+<br>
 
 Plot args: | Default | Description
 -----------|---------|------------
@@ -71,7 +76,7 @@ Plot args: | Default | Description
 -r | 1 | force refgenes plot on or off
 -af | 1 | force allele frequency plot on or off
 -l | 1 | force plot legend on or off
-
+<br>
 **extended example:**  
 ```
 python SVPV.py -vcf caller1_svs.vcf -samples sample1,sample2,sample3 -aln alignment1.bam,alignment2.bam,alignment3.bam -o /out/directory/ -alt_vcf caller2_svs.vcf -ref_vcf 1000_genomes_svs.vcf -ref_gene hg38.refgene.txt -max_len 100000 -af <0.25 -gts sample1:1/1,0/1;sample3:0/0 -svtype DEL -exonic -ss 0 -se 1
