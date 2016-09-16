@@ -39,7 +39,7 @@ Run args: | Description | Notes
 -o | Output directory | required
 -aln | Comma separated list of alignment files | required*
 -samples | Comma separated list of samples to view, names must be the same as in vcf | required*
--gui | run in gui mode. | optional
+-gui | run in gui mode | optional
 -no_display | don't attempt to display pdf files in gui mode | optional  
 -alt_vcf | Alternate structural variant prediction vcf/bcf file, <br> called on the same set of samples as primary | optional
 -ref_vcf | Reference structural variant vcf/bcf file for annotation | optional
