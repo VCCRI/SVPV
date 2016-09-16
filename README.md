@@ -6,7 +6,7 @@ Deletions (DEL), duplications (DUP), copy number variations (CNV) and inversions
 
 ###Requirements
 **Basic**  
-* Python 2.7 and numpy
+* Python 2.7 and NumPy
 * R
 * [SAMtools and BCFtools](https://github.com/samtools) (version 1.3)
 * Linux environment, or access to linux via ssh  
