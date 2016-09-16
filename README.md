@@ -2,7 +2,7 @@ Structural Variant Prediction Viewer
 ------------------------------------
 View predicted structural variant regions from sequence alignment files and compare calls from differenct structural variant prediction algorithms. Statistics related to structural variants are presented in a form that allows users to visually identify false postive calls. Input is a set alignment files (SAM/BAM/CRAM format), and a set of structural variant predictions on these alignments (VCF files). Output is a set of pdf files of structural variant regions.
 
-Deletions (DEL), duplications (DUP), copy number variations (CNV) and inversions (INV) are supported. Translocations (TRA) are not supported.
+Deletions (DEL), duplications (DUP), copy number variations (CNV) and inversions (INV) are supported. Translocations (TRA) and insertions (INS) are not supported.
 
 ###Requirements
 **Basic**  
