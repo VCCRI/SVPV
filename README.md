@@ -48,9 +48,13 @@ python SVPV.py -vcf input_svs.vcf -samples sample1,sample2 -aln alignment1.bam,a
 |-ref_vcf<sup>1</sup> | Reference structural variant vcf/bcf file for annotation                  | optional |
 |-ref_gene            | <sup>3</sup>Refseq genes regene table file for annotation                 | optional |
 |-manifest            | Whitespace delimited file, first column sample names, <br> second column alignment file path. Overrides '-samples' and '-aln' if also given. | optional 
-<sup>1</sup> vcfs may be by a file (e.g. '-vcf /path/to/file.vcf') or by a name and a file (e.g. '-vcf delly:/path/to/file') 
-<sup>2</sup>'-samples' and '-aln' not required if '-manifest' is supplied.  
-<sup>3</sup> Availble for a variety of reference geneomes at [UCSC Table Browser](https://genome.ucsc.edu/cgi-bin/hgTables)  
+
+<sup>1</sup> vcfs may be specified by a file (e.g. '-vcf /path/to/file.vcf') or by a name and a file (e.g. '-vcf delly:/path/to/file'). If not specified names will be 'primary', 'alternate' and 'reference' by default.
+
+<sup>2</sup>'-samples' and '-aln' not required if '-manifest' is supplied.
+
+<sup>3</sup> Availble for a variety of reference geneomes at [UCSC Table Browser](https://genome.ucsc.edu/cgi-bin/hgTables)
+
 <br>
 
 |Filter args: | Description                                     | Example                     |

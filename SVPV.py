@@ -110,14 +110,14 @@ class Params:
                             self.run.vcf = VCFManager(args[i + 1].split(':')[1], name=args[i + 1].split(':')[0])
                         else:
                             check_file_exists(args[i + 1])
-                            self.run.vcf = VCFManager(args[i + 1])
+                            self.run.vcf = VCFManager(args[i + 1], name='primary')
                     elif a == '-alt_vcf':
                         if ':' in args[i + 1]:
                             check_file_exists(args[i + 1].split(':')[1])
                             self.run.alt_vcf = VCFManager( args[i + 1].split(':')[1], name=args[i + 1].split(':')[0])
                         else:
                             check_file_exists(args[i + 1])
-                            self.run.alt_vcf = VCFManager(args[i + 1])
+                            self.run.alt_vcf = VCFManager(args[i + 1], name='alternate')
                     elif a == '-aln':
                         self.run.alns = args[i + 1].split(',')
                     elif a == '-all':
@@ -143,7 +143,7 @@ class Params:
                             self.run.ref_vcf = VCFManager(args[i + 1].split(':')[1], name=args[i + 1].split(':')[0], db_mode=True)
                         else:
                             check_file_exists(args[i + 1])
-                            self.run.ref_vcf = VCFManager(args[i + 1], db_mode=True)
+                            self.run.ref_vcf = VCFManager(args[i + 1], name='reference', db_mode=True)
 
                 # set filter parameters
                 elif a in FilterParams.valid:
