@@ -33,7 +33,7 @@ Running in GUI mode allows users to select and view individual structural varian
 
 **example:**  
 ```
-python SVPV.py -vcf input_svs.vcf -samples sample1,sample2 -aln alignment1.bam,alignment2.sam -o /out/directory/
+python SVPV.py -gui -o ./example/output/ -vcf delly:./example/delly.vcf -alt_vcf cnvnator:./example/cnvnator.vcf -manifest ./example/example.manifest -ref_gene ./example/hg38.refgene.partial.txt -ref_vcf ./example/1000G.vcf
 ```
 
 |Run args:            | Description                                                               | Notes    |
@@ -46,16 +46,15 @@ python SVPV.py -vcf input_svs.vcf -samples sample1,sample2 -aln alignment1.bam,a
 |-no_display          | don't attempt to display pdf files in gui mode                            | optional |
 |-alt_vcf<sup>1</sup> | Alternate structural variant prediction vcf/bcf file, <br> called on the same set of samples as primary   | optional
 |-ref_vcf<sup>1</sup> | Reference structural variant vcf/bcf file for annotation                  | optional |
-|-ref_gene            | <sup>3</sup>Refseq genes regene table file for annotation                 | optional |
+|-ref_gene            | Refseq genes regene table file for annotation<sup>3</sup>                 | optional |
 |-manifest            | Whitespace delimited file, first column sample names, <br> second column alignment file path. Overrides '-samples' and '-aln' if also given. | optional 
 
 <sup>1</sup> vcfs may be specified by a file (e.g. '-vcf /path/to/file.vcf') or by a name and a file (e.g. '-vcf delly:/path/to/file'). If not specified names will be 'primary', 'alternate' and 'reference' by default.
 
-<sup>2</sup>'-samples' and '-aln' not required if '-manifest' is supplied.
+<sup>2</sup>' -samples' and '-aln' not required if '-manifest' is supplied.
 
 <sup>3</sup> Availble for a variety of reference geneomes at [UCSC Table Browser](https://genome.ucsc.edu/cgi-bin/hgTables)
 
-<br>
 
 |Filter args: | Description                                     | Example                     |
 ------------- |-------------------------------------------------|-----------------------------|
@@ -67,7 +66,8 @@ python SVPV.py -vcf input_svs.vcf -samples sample1,sample2 -aln alignment1.bam,a
 | -svtype     | Restrict to given SV type (DEL/DUP/CNV/INV)     |                             |
 | -rgi        | Restrict to SVs that intersect refGenes, <br>'-ref_gene' must be supplied  |  |
 | -exonic     | Restrict to SVs that intersect exons of refGenes, <br>'-ref_gene' must be supplied  |
-<br>
+
+
 
 |Plot args: | Default | Description                                        |
 |-----------|---------|----------------------------------------------------|
@@ -82,7 +82,8 @@ python SVPV.py -vcf input_svs.vcf -samples sample1,sample2 -aln alignment1.bam,a
 |-r         | 1       | force refgenes plot on or off                      |
 |-af        | 1       | force allele frequency plot on or off              | 
 |-l         | 1       | force plot legend on or off                        |
-<br>
+
+
 
 **extended example:**  
 ```
