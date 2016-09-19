@@ -152,7 +152,7 @@ add_legend <- function() {
   bottom = 0.20
   top = bottom + 0.20
   # depth legend
-  rect(c((1 / 6 - 0.1), (3 / 6 - 0.1), (5 / 6 - 0.1)), bottom, c((1 / 6 + 0.1), (3 / 6 + 0.1), (5 / 6 + 0.1)), top,  col = c('seagreen3', 'darkolivegreen1', 'gray95'))
+  rect(c((1 / 6 - 0.1), (3 / 6 - 0.1), (5 / 6 - 0.1)), bottom, c((1 / 6 + 0.1), (3 / 6 + 0.1), (5 / 6 + 0.1)), top,  col = c('#74C476', 'khaki1', 'gray95'))
   text( c((1 / 6), (3 / 6), (5 / 6)), c(top + 0.1), pos = 3, labels = c(">= 30", "< 30", "= 0") )
   
   # inferred insert size legend
@@ -276,14 +276,14 @@ plot_insert_sizes <- function(fwd_ins, rvs_ins, ylim, split, num_y_bins = 10) {
   par(las = 1)
   plot_binned_inserts(fwd_bins, num_y_bins, split)
   axis(2, at = 10 * ticks_at / ylim,  labels = as.character(ticks_at),  line = -1)
-  title(ylab=paste0('forward\ninsert\nlength (', units$sym, ')'), line=2)
+  title(ylab=paste0('forward\nmapping\ndistance\n (', units$sym, ')'), line=1)
   par(xpd = NA)
   text(0, num_y_bins + 0.5, labels =">", cex = 0.85, pos = 2)
   
   # plot binned reverse inserts
   plot_binned_inserts(rvs_bins, num_y_bins, split)
   axis( 2, at = 10 * ticks_at / ylim,  labels = as.character(ticks_at), line = -1)
-  title(ylab=paste0('reverse\ninsert\nlength (', units$sym, ')'), line=2)
+  title(ylab=paste0('reverse\nmapping\ndistance\n (', units$sym, ')'), line=1)
   text(0, num_y_bins + 0.5, labels =">", cex = 0.85, pos = 2)
   par(xpd = FALSE)
 }
@@ -311,14 +311,14 @@ plot_svs <- function(svs, xlims, tracks, AF=TRUE) {
     if (!AF){
       rect(start, bottom + spacer, end, top - spacer, col=get_sv_col(svs$svtype[i], 0.8*(0.5*grepl('1', svs$gt[i]) + 0.5*grepl('1/1', svs$gt[i]))), border=get_sv_col(svs$svtype[i], 1), lwd=2)
       if (x_prop > 1/5){
-        text(  0.5 * (max(xlims[1], svs$start[i]) + min(xlims[2], svs$end[i])), ((tracks[i] - 0.5) * scale), labels = paste(svs$svtype[i], ':', svs$gt[i], ':', as.character(svs$end[i] - svs$start[i]), 'bp' ))
+        text(  0.5 * (max(xlims[1], svs$start[i]) + min(xlims[2], svs$end[i])), ((tracks[i] - 0.5) * scale), labels = paste(svs$svtype[i], ':', svs$gt[i], ':', as.character(svs$end[i] - svs$start[i] + 1), 'bp' ))
       } else {
         text(  0.5 * (max(xlims[1], svs$start[i]) + min(xlims[2], svs$end[i])), ((tracks[i] - 0.5) * scale), labels = svs$gt[i])
       }
     } else {
       rect(start, bottom + spacer, end, top - spacer, col=get_sv_col(svs$svtype[i], as.numeric(svs$MAF[i])), border=get_sv_col(svs$svtype[i], 1), lwd=2)
       if (x_prop > 1/5){
-        len <- svs$end[i] - svs$start[i]
+        len <- svs$end[i] - svs$start[i] + 1
         units = get_units(len)
         text(0.5 * (start + end), 0.5 * (top + bottom), labels = paste0(svs$svtype[i], ' : AF = ', as.character(round(as.numeric(svs$MAF[i]), digits = 3)), ' : ',as.character(round(len/units$val, digits=2)), " ", units$sym))
       } else if (x_prop > 1/10){
