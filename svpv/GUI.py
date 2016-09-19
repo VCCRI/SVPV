@@ -201,7 +201,7 @@ class SVPVGui(tk.Tk):
         self.set_info_box()
         if not self.current_samples:
             self.info_box.message.config(text="Error: No Samples Selected")
-        elif not self.sv_chooser.sv_fl.selected_idx:
+        elif self.sv_chooser.sv_fl.selected_idx is None:
             self.info_box.message.config(text="Error: No SV Selected")
         else:
             plot = Plot(self.svs[self.sv_chooser.sv_fl.selected_idx], self.current_samples, self.par)

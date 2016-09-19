@@ -36,20 +36,21 @@ Running in GUI mode allows users to select and view individual structural varian
 python SVPV.py -vcf input_svs.vcf -samples sample1,sample2 -aln alignment1.bam,alignment2.sam -o /out/directory/
 ```
 
-|Run args:   | Description                                                               | Notes    |
-|------------|---------------------------------------------------------------------------|----------|
-|-vcf        | Primary structural variant prediction vcf/bcf file                        | required |
-|-o          | Output directory                                                          | required |
-|-aln        | Comma separated list of alignment files                                   | required <sup>1</sup>
-|-samples    | Comma separated list of samples to view, names must be the same as in vcf | required <sup>1</sup>
-|-gui        | run in gui mode                                                           | optional |
-|-no_display | don't attempt to display pdf files in gui mode                            | optional |
-|-alt_vcf    | Alternate structural variant prediction vcf/bcf file, <br> called on the same set of samples as primary | optional
-|-ref_vcf    | Reference structural variant vcf/bcf file for annotation                  | optional |
-|-ref_gene   | <sup>2</sup>Refseq genes regene table file for annotation                 | optional |
-|-manifest   | Whitespace delimited file, first column sample names, <br> second column alignment file path. Overrides '-samples' and '-aln' if also given. | optional  
-<sup>1</sup>'-samples' and '-aln' not required if '-manifest' is supplied.  
-<sup>2</sup> Availble for a variety of reference geneomes at [UCSC Table Browser](https://genome.ucsc.edu/cgi-bin/hgTables)  
+|Run args:            | Description                                                               | Notes    |
+|---------------------|---------------------------------------------------------------------------|----------|
+|-vcf<sup>1</sup>     | Primary structural variant prediction vcf/bcf file                        | required |
+|-o                   | Output directory                                                          | required |
+|-aln                 | Comma separated list of alignment files                                   | required <sup>2</sup>
+|-samples             | Comma separated list of samples to view, names must be the same as in vcf | required <sup>2</sup>
+|-gui                 | run in gui mode                                                           | optional |
+|-no_display          | don't attempt to display pdf files in gui mode                            | optional |
+|-alt_vcf<sup>1</sup> | Alternate structural variant prediction vcf/bcf file, <br> called on the same set of samples as primary   | optional
+|-ref_vcf<sup>1</sup> | Reference structural variant vcf/bcf file for annotation                  | optional |
+|-ref_gene            | <sup>3</sup>Refseq genes regene table file for annotation                 | optional |
+|-manifest            | Whitespace delimited file, first column sample names, <br> second column alignment file path. Overrides '-samples' and '-aln' if also given. | optional 
+<sup>1</sup> vcfs may be by a file (e.g. '-vcf /path/to/file.vcf') or by a name and a file (e.g. '-vcf delly:/path/to/file') 
+<sup>2</sup>'-samples' and '-aln' not required if '-manifest' is supplied.  
+<sup>3</sup> Availble for a variety of reference geneomes at [UCSC Table Browser](https://genome.ucsc.edu/cgi-bin/hgTables)  
 <br>
 
 |Filter args: | Description                                     | Example                     |

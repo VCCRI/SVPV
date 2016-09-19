@@ -114,7 +114,7 @@ class Params:
                     elif a == '-alt_vcf':
                         if ':' in args[i + 1]:
                             check_file_exists(args[i + 1].split(':')[1])
-                            self.run.alt_vcf = VCFManager( args[i + 1].split(':')[1], name= args[i + 1].split(':')[0])
+                            self.run.alt_vcf = VCFManager( args[i + 1].split(':')[1], name=args[i + 1].split(':')[0])
                         else:
                             check_file_exists(args[i + 1])
                             self.run.alt_vcf = VCFManager(args[i + 1])
