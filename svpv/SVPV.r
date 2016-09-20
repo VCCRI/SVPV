@@ -10,7 +10,7 @@ PlotParams <- function(args) {
     hardclipped = ('-hc' %in% args),
     ins = ('-i' %in% args),
     refgene = ('-r' %in% args),
-    svMAF = ('-af' %in% args),
+    svAF = ('-af' %in% args),
     legend = ('-l' %in% args)
   )
   class(this) <- append(class(this), "PlotParams")
@@ -287,7 +287,7 @@ plot_insert_sizes <- function(fwd_ins, rvs_ins, ylim, split, num_y_bins = 10) {
   text(0, num_y_bins + 0.5, labels =">", cex = 0.85, pos = 2)
   par(xpd = FALSE)
 }
-
+# plot structural variants
 plot_svs <- function(svs, xlims, tracks, AF=TRUE) {
   empty_plot(xlims)
   add_border(xlims,c(0,1))
@@ -308,19 +308,20 @@ plot_svs <- function(svs, xlims, tracks, AF=TRUE) {
     top <- ((tracks[i]) * scale)
     spacer = 0.1*(top-bottom)
     # label the sv, if it is of sufficient length to not overlap bounds
+    len <- svs$end[i] - svs$start[i] + 1
+    units <- get_units(len)
+
     if (!AF){
       rect(start, bottom + spacer, end, top - spacer, col=get_sv_col(svs$svtype[i], 0.8*(0.5*grepl('1', svs$gt[i]) + 0.5*grepl('1/1', svs$gt[i]))), border=get_sv_col(svs$svtype[i], 1), lwd=2)
       if (x_prop > 1/5){
-        text(  0.5 * (max(xlims[1], svs$start[i]) + min(xlims[2], svs$end[i])), ((tracks[i] - 0.5) * scale), labels = paste(svs$svtype[i], ':', svs$gt[i], ':', as.character(svs$end[i] - svs$start[i] + 1), 'bp' ))
+        text(  0.5 * (max(xlims[1], svs$start[i]) + min(xlims[2], svs$end[i])), ((tracks[i] - 0.5) * scale), labels = paste(svs$svtype[i], ':', svs$gt[i], ':', as.character(round(len/units$val, digits=2)), " ", units$sym))
       } else {
         text(  0.5 * (max(xlims[1], svs$start[i]) + min(xlims[2], svs$end[i])), ((tracks[i] - 0.5) * scale), labels = svs$gt[i])
       }
     } else {
       rect(start, bottom + spacer, end, top - spacer, col=get_sv_col(svs$svtype[i], as.numeric(svs$MAF[i])), border=get_sv_col(svs$svtype[i], 1), lwd=2)
       if (x_prop > 1/5){
-        len <- svs$end[i] - svs$start[i] + 1
-        units = get_units(len)
-        text(0.5 * (start + end), 0.5 * (top + bottom), labels = paste0(svs$svtype[i], ' : AF = ', as.character(round(as.numeric(svs$MAF[i]), digits = 3)), ' : ',as.character(round(len/units$val, digits=2)), " ", units$sym))
+        text(0.5 * (start + end), 0.5 * (top + bottom), labels = paste0(svs$svtype[i], ' : AF = ', as.character(round(as.numeric(svs$MAF[i]), digits = 3)), ' : ', as.character(round(len/units$val, digits=2)), " ", units$sym))
       } else if (x_prop > 1/10){
         text(0.5 * (start + end), 0.5 * (top + bottom), labels = paste0('AF = ', as.character(round(as.numeric(svs$MAF[i]), digits = 3))))
       }
@@ -329,11 +330,12 @@ plot_svs <- function(svs, xlims, tracks, AF=TRUE) {
   par(font = 1)
 }
 
+# for getting sv col based on genotype
 gt_to_intensity <- function(gt){
   if (grepl("0/1", gt)){
     return(0.3)
   } else if (grepl("0/1", gt)){
-    return(1)
+    return(0.8)
   } else {
     return(0)
   }
@@ -552,7 +554,7 @@ get_plot_layout <- function(plot_params, annotations, num_samples, vcfs_per_samp
       heights <- c(heights, 1)
     }
     # add in heights for SV_AF tracks
-    if (plot_params$svMAF) {
+    if (plot_params$svAF) {
       for (i in 1:length(annotations$SV_AF)) {
         heights <- c(heights, 1.5*max(annotations$AF_tracks[[i]]))
       }
@@ -601,7 +603,7 @@ visualise <- function(folder, sample_names, args, outfile, title='') {
     plot_sample(samples[[i]], plot_params, Ins_ylim)
   }
   # add in heights for SVMAF tracks
-  if (plot_params$svMAF) {
+  if (plot_params$svAF) {
     for (i in 1:length(annotations$SV_AF)) {
       plot_svs(annotations$SV_AF[[i]], xlims, annotations$AF_tracks[[i]])
     }

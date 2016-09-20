@@ -309,7 +309,7 @@ class SamStats():
 
     # returns a list of sam_stats corresponding to the list of bams given for this position
     @staticmethod
-    def get_sam_stats(chrom, start, end, sams, num_bins=100, breakpoints=None, num_bkpt_bins=50):
+    def get_sam_stats(chrom, start, end, sams, num_bins=100, breakpoints=None):
         depth_bins = Bins(start, end, ideal_num_bins=num_bins)
         region = chrom + ':' + str(depth_bins.start) + '-' + str(depth_bins.end)
         bkpt_bins = []

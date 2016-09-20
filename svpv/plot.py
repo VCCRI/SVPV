@@ -108,12 +108,12 @@ class Plot:
             if display:
                 cmd = copy.copy(display)
                 cmd.append(out)
+                print ' '.join(cmd) + '\n'
                 try:
                     subprocess.call(cmd)
                 except OSError:
                     print 'Error: could not run %s. Are you sure it is installed?' % ' '.join(display)
                     exit(1)
-                print ' '.join(cmd) + '\n'
             else:
                 print "created %s\n" % out
             current_samples = next_samples[0:8]
@@ -149,5 +149,3 @@ class Plot:
             return '%d_%s' % (length/1e6, 'Mbp')
         else:
             return '%d_%s' % (length/1e9, 'Gbp')
-
-

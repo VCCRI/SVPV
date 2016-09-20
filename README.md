@@ -38,12 +38,12 @@ python SVPV.py -gui -o ./example/output/ -vcf delly:./example/delly.vcf -alt_vcf
 
 |Run args:            | Description                                                               | Notes    |
 |---------------------|---------------------------------------------------------------------------|----------|
-|-vcf<sup>1</sup>     | Primary structural variant prediction vcf/bcf file                        | required |
+|-vcf<sup>1</sup>     | Primary structural variant prediction VCF/BCF file                        | required |
 |-o                   | Output directory                                                          | required |
-|-aln                 | Comma separated list of alignment files                                   | required <sup>2</sup>
-|-samples             | Comma separated list of samples to view, names must be the same as in vcf | required <sup>2</sup>
+|-aln                 | Comma separated list of alignment files (indexed BAM/CRAM)                | required <sup>2</sup>
+|-samples             | Comma separated list of samples to view, names must be the same as in VCF | required <sup>2</sup>
 |-gui                 | run in gui mode                                                           | optional |
-|-no_display          | don't attempt to display pdf files in gui mode                            | optional |
+|-no_display          | don't attempt to display pdf files in GUI mode                            | optional |
 |-alt_vcf<sup>1</sup> | Alternate structural variant prediction vcf/bcf file, <br> called on the same set of samples as primary   | optional
 |-ref_vcf<sup>1</sup> | Reference structural variant vcf/bcf file for annotation                  | optional |
 |-ref_gene            | Refseq genes regene table file for annotation<sup>3</sup>                 | optional |

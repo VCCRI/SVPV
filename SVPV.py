@@ -6,7 +6,6 @@
 import sys
 import os
 import re
-import subprocess
 import config
 from svpv.VCF import VCFManager, BCFtools
 from svpv.SAM import SAMtools
@@ -45,7 +44,7 @@ usage = 'Usage example:\n' \
         'Run args:\n' \
         '[required]\n' \
         '-vcf\t\tPrimary structural variant prediction vcf/bcf file.\n' \
-        '-aln\t\tComma separated list of alignment files.\n' \
+        '-aln\t\tComma separated list of alignment files (BAM/CRAM).\n' \
         '-samples\tComma separated list of samples to view,' \
             '\n\t\tNames must be the same as in vcf.\n' \
         '-o\t\tOutput directory.\n' \
@@ -83,7 +82,6 @@ usage = 'Usage example:\n' \
         '-r\t0/[1]\tforce refgenes plot on or off.\n' \
         '-af\t0/[1]\tforce allele frequency plot on or off.\n' \
         '-l\t0/[1]\tforce plot legend on or off.\n' \
-
 
 
 def check_file_exists(path):
