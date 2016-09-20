@@ -40,8 +40,12 @@ python SVPV.py -gui -o ./example/output/ -vcf delly:./example/delly.vcf -alt_vcf
 |---------------------|---------------------------------------------------------------------------|----------|
 |-vcf<sup>1</sup>     | Primary structural variant prediction VCF/BCF file                        | required |
 |-o                   | Output directory                                                          | required |
+<<<<<<< HEAD
 |-aln                 | Comma separated list of alignment files (indexed BAM/CRAM)                | required <sup>2</sup>
 |-samples             | Comma separated list of samples to view, names must be the same as in VCF | required <sup>2</sup>
+=======
+|-aln                 | Comma separated list of alignment files                                   | required<sup>2</sup>
+|-samples             | Comma separated list of samples to view, names must be the same as in vcf | required<sup>2</sup>
 |-gui                 | run in gui mode                                                           | optional |
 |-no_display          | don't attempt to display pdf files in GUI mode                            | optional |
 |-alt_vcf<sup>1</sup> | Alternate structural variant prediction vcf/bcf file, <br> called on the same set of samples as primary   | optional
@@ -49,11 +53,11 @@ python SVPV.py -gui -o ./example/output/ -vcf delly:./example/delly.vcf -alt_vcf
 |-ref_gene            | Refseq genes regene table file for annotation<sup>3</sup>                 | optional |
 |-manifest            | Whitespace delimited file, first column sample names, <br> second column alignment file path. Overrides '-samples' and '-aln' if also given. | optional 
 
-<sup>1</sup> vcfs may be specified by a file (e.g. '-vcf /path/to/file.vcf') or by a name and a file (e.g. '-vcf delly:/path/to/file'). If not specified names will be 'primary', 'alternate' and 'reference' by default.
+<sup>1</sup>vcfs may be specified by a file (e.g. '-vcf /path/to/file.vcf') or by a name and a file (e.g. '-vcf delly:/path/to/file'). If not specified names will be 'primary', 'alternate' and 'reference' by default.
 
-<sup>2</sup>' -samples' and '-aln' not required if '-manifest' is supplied.
+<sup>2</sup>'-samples' and '-aln' not required if '-manifest' is supplied.
 
-<sup>3</sup> Availble for a variety of reference geneomes at [UCSC Table Browser](https://genome.ucsc.edu/cgi-bin/hgTables)
+<sup>3</sup>Availble for a variety of reference genomes at [UCSC Table Browser](https://genome.ucsc.edu/cgi-bin/hgTables)
 
 
 |Filter args: | Description                                     | Example                     |
