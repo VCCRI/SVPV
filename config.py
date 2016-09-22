@@ -1,11 +1,19 @@
-#if you want to restore to default simply redownload this file from github
+# if you want to revert to default simply re-download this file from github
 
-# x11 pdf viewer, full path to executable or program name
+# pdf viewer, full path to executable or program name
+# must work with x11 if using ssh
+# default = 'display'
 display='display'
 
 # expected library insert size in bp
-# not very important, but can optimise visualisation in some situations
+# not crucial, but can optimise visualisation in some situations
+# default = 500
 is_len=500
 
-# expansion of window surrounding sv (as a proportion or sv length
+# proportion of sv size to extend window to left and right
+# default = 1
 expansion=1
+
+# number of bins to split the region into
+# default = 100
+num_bins=100

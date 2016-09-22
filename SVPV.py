@@ -37,7 +37,7 @@ def main(argv=sys.argv):
             svs = par.run.vcf.filter_svs(par.filter, as_list=True)
             for sv in svs:
                 plot = Plot(sv, par.run.samples, par)
-                plot.plot_figure(display=par.run.display)
+                plot.plot_figure()
 
 usage = 'Usage example:\n' \
         'SVPV.py -vcf input_svs.vcf -samples sample1,sample2 -aln alignment1.bam,alignment2.sam -o /out/directory/ \n\n' \
@@ -82,6 +82,7 @@ usage = 'Usage example:\n' \
         '-r\t0/[1]\tforce refgenes plot on or off.\n' \
         '-af\t0/[1]\tforce allele frequency plot on or off.\n' \
         '-l\t0/[1]\tforce plot legend on or off.\n' \
+        '\n\nNote: additional parameters can be adjusted by editing \'config.py\'.\n'
 
 
 def check_file_exists(path):
@@ -277,7 +278,26 @@ class RunParams:
         #set of alternate sv callsets to visualise against
         self.alt_vcf = None
         self.all = False
-        self.display = config.display.split()
+
+        # get configurations
+        # include defaults in case they are accidentally deleted
+        try:
+            self.display = config.display.split()
+        except AttributeError:
+            self.display = ['display']
+        try:
+            self.is_len = config.is_len
+        except AttributeError:
+            self.is_len = 500
+        try:
+            self.expansion = config.expansion
+        except AttributeError:
+            self.expansion = 1
+        try:
+            self.num_bins = config.num_bins
+        except AttributeError:
+            self.num_bins = 100
+
 
     def get_bams(self, samples):
         bams = []

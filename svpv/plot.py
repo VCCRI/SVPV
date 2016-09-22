@@ -15,22 +15,23 @@ from refgene import RefGeneEntry
 class Plot:
     svpv_r = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'SVPV.r')
 
-    def __init__(self, sv, samples, par, expansion=1, num_bins=100, is_len=500, breakpoint_zoom=True):
+    def __init__(self, sv, samples, par, breakpoint_zoom=True):
         self.par = par
         self.sv = sv
-        self.start = sv.start - expansion * (sv.end - sv.start + 1)
-        self.end = sv.end + expansion * (sv.end - sv.start + 1)
+        self.start = sv.start - par.run.expansion * (sv.end - sv.start + 1)
+        self.end = sv.end + par.run.expansion * (sv.end - sv.start + 1)
         self.samples = samples
         self.dirs = self.create_dirs(par.run.out_dir)
 
-        bin_size = (self.end - self.start)/num_bins
-        if breakpoint_zoom and bin_size / float(is_len) > 0.25:
-            breakpoints = ((sv.start - int(1.5*is_len), sv.start + int(1.5*is_len)), (sv.end - int(1.5*is_len),
-                          sv.end + int(1.5*is_len)))
-            sam_stats = SamStats.get_sam_stats(sv.chrom, self.start, self.end, par.run.get_bams(samples), num_bins,
-                                               breakpoints=breakpoints)
+        bin_size = (self.end - self.start)/par.run.num_bins
+        if breakpoint_zoom and bin_size / float(par.run.is_len) > 0.25:
+            breakpoints = ((sv.start - int(1.5 * par.run.is_len), sv.start + int(1.5 * par.run.is_len)),
+                           (sv.end - int(1.5 * par.run.is_len), sv.end + int(1.5 * par.run.is_len)))
+            sam_stats = SamStats.get_sam_stats(sv.chrom, self.start, self.end, par.run.get_bams(samples),
+                                               par.run.num_bins, breakpoints=breakpoints)
         else:
-            sam_stats = SamStats.get_sam_stats(sv.chrom, self.start, self.end, par.run.get_bams(samples), num_bins)
+            sam_stats = SamStats.get_sam_stats(sv.chrom, self.start, self.end, par.run.get_bams(samples),
+                                               par.run.num_bins)
 
         # print sample data to file
         for i, s in enumerate(samples):
