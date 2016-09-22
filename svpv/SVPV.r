@@ -276,14 +276,14 @@ plot_insert_sizes <- function(fwd_ins, rvs_ins, ylim, split, num_y_bins = 10) {
   par(las = 1)
   plot_binned_inserts(fwd_bins, num_y_bins, split)
   axis(2, at = 10 * ticks_at / ylim,  labels = as.character(ticks_at),  line = -1)
-  title(ylab=paste0('forward\nmapping\ndistance\n (', units$sym, ')'), line=1)
+  title(ylab=paste0('forward\nmapping\ndistance\n (', units$sym, ')'), line=1.5)
   par(xpd = NA)
   text(0, num_y_bins + 0.5, labels =">", cex = 0.85, pos = 2)
   
   # plot binned reverse inserts
   plot_binned_inserts(rvs_bins, num_y_bins, split)
   axis( 2, at = 10 * ticks_at / ylim,  labels = as.character(ticks_at), line = -1)
-  title(ylab=paste0('reverse\nmapping\ndistance\n (', units$sym, ')'), line=1)
+  title(ylab=paste0('reverse\nmapping\ndistance\n (', units$sym, ')'), line=1.5)
   text(0, num_y_bins + 0.5, labels =">", cex = 0.85, pos = 2)
   par(xpd = FALSE)
 }

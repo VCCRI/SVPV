@@ -86,7 +86,6 @@ usage = 'Usage example:\n' \
 
 def check_file_exists(path):
     if not os.path.isfile(path):
-        print usage
         print "Error: file does not exist!\n'%s'\n" % path
         exit(1)
 
