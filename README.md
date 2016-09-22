@@ -40,10 +40,8 @@ python SVPV.py -gui -o ./example/output/ -vcf delly:./example/delly.vcf -alt_vcf
 |---------------------|---------------------------------------------------------------------------|----------|
 |-vcf<sup>1</sup>     | Primary structural variant prediction VCF/BCF file                        | required |
 |-o                   | Output directory                                                          | required |
-<<<<<<< HEAD
 |-aln                 | Comma separated list of alignment files (indexed BAM/CRAM)                | required <sup>2</sup>
 |-samples             | Comma separated list of samples to view, names must be the same as in VCF | required <sup>2</sup>
-=======
 |-aln                 | Comma separated list of alignment files                                   | required<sup>2</sup>
 |-samples             | Comma separated list of samples to view, names must be the same as in vcf | required<sup>2</sup>
 |-gui                 | run in gui mode                                                           | optional |
