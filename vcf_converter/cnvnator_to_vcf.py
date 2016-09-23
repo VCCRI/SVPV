@@ -19,17 +19,17 @@ def main():
         "-thresh\t\tJaccard index threshold to use for clustering. Default 0.7\n" \
         "-chroms\t\tComma separated list of chromosomes to process. Default all.\n" \
         "-header\t\toutput vcf file header.\n" \
-        "-e[1-4]\t\tthreshold for given CNVnator e-value [default 1e6].\n" \
-        "\t\te.g. e1 1e5\n"
+        "-e[1-4]\t\tthreshold for given CNVnator e-value [default 1e-6].\n" \
+        "\t\te.g. e1 1e-5\n"
     # set defaults
     sample_calls = None
     out_vcf = None
     chroms = []
     thresh = 0.7
-    e1 = 1e6
-    e2 = 1e6
-    e3 = 1e6
-    e4 = 1e6
+    e1 = 1e-6
+    e2 = 1e-6
+    e3 = 1e-6
+    e4 = 1e-6
     header = file(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'vcf_header.txt'), 'r').read()
 
     # parse arguments
