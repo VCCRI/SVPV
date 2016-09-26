@@ -15,6 +15,12 @@ from svpv.plot import Plot
 
 def main(argv=sys.argv):
     print "\nStructural Variant Prediction Viewer\n"
+    try:
+        assert sys.version_info[0] == 2 and sys.version_info[1] >= 7
+    except AssertionError:
+        print "Error: python 2.7+ required. Please update your python installation."
+        exit(1)
+
     if len(argv) <= 1:
         print usage
         exit(1)
