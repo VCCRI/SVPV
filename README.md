@@ -23,7 +23,7 @@ Deletions (DEL), duplications (DUP), copy number variations (CNV) and inversions
 * test everything is working  
 `python ./SVPV/SVPV.py -example`
 * test the gui is working  
-`python /SVPV/SVPV.py -example -gui`
+`python ./SVPV/SVPV.py -example -gui`
 * all done!  
 
 **Note:** SAMtools and BCFtools must be executable by typing 'samtools' and 'bcftools' into the terminal.
