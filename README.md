@@ -18,10 +18,10 @@ Deletions (DEL), duplications (DUP), copy number variations (CNV) and inversions
   * or other pdf viewer specified in 'config.py'
 
 ###Installation
-* clone this repository  
+* navigate to desired install directory and clone this repository  
 `git clone https://github.com/VCCRI/SVPV.git SVPV`
 * test everything is working  
-`python /SVPV/SVPV.py -example`
+`python ./SVPV/SVPV.py -example`
 * test the gui is working  
 `python /SVPV/SVPV.py -example -gui`
 * all done!  
