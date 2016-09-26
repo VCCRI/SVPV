@@ -14,8 +14,9 @@ Deletions (DEL), duplications (DUP), copy number variations (CNV) and inversions
 **GUI**  
 * X11 if running over ssh
 * python 2.7 tkinter
-* ImageMagick ('display')
-  * or other pdf viewer specified in 'config.py'
+* [GraphicsMagick](http://www.graphicsmagick.org/) or ImageMagick ('display')
+  * Recomended: GraphicsMagick build w/ --enable-magick-compat
+  * or other X11 pdf viewer specified in 'config.py'
 
 ###Installation
 * navigate to desired install directory and clone this repository  
