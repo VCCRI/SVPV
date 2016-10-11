@@ -6,6 +6,7 @@
 import Tkinter as tk
 import GUI_Widgets as gw
 from plot import Plot
+import tkFileDialog
 
 
 class SVPVGui(tk.Tk):
@@ -20,6 +21,7 @@ class SVPVGui(tk.Tk):
         self.buttons_2 = None
         self.viewGTs = None
         self.viewSV = None
+        self.plotAll = None
         self.setup_static_features()
 
         self.config(menu=gw.MenuBar(self))
@@ -61,11 +63,15 @@ class SVPVGui(tk.Tk):
         if self.viewGTs:
             self.viewGTs.destroy()
         self.viewGTs = tk.Button(self.buttons_2, text="Get Genotypes", command=self.view_gts)
-        self.viewGTs.grid(row=0, column=0, padx=40, sticky=tk.W)
+        self.viewGTs.grid(row=0, column=0, padx=25, sticky=tk.W)
         if self.viewSV:
             self.viewSV.destroy()
         self.viewSV = tk.Button(self.buttons_2, text="View Structural Variant", command=self.view_sv)
-        self.viewSV.grid(row=0, column=1, padx=40, sticky=tk.E)
+        self.viewSV.grid(row=0, column=1, padx=25, sticky=tk.E)
+        if self.plotAll:
+            self.plotAll.destroy()
+        self.plotAll = tk.Button(self.buttons_2, text="Plot All", command=self.plot_all)
+        self.plotAll.grid(row=0, column=2, padx=25, sticky=tk.E)
         self.buttons_2.grid(row=5, column=0, columnspan=2, sticky=tk.EW, padx=10)
 
     def text_size(self, opt):
@@ -206,6 +212,33 @@ class SVPVGui(tk.Tk):
         else:
             plot = Plot(self.svs[self.sv_chooser.sv_fl.selected_idx], self.current_samples, self.par)
             self.filename = plot.plot_figure(display=self.par.run.display)
+
+    def set_plot_all_dir(self):
+        dir_options = {}
+        dir_options['initialdir'] = self.par.run.out_dir
+        dir_options['parent'] = self
+        dir_options['title'] = 'select existing or type new directory'
+        dir_options['mustexist'] = False
+        path = tkFileDialog.askdirectory(**dir_options)
+        return path
+
+    def plot_all(self):
+        self.set_info_box()
+        if not self.current_samples:
+            self.info_box.message.config(text="Error: No Samples Selected")
+        else:
+            old_path = self.par.run.out_dir
+            self.par.run.out_dir = self.set_plot_all_dir()
+            print self.par.run.out_dir
+            for i, sv in enumerate(self.svs):
+                message =  "Plotting %d of %d." % (i+1, len(self.svs))
+                self.info_box.message.config(text=message)
+                self.update()
+                plot = Plot(sv, self.current_samples, self.par)
+                self.filename = plot.plot_figure()
+            self.info_box.message.config(text="Done.")
+            self.update()
+            self.par.run.out_dir = old_path
 
     def window_size(self):
         sw = self.winfo_screenwidth()

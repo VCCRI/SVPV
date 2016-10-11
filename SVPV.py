@@ -27,7 +27,6 @@ def main(argv=sys.argv):
 
     BCFtools.check_installation()
     SAMtools.check_installation()
-
     if '-example' in argv:
         example(gui='-gui' in argv)
     else:

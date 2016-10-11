@@ -38,7 +38,7 @@ class MenuBar(tk.Menu):
             file_options['filetypes'] = [('pdf files', '.pdf')]
             file_options['parent'] = self.parent
             file_options['title'] = 'save figure as'
-            filename = tkFileDialog.asksaveasfilename(**file_options)
+            filename = tkFileDialog.askdirectory(**file_options)
             if filename:
                 copyfile(self.parent.filename, filename)
 
