@@ -43,8 +43,6 @@ python SVPV.py -gui -o ./example/output/ -vcf delly:./example/delly.vcf -alt_vcf
 |-o                   | Output directory                                                          | required |
 |-aln                 | Comma separated list of alignment files (indexed BAM/CRAM)                | required <sup>2</sup>
 |-samples             | Comma separated list of samples to view, names must be the same as in VCF | required <sup>2</sup>
-|-aln                 | Comma separated list of alignment files                                   | required<sup>2</sup>
-|-samples             | Comma separated list of samples to view, names must be the same as in vcf | required<sup>2</sup>
 |-gui                 | run in gui mode                                                           | optional |
 |-no_display          | don't attempt to display pdf files in GUI mode                            | optional |
 |-alt_vcf<sup>1</sup> | Alternate structural variant prediction vcf/bcf file, <br> called on the same set of samples as primary   | optional
