@@ -28,7 +28,7 @@ def main(argv=sys.argv):
     BCFtools.check_installation()
     SAMtools.check_installation()
     if '-example' in argv:
-        example(gui='-gui' in argv)
+        example(argv)
     else:
         par = Params(argv)
         if not par.run.all:
@@ -256,7 +256,7 @@ class Params:
                             self.plot.legend = False
                         elif (args[i + 1]) == '1':
                             self.plot.legend = True
-                    elif a == '-single_plots':
+                    elif a == '-separate_plots':
                         self.plot.grouping = 1
                 else:
                     print "unrecognised argument: " + a
@@ -391,7 +391,7 @@ class FilterParams:
 
 # class to store parameters for what to show in R plots
 class PlotParams:
-    valid = ('-d', '-or', '-v', '-ss', '-se', '-su', '-hc', '-i', '-r', '-af', '-l', '-single_plots')
+    valid = ('-d', '-or', '-v', '-ss', '-se', '-su', '-hc', '-i', '-r', '-af', '-l', '-separate_plots')
 
     def __init__(self):
         self.depth = True
@@ -435,7 +435,7 @@ class PlotParams:
         return args
 
 
-def example(gui):
+def example(argv):
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'example')
     if not os.path.exists(path):
         print 'Error: example directory not found'
@@ -450,25 +450,26 @@ def example(gui):
             print 'Error: example file not found.\n%s' % samples[s]
             exit(1)
 
-    argv = []
-    argv.append('-samples')
-    argv.append(','.join(samples.keys()))
-    argv.append('-aln')
-    argv.append(','.join(samples.values()))
-    argv.append('-vcf')
-    argv.append('delly:' + os.path.join(path, 'delly.vcf'))
-    argv.append('-alt_vcf')
-    argv.append('cnvnator:' + os.path.join(path, 'cnvnator.vcf'))
-    argv.append('-ref_vcf')
-    argv.append('1000G:' + os.path.join(path, '1000G.vcf'))
-    argv.append('-ref_gene')
-    argv.append(os.path.join(path, 'hg38.refgene.partial.txt'))
-    argv.append('-o')
-    argv.append(os.path.join(path, 'output'))
-    if gui:
-        argv.append('-gui')
-    main(argv=argv)
-    if not gui:
+    run_argv = []
+    for a in argv:
+        if not a == '-example':
+            run_argv.append(a)
+    run_argv.append('-samples')
+    run_argv.append(','.join(samples.keys()))
+    run_argv.append('-aln')
+    run_argv.append(','.join(samples.values()))
+    run_argv.append('-vcf')
+    run_argv.append('delly:' + os.path.join(path, 'delly.vcf'))
+    run_argv.append('-alt_vcf')
+    run_argv.append('cnvnator:' + os.path.join(path, 'cnvnator.vcf'))
+    run_argv.append('-ref_vcf')
+    run_argv.append('1000G:' + os.path.join(path, '1000G.vcf'))
+    run_argv.append('-ref_gene')
+    run_argv.append(os.path.join(path, 'hg38.refgene.partial.txt'))
+    run_argv.append('-o')
+    run_argv.append(os.path.join(path, 'output'))
+    main(argv=run_argv)
+    if '-gui' not in argv:
         print '\nSuccess!\n'
 
 if __name__ == "__main__":

@@ -48,7 +48,8 @@ python SVPV.py -gui -o ./example/output/ -vcf delly:./example/delly.vcf -alt_vcf
 |-alt_vcf<sup>1</sup> | Alternate structural variant prediction vcf/bcf file, <br> called on the same set of samples as primary   | optional
 |-ref_vcf<sup>1</sup> | Reference structural variant vcf/bcf file for annotation                  | optional |
 |-ref_gene            | Refseq genes regene table file for annotation<sup>3</sup>                 | optional |
-|-manifest            | Whitespace delimited file, first column sample names, <br> second column alignment file path. Overrides '-samples' and '-aln' if also given. | optional 
+|-manifest            | Whitespace delimited file, first column sample names, <br> second column alignment file path. Overrides '-samples' and '-aln' if also given. | optional
+|-separate_plots      | Plot each sample separately                                               | optional |
 
 <sup>1</sup>vcfs may be specified by a file (e.g. '-vcf /path/to/file.vcf') or by a name and a file (e.g. '-vcf delly:/path/to/file'). If not specified names will be 'primary', 'alternate' and 'reference' by default.
 
@@ -57,16 +58,16 @@ python SVPV.py -gui -o ./example/output/ -vcf delly:./example/delly.vcf -alt_vcf
 <sup>3</sup>Availble for a variety of reference genomes at [UCSC Table Browser](https://genome.ucsc.edu/cgi-bin/hgTables)
 
 
-|Filter args: | Description                                     | Example                     |
-------------- |-------------------------------------------------|-----------------------------|
-| -max_len    | maximum length of structural variants (bp)      |                             |
-| -min_len    | minimum length of structural variants (bp)      |                             |
-| -af         | Allele frequency threshold                      | -af <0.1                    |  
-| -gts        | Specify genotypes of given samples              | sample1:0/1,1/1;sample2:1/1 |
-| -chrom      | Restrict to comma separated list of chromosomes |                             |
-| -svtype     | Restrict to given SV type (DEL/DUP/CNV/INV)     |                             |
-| -rgi        | Restrict to SVs that intersect refGenes, <br>'-ref_gene' must be supplied  |  |
-| -exonic     | Restrict to SVs that intersect exons of refGenes, <br>'-ref_gene' must be supplied  |
+|Filter args: | Description                                     | Example                          |
+------------- |-------------------------------------------------|----------------------------------|
+| -max_len    | maximum length of structural variants (bp)      |                                  |
+| -min_len    | minimum length of structural variants (bp)      |                                  |
+| -af         | Allele frequency threshold                      | -af <0.1                         |
+| -gts        | Specify genotypes of given samples              | sample1:0/1,1/1;sample2:1/1      |
+| -chrom      | Restrict to comma separated list of chromosomes |                                  |
+| -svtype     | Restrict to given SV type (DEL/DUP/CNV/INV)     |                                  |
+| -rgi        | Restrict to SVs that intersect refGenes, <br>'-ref_gene' must be supplied          |
+| -exonic     | Restrict to SVs that intersect exons of refGenes, <br>'-ref_gene' must be supplied |
 
 
 

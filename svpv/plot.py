@@ -88,10 +88,13 @@ class Plot:
         current_samples = self.samples[0:group]
         next_samples = self.samples[group:]
         while True:
-            sha_id = sha1(''.join(current_samples)).hexdigest()[0:10]
+            if group == 1:
+                id = current_samples[0]
+            else:
+                id = sha1(''.join(current_samples)).hexdigest()[0:10]
             out = os.path.join(self.dirs['pos'], '%s.%s.%s.%s.%s.pdf' % (self.sv.chrom, self.sv.start, self.sv.svtype,
-                                                                         self.get_good_length_units(), sha_id))
-            cmd = ["Rscript"]
+                                                                         self.get_good_length_units(), id))
+            cmd = ['Rscript']
             cmd.append(Plot.svpv_r)
             cmd.append(','.join(current_samples))
             cmd.append(os.path.join(self.dirs['pos'], ''))

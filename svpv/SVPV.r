@@ -618,7 +618,6 @@ visualise <- function(folder, sample_names, args, outfile, title='') {
   plot_details(samples[[1]]$Bin_size, samples[[1]]$Num_bins)
   graphics.off()
 }
-library(tcltk)
 # read command-line arguments
 args <- commandArgs(trailingOnly = TRUE)
 sample_names <- strsplit(as.character(args[1]), ',')[[1]]
