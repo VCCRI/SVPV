@@ -6,8 +6,8 @@ Deletions (DEL), duplications (DUP), copy number variations (CNV) and inversions
 
 ###Requirements
 **Basic**  
-* Python 2.7 and NumPy
-* R
+* Python 2.7.+ and NumPy
+* R v3.+
 * [SAMtools and BCFtools](https://github.com/samtools) (version 1.3)
 * Linux environment, or access to linux via ssh  
   
@@ -15,7 +15,7 @@ Deletions (DEL), duplications (DUP), copy number variations (CNV) and inversions
 * X11 if running over ssh
 * python 2.7 tkinter
 * [GraphicsMagick](http://www.graphicsmagick.org/) or ImageMagick ('display')
-  * Recomended: GraphicsMagick build w/ --enable-magick-compat
+  * Recommended: GraphicsMagick build w/ --enable-magick-compat
   * or other X11 pdf viewer specified in 'config.py'
 
 ###Installation

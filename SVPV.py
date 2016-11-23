@@ -3,6 +3,7 @@
 # author: Jacob Munro, Victor Chang Cardiac Research Institute
 # """
 
+from __future__ import print_function
 import sys
 import os
 import re
@@ -14,15 +15,15 @@ from svpv.plot import Plot
 
 
 def main(argv=sys.argv):
-    print "\nStructural Variant Prediction Viewer\n"
+    print("\nStructural Variant Prediction Viewer\n")
     try:
-        assert sys.version_info[0] == 2 and sys.version_info[1] >= 7
+        assert (sys.version_info[0] == 2 and sys.version_info[1] >= 7) or (sys.version_info[0] > 2)
     except AssertionError:
-        print "Error: python 2.7+ required. Please update your python installation."
+        print("Error: python 2.7+ required. Please update your python installation.")
         exit(1)
 
     if len(argv) <= 1:
-        print usage
+        print(usage)
         exit(1)
 
     BCFtools.check_installation()
@@ -92,7 +93,7 @@ usage = 'Usage example:\n' \
 
 def check_file_exists(path):
     if not os.path.isfile(path):
-        print "Error: file does not exist!\n'%s'\n" % path
+        print("Error: file does not exist!\n'%s'\n" % path)
         exit(1)
 
 
@@ -101,7 +102,6 @@ class Params:
         self.run = RunParams()
         self.filter = FilterParams(self)
         self.plot = PlotParams()
-
 
         for i, a in enumerate(args):
             if a[0] == '-':
@@ -129,7 +129,7 @@ class Params:
                         self.run.samples = args[i + 1].split(',')
                     elif a == '-manifest':
                         if self.run.samples or self.run.alns:
-                            print "samples and alignments provided as command line arguments overriden by manifest file\n"
+                            print("samples and alignments provided as command line arguments overriden by manifest file\n")
                         self.run.read_samples_file(args[i + 1])
                     elif a == '-o':
                         self.run.out_dir = args[i + 1]
@@ -155,13 +155,13 @@ class Params:
                         try:
                             self.filter.max_len = int(args[i + 1])
                         except ValueError:
-                            print "invalid max length:" + args[i + 1]
+                            print("invalid max length:" + args[i + 1])
                             exit(1)
                     elif a == '-min_len':
                         try:
                             self.filter.min_len = int(args[i + 1])
                         except ValueError:
-                            print "invalid min length:" + args[i + 1]
+                            print("invalid min length:" + args[i + 1])
                             exit(1)
                     # set allele frequency for filtering
                     elif a == '-af':
@@ -170,15 +170,15 @@ class Params:
                         try:
                             self.filter.AF_thresh = float(re.sub('[<>]', '', args[i + 1]))
                         except ValueError:
-                            print usage
-                            print "invalid allele frequency threshold: -af " + args[i+1]
+                            print(usage)
+                            print("invalid allele frequency threshold: -af " + args[i+1])
                             exit(1)
                     # switch for refgene intersections
                     elif a == '-svtype':
                         if args[i+1].upper() in ('DEL', 'DUP', 'INV', 'CNV'):
                             self.filter.svtype = args[i+1].upper()
                         else:
-                            print 'invalid svtype %s' % args[i+1]
+                            print('invalid svtype %s' % args[i+1])
                             exit(1)
                     elif a == '-rgi':
                         self.filter.RG_intersection = True
@@ -188,7 +188,7 @@ class Params:
                     elif a == '-gene_list':
                         # read in newline/whitespace delimited list of genes
                         self.filter.gene_list = []
-                        for line in file(args[i + 1]):
+                        for line in open(args[i + 1]):
                             for word in line.split():
                                 self.filter.gene_list.append(word.strip().upper())
                         self.filter.gene_list_intersection = True
@@ -259,7 +259,7 @@ class Params:
                     elif a == '-separate_plots':
                         self.plot.grouping = 1
                 else:
-                    print "unrecognised argument: " + a
+                    print("unrecognised argument: " + a)
                     exit(1)
         self.run.check()
 
@@ -314,9 +314,9 @@ class RunParams:
 
     def read_samples_file(self, filepath):
         check_file_exists(filepath)
-        for line in file(filepath):
+        for line in open(filepath):
             if len(line.split()) > 2:
-                print "Error: %d fields detected in manifest, explected 2.\n" % len(line.split())
+                print("Error: %d fields detected in manifest, explected 2.\n" % len(line.split()))
                 exit(1)
             elif len(line.split()) < 2:
                 continue
@@ -326,32 +326,32 @@ class RunParams:
 
     def check(self):
         if not self.vcf:
-            print usage
-            print "Error: please specify a VCF file"
+            print(usage)
+            print("Error: please specify a VCF file")
             exit(1)
         if not self.out_dir:
-            print usage
-            print "Error: please specify out directory"
+            print(usage)
+            print("Error: please specify out directory")
             exit(1)
 
         if not self.samples:
-            print usage
-            print "Error: please specify samples to visualise"
+            print(usage)
+            print("Error: please specify samples to visualise")
             exit(1)
         if not self.alns:
-            print usage
-            print "Error: please specify BAM/SAM files"
+            print(usage)
+            print("Error: please specify BAM/SAM files")
             exit(1)
         if not len(self.alns) == len(self.samples):
-            print usage
-            print "Error:\nRequires same number of samples and alignments"
+            print(usage)
+            print("Error:\nRequires same number of samples and alignments")
             exit(1)
         for b in self.alns:
             check_file_exists(b)
         delete = []
         for i, s in enumerate(self.samples):
             if s not in self.vcf.samples:
-                print "Sample ID not found in VCF: %s - removing from list" % s
+                print("Sample ID not found in VCF: %s - removing from list" % s)
                 delete.append(i)
         for i in sorted(delete, reverse=True):
             del self.samples[i]
@@ -438,7 +438,7 @@ class PlotParams:
 def example(argv):
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'example')
     if not os.path.exists(path):
-        print 'Error: example directory not found'
+        print('Error: example directory not found')
         exit(1)
 
     samples = {}
@@ -447,7 +447,7 @@ def example(argv):
     samples['NA12884_S1'] = os.path.join(path, 'NA12884_S1.partial.bam')
     for s in samples:
         if not os.path.isfile(samples[s]):
-            print 'Error: example file not found.\n%s' % samples[s]
+            print('Error: example file not found.\n%s' % samples[s])
             exit(1)
 
     run_argv = []
@@ -470,7 +470,7 @@ def example(argv):
     run_argv.append(os.path.join(path, 'output'))
     main(argv=run_argv)
     if '-gui' not in argv:
-        print '\nSuccess!\n'
+        print('\nSuccess!\n')
 
 if __name__ == "__main__":
     main()

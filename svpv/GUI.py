@@ -2,11 +2,12 @@
 # """
 # author: Jacob Munro, Victor Chang Cardiac Research Institute
 # """
-
+from __future__ import print_function
 import Tkinter as tk
 import GUI_Widgets as gw
 from plot import Plot
 import tkFileDialog
+
 
 
 class SVPVGui(tk.Tk):
@@ -229,9 +230,9 @@ class SVPVGui(tk.Tk):
         else:
             old_path = self.par.run.out_dir
             self.par.run.out_dir = self.set_plot_all_dir()
-            print self.par.run.out_dir
+            print(self.par.run.out_dir)
             for i, sv in enumerate(self.svs):
-                message =  "Plotting %d of %d." % (i+1, len(self.svs))
+                message = "Plotting %d of %d." % (i+1, len(self.svs))
                 self.info_box.message.config(text=message)
                 self.update()
                 plot = Plot(sv, self.current_samples, self.par)

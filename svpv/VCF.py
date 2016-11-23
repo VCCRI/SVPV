@@ -2,10 +2,11 @@
 # """
 # author: Jacob Munro, Victor Chang Cardiac Research Institute
 # """
-
+from __future__ import print_function
 import subprocess
 from subprocess import PIPE
 import copy
+
 
 
 class VCFManager:
@@ -226,7 +227,7 @@ class SV:
                         n += 2
                     else:
                         n += 1
-            return (n / float(2 * len(self.GTs)))
+            return (n // float(2 * len(self.GTs)))
 
     # helper method for print_SVs
     def to_string(self, sample_index=None):
@@ -258,9 +259,9 @@ class BCFtools:
     def check_installation():
         cmd = ['bcftools', '--version-only']
         try:
-            subprocess.check_output(cmd)
+            subprocess.check_output(cmd, universal_newlines=True)
         except OSError:
-            print 'Error: could not run bcftools. Are you sure it is installed?'
+            print('Error: could not run bcftools. Are you sure it is installed?')
             exit(1)
 
     # return a pipe to the set of sv sites
@@ -275,10 +276,10 @@ class BCFtools:
         else:
             cmd.append("%CHROM\\t%POS\\t%INFO/END\\t%INFO/SVTYPE[\\t%GT]\\n")
         cmd.append(vcf)
-        print ' '.join(cmd) + '\n'
-        p = subprocess.Popen(cmd, bufsize=1024, stdout=PIPE)
+        print(' '.join(cmd) + '\n')
+        p = subprocess.Popen(cmd, bufsize=1024, stdout=PIPE, universal_newlines=True)
         if p.poll():
-            print "Error code %d from command:\n%s\n" % (' '.join(cmd) + '\n')
+            print("Error code %d from command:\n%s\n" % (' '.join(cmd) + '\n'))
             exit(1)
         return p
 
@@ -290,5 +291,5 @@ class BCFtools:
         cmd.append("query")
         cmd.append("-l")
         cmd.append(vcf)
-        print ' '.join(cmd) + '\n'
-        return subprocess.check_output(cmd).split()
+        print(' '.join(cmd) + '\n')
+        return subprocess.check_output(cmd, universal_newlines=True).split()

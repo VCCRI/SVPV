@@ -2,18 +2,19 @@
 # """
 # author: Jacob Munro, Victor Chang Cardiac Research Institute
 # """
+from __future__ import print_function
 
 
 class RefgeneManager:
     def __init__(self, ref_genes, keep_all=False):
         # dict by chrom (as with SVs in VCF_Manager)
         self.entries = {}
-        for line in file(ref_genes):
+        for line in open(ref_genes):
             if line[0] == '#':
                 continue
             fields = line.split()
             if not len(fields) == 16:
-                print "Incorrect Number of Fields for RefGene Schema"
+                print("Incorrect Number of Fields for RefGene Schema")
                 return None
             e = RefGeneEntry(fields, keep_all=keep_all)
             if e.chrom in self.entries:

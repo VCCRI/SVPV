@@ -2,12 +2,14 @@
 # """
 # author: Jacob Munro, Victor Chang Cardiac Research Institute
 # """
-
+from __future__ import print_function
+from __future__ import division
 import re
 import subprocess
 import os
 from subprocess import PIPE
 import numpy as np
+
 
 
 class SamEntry():
@@ -110,15 +112,16 @@ class SamEntry():
             return (0,0)
 
 
-class Bins():
+class Bins:
     def __init__(self, start, end, ideal_num_bins=100):
         # aim for ideal_num_bins, but bins need to be uniformally distributed and of equal size
         # smallest bins size is 1bp, so for regions < num_bins bp there will be less than num_bins bins
         self.start = start
-        self.size = (end - start + 1) / ideal_num_bins
+        self.size = (end - start + 1) // ideal_num_bins
         self.size += not (self.size) * 1
-        self.num = (end - start + 1) / self.size
+        self.num = (end - start + 1) // self.size
         self.end = self.start + self.num * self.size - 1
+        print('bin num: {}'.format(self.num))
 
     def get_bin_coverage(self, start, end):
         if start > self.end or end < self.start:
@@ -131,7 +134,7 @@ class Bins():
             else:
                first_bp = (end - self.start + 1)
         else:
-            first = (start- self.start) / self.size
+            first = (start- self.start) // self.size
             first_bp = self.size - ((start - self.start + 1) % self.size)
 
         if end >= self.end:
@@ -141,7 +144,7 @@ class Bins():
             else:
                 last_bp = start- (self.end - self.size)
         else:
-            last = (end - self.start) / self.size
+            last = (end - self.start) // self.size
             last_bp = (end - self.start + 1) % self.size
 
         if first < 0 or first >= self.num or last < 0 or last >= self.num:
@@ -265,10 +268,10 @@ class SamStats():
 
     # Print the collected stats
     def print_stats(self, dir):
-        depth_file = file(os.path.join(dir, 'depths.tsv'), 'w')
-        aln_stats_file = file(os.path.join(dir, 'aln_stats.tsv'), 'w')
-        fwd_ins_file = file(os.path.join(dir, 'fwd_ins.tsv'), 'w')
-        rvs_ins_file = file(os.path.join(dir, 'rvs_ins.tsv'), 'w')
+        depth_file = open(os.path.join(dir, 'depths.tsv'), 'w')
+        aln_stats_file = open(os.path.join(dir, 'aln_stats.tsv'), 'w')
+        fwd_ins_file = open(os.path.join(dir, 'fwd_ins.tsv'), 'w')
+        rvs_ins_file = open(os.path.join(dir, 'rvs_ins.tsv'), 'w')
 
         self.convert_depths()
         # print depths
@@ -333,9 +336,9 @@ class SAMtools:
     def check_installation():
         cmd = ['samtools', '--version-only']
         try:
-            subprocess.check_output(cmd)
+            subprocess.check_output(cmd, universal_newlines=True)
         except OSError:
-            print 'Error: could not run samtools. Are you sure it is installed?'
+            print('Error: could not run samtools. Are you sure it is installed?')
             exit(1)
 
     @staticmethod
@@ -352,9 +355,9 @@ class SAMtools:
             cmd.append(str(exclude_flag))
         cmd.append(sam)
         cmd.append(region)
-        print ' '.join(cmd) + '\n'
-        p = subprocess.Popen(cmd, bufsize=1024, stdout=PIPE)
+        print(' '.join(cmd) + '\n')
+        p = subprocess.Popen(cmd, bufsize=1024, stdout=PIPE, universal_newlines=True)
         if p.poll():
-            print "Error code %d from command:\n%s\n" % (' '.join(cmd) + '\n')
+            print("Error code %d from command:\n%s\n" % (' '.join(cmd) + '\n'))
             exit(1)
         return p

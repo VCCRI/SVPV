@@ -2,14 +2,15 @@
 # """
 # author: Jacob Munro, Victor Chang Cardiac Research Institute
 # """
-
+from __future__ import print_function
+from __future__ import division
 import os
 import subprocess
 from hashlib import sha1
 import copy
-from SAM import SamStats
-from VCF import SV
-from refgene import RefGeneEntry
+from .SAM import SamStats
+from .VCF import SV
+from .refgene import RefGeneEntry
 
 
 class Plot:
@@ -23,8 +24,8 @@ class Plot:
         self.samples = samples
         self.dirs = self.create_dirs(par.run.out_dir)
 
-        bin_size = (self.end - self.start)/par.run.num_bins
-        if breakpoint_zoom and bin_size / float(par.run.is_len) > 0.25:
+        bin_size = (self.end - self.start) // par.run.num_bins
+        if breakpoint_zoom and bin_size // float(par.run.is_len) > 0.25:
             breakpoints = ((sv.start - int(1.5 * par.run.is_len), sv.start + int(1.5 * par.run.is_len)),
                            (sv.end - int(1.5 * par.run.is_len), sv.end + int(1.5 * par.run.is_len)))
             sam_stats = SamStats.get_sam_stats(sv.chrom, self.start, self.end, par.run.get_bams(samples),
@@ -40,13 +41,13 @@ class Plot:
         if par.run.ref_genes:
             genes = par.run.ref_genes.get_entries_in_range(sv.chrom, self.start, self.end)
             if genes:
-                RefGeneEntry.print_entries(genes, file(os.path.join(self.dirs['pos'], 'refgene.tsv'), 'w'))
+                RefGeneEntry.print_entries(genes, open(os.path.join(self.dirs['pos'], 'refgene.tsv'), 'w'))
 
         self.add_vcf_annotation()
 
     def add_vcf_annotation(self):
         for i, s in enumerate(self.samples):
-            sv_file = file(os.path.join(self.dirs[s], 'svs.tsv'), 'w')
+            sv_file = open(os.path.join(self.dirs[s], 'svs.tsv'), 'w')
             svs = self.par.run.vcf.get_svs_in_range(self.sv.chrom, self.start, self.end, sample=s)
             if self.sv not in svs:
                 svs.append(self.sv)
@@ -72,7 +73,7 @@ class Plot:
         else:
             alt_svs = None
 
-        svs_file = file(os.path.join(self.dirs['pos'], 'SV_AF.tsv'), 'w')
+        svs_file = open(os.path.join(self.dirs['pos'], 'SV_AF.tsv'), 'w')
         SV.print_SVs_header(svs_file)
         if batch_svs:
             SV.print_SVs(batch_svs, svs_file, self.par.run.vcf.name)
@@ -91,7 +92,7 @@ class Plot:
             if group == 1:
                 id = current_samples[0]
             else:
-                id = sha1(''.join(current_samples)).hexdigest()[0:10]
+                id = sha1(''.join(current_samples).encode('utf-8')).hexdigest()[0:10]
             out = os.path.join(self.dirs['pos'], '%s.%s.%s.%s.%s.pdf' % (self.sv.chrom, self.sv.start, self.sv.svtype,
                                                                          self.get_good_length_units(), id))
             cmd = ['Rscript']
@@ -101,25 +102,25 @@ class Plot:
             cmd.append(out)
             cmd.append('"%s at %s:%d-%d"' % (self.sv.svtype, self.sv.chrom, self.sv.start, self.sv.end))
             cmd.extend(self.par.plot.get_R_args())
-            print ' '.join(cmd) + '\n'
+            print(' '.join(cmd) + '\n')
 
             try:
                 subprocess.call(cmd)
             except OSError:
-                print 'Error: could not run Rscript. Are you sure it is installed?'
+                print('Error: could not run Rscript. Are you sure it is installed?')
                 exit(1)
 
             if display:
                 cmd = copy.copy(display)
                 cmd.append(out)
-                print ' '.join(cmd) + '\n'
+                print(' '.join(cmd) + '\n')
                 try:
                     subprocess.call(cmd)
                 except OSError:
-                    print 'Error: could not run %s. Are you sure it is installed?' % ' '.join(display)
+                    print('Error: could not run %s. Are you sure it is installed?' % ' '.join(display))
                     exit(1)
             else:
-                print "created %s\n" % out
+                print("created %s\n" % out)
             current_samples = next_samples[0:group]
             next_samples = next_samples[group:]
             if not current_samples:
