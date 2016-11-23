@@ -211,7 +211,7 @@ class SVPVGui(tk.Tk):
             self.info_box.message.config(text="Error: No SV Selected")
         else:
             plot = Plot(self.svs[self.sv_chooser.sv_fl.selected_idx], self.current_samples, self.par)
-            self.filename = plot.plot_figure(display=self.par.run.display)
+            self.filename = plot.plot_figure(group=self.par.plot.grouping, display=self.par.run.display)
 
     def set_plot_all_dir(self):
         dir_options = {}

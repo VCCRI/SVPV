@@ -82,11 +82,11 @@ class Plot:
             SV.print_SVs(ref_svs, svs_file, self.par.run.ref_vcf.name)
         svs_file.close()
 
-    def plot_figure(self, display=False):
+    def plot_figure(self, group=8, display=False):
         # split into groups of 8 or less so don't go over R layout limit
         out = ''
-        current_samples = self.samples[0:8]
-        next_samples = self.samples[8:]
+        current_samples = self.samples[0:group]
+        next_samples = self.samples[group:]
         while True:
             sha_id = sha1(''.join(current_samples)).hexdigest()[0:10]
             out = os.path.join(self.dirs['pos'], '%s.%s.%s.%s.%s.pdf' % (self.sv.chrom, self.sv.start, self.sv.svtype,
@@ -117,8 +117,8 @@ class Plot:
                     exit(1)
             else:
                 print "created %s\n" % out
-            current_samples = next_samples[0:8]
-            next_samples = next_samples[8:]
+            current_samples = next_samples[0:group]
+            next_samples = next_samples[group:]
             if not current_samples:
                 break
         return out

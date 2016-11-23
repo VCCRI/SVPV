@@ -42,7 +42,7 @@ def main(argv=sys.argv):
             svs = par.run.vcf.filter_svs(par.filter, as_list=True)
             for sv in svs:
                 plot = Plot(sv, par.run.samples, par)
-                plot.plot_figure()
+                plot.plot_figure(group=par.plot.grouping)
 
 usage = 'Usage example:\n' \
         'SVPV.py -vcf input_svs.vcf -samples sample1,sample2 -aln alignment1.bam,alignment2.sam -o /out/directory/ \n\n' \
@@ -204,27 +204,27 @@ class Params:
                     if a == '-d':
                         if (args[i + 1]) == '0':
                             self.plot.depth = False
-                        if (args[i + 1]) == '1':
+                        elif (args[i + 1]) == '1':
                             self.plot.depth = True
                     elif a == '-or':
                         if (args[i + 1]) == '0':
                             self.plot.orphaned = False
-                        if (args[i + 1]) == '1':
+                        elif (args[i + 1]) == '1':
                             self.plot.orphaned = True
                     elif a == '-v':
                         if (args[i + 1]) == '0':
                             self.plot.inverted = False
-                        if (args[i + 1]) == '1':
+                        elif (args[i + 1]) == '1':
                             self.plot.inverted = True
                     elif a == '-ss':
                         if (args[i + 1]) == '0':
                             self.plot.samestrand = False
-                        if (args[i + 1]) == '1':
+                        elif (args[i + 1]) == '1':
                             self.plot.samestrand = True
                     elif a == '-se':
                         if (args[i + 1]) == '0':
                             self.plot.secondary = False
-                        if (args[i + 1]) == '1':
+                        elif (args[i + 1]) == '1':
                             self.plot.secondary = True
                     elif a == '-su':
                         if (args[i + 1]) == '0':
@@ -234,28 +234,30 @@ class Params:
                     elif a == '-hc':
                         if (args[i + 1]) == '0':
                             self.plot.hardclipped = False
-                        if (args[i + 1]) == '1':
+                        elif (args[i + 1]) == '1':
                             self.plot.hardclipped = True
                     elif a == '-i':
                         if (args[i + 1]) == '0':
                             self.plot.ins = False
-                        if (args[i + 1]) == '1':
+                        elif (args[i + 1]) == '1':
                             self.plot.ins = True
                     elif a == '-r':
                         if (args[i + 1]) == '0':
                             self.plot.refgene = False
-                        if (args[i + 1]) == '1':
+                        elif (args[i + 1]) == '1':
                             self.plot.refgene = True
                     elif a == '-af':
                         if (args[i + 1]) == '0':
                             self.plot.sv_af = False
-                        if (args[i + 1]) == '1':
+                        elif (args[i + 1]) == '1':
                             self.plot.sv_af = True
                     elif a == '-l':
                         if (args[i + 1]) == '0':
                             self.plot.legend = False
-                        if (args[i + 1]) == '1':
+                        elif (args[i + 1]) == '1':
                             self.plot.legend = True
+                    elif a == '-single_plots':
+                        self.plot.grouping = 1
                 else:
                     print "unrecognised argument: " + a
                     exit(1)
@@ -389,7 +391,7 @@ class FilterParams:
 
 # class to store parameters for what to show in R plots
 class PlotParams:
-    valid = ('-d', '-or', '-v', '-ss', '-se', '-su', '-hc', '-i', '-r', '-af', '-l')
+    valid = ('-d', '-or', '-v', '-ss', '-se', '-su', '-hc', '-i', '-r', '-af', '-l', '-single_plots')
 
     def __init__(self):
         self.depth = True
@@ -403,6 +405,7 @@ class PlotParams:
         self.refgene = True
         self.sv_af = True
         self.legend = True
+        self.grouping = 8
 
     # command line arguments for calling Rscipt
     def get_R_args(self):
