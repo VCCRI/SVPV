@@ -231,11 +231,11 @@ class Params:
                             self.plot.supplementary = False
                         if (args[i + 1]) == '1':
                             self.plot.supplementary = True
-                    elif a == '-hc':
+                    elif a == '-cl':
                         if (args[i + 1]) == '0':
-                            self.plot.hardclipped = False
+                            self.plot.clipped = False
                         elif (args[i + 1]) == '1':
-                            self.plot.hardclipped = True
+                            self.plot.clipped = True
                     elif a == '-i':
                         if (args[i + 1]) == '0':
                             self.plot.ins = False
@@ -391,7 +391,7 @@ class FilterParams:
 
 # class to store parameters for what to show in R plots
 class PlotParams:
-    valid = ('-d', '-or', '-v', '-ss', '-se', '-su', '-hc', '-i', '-r', '-af', '-l', '-separate_plots')
+    valid = ('-d', '-or', '-v', '-ss', '-se', '-su', '-cl', '-i', '-r', '-af', '-l', '-separate_plots')
 
     def __init__(self):
         self.depth = True
@@ -400,7 +400,7 @@ class PlotParams:
         self.samestrand = True
         self.secondary = False
         self.supplementary = False
-        self.hardclipped = True
+        self.clipped = True
         self.ins = True
         self.refgene = True
         self.sv_af = True
@@ -422,8 +422,8 @@ class PlotParams:
             args.append("-se")
         if self.supplementary:
             args.append("-su")
-        if self.hardclipped:
-            args.append("-hc")
+        if self.clipped:
+            args.append("-cl")
         if self.ins:
             args.append("-i")
         if self.refgene:

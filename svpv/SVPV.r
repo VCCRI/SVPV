@@ -7,7 +7,7 @@ PlotParams <- function(args) {
     samestrand = ('-ss' %in% args),
     secondary = ('-se' %in% args),
     supplementary = ('-su' %in% args),
-    hardclipped = ('-hc' %in% args),
+    clipped = ('-cl' %in% args),
     ins = ('-i' %in% args),
     refgene = ('-r' %in% args),
     svAF = ('-af' %in% args),
@@ -383,8 +383,8 @@ plot_sample <- function(sample, plot_params, ins_ylim) {
     plot_insert_sizes(sample$Fwd_ins, sample$Rvs_ins, ins_ylim, sample$Split)
   }
   # plot remaining tracks
-  if (plot_params$hardclipped) {
-    plot_aln_stats( sample$Aln_stats$reads, sample$Aln_stats$hardclipped, 'hardclipped', sample$Split)
+  if (plot_params$clipped) {
+    plot_aln_stats( sample$Aln_stats$reads, sample$Aln_stats$clipped, 'clipped', sample$Split)
   }
   if (plot_params$secondary) {
     plot_aln_stats( sample$Aln_stats$reads, sample$Aln_stats$secondary, 'secondary', sample$Split)
@@ -542,7 +542,7 @@ get_plot_layout <- function(plot_params, annotations, num_samples, vcfs_per_samp
       if (split){ heights <- c(heights, 2) }
       # add tracks according to plot params
       if (plot_params$ins) { heights <- c(heights, 4, 4)  }
-      if (plot_params$hardclipped) {  heights <- c(heights, 1) }
+      if (plot_params$clipped) {  heights <- c(heights, 1) }
       if (plot_params$secondary) { heights <- c(heights, 1) }
       if (plot_params$supplementary) { heights <- c(heights, 1) }
       if (plot_params$orphaned) { heights <- c(heights, 1) }

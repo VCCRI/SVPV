@@ -77,7 +77,7 @@ python SVPV.py -gui -o ./example/output/ -vcf delly:./example/delly.vcf -alt_vcf
 |-or        | 1       | force orphaned reads plot on or off                |
 |-v         | 1       | force inverted pairs plot on or off                |
 |-ss        | 1       | force same strand pairs plot on or off             |
-|-hc        | 1       | force hardclipped reads plot on or off             |
+|-cl        | 1       | force clipped reads plot on or off                 |
 |-se        | 0       | force SAM 'secondary alignment' plot on or off     |
 |-su        | 0       | force SAM 'supplementary alignment' plot on or off |
 |-i         | 1       | force inferred insert size plot on or off          |

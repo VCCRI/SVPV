@@ -11,11 +11,10 @@ from subprocess import PIPE
 import numpy as np
 
 
-
 class SamEntry():
     # regex for processing cigar string
-    cigar_hard_clip = re.compile('^((?P<L>[0-9]+)H)?([0-9]+[^H])+((?P<R>[0-9]+)H)?$')
-    cigar_ref_chars = re.compile('[SMDX=N]')
+    cigar_clip = re.compile('^((?P<LH>[0-9]+)H)?((?P<LS>[0-9]+)S)?([0-9]+[^HS])+((?P<RS>[0-9]+)S)?((?P<RH>[0-9]+)H)?$')
+    cigar_ref_chars = re.compile('[MDX=N]')
     # sam flags
     paired = np.uint16(1)
     mapped_in_proper_pair = np.uint16(2)
@@ -36,9 +35,28 @@ class SamEntry():
         self.mapQ = int(fields[4])
         self.cigar = fields[5]
         self.tlen = int(fields[8])
+        self.left, self.right = self.get_aligned_pos()
 
+    # return the positions of the left aligned and right aligned bases
+    def get_aligned_pos(self):
+        clipped = re.search(SamEntry.cigar_clip, self.cigar).groupdict()
+        num_aligned = 0
+        num_str = ''
+        for c in self.cigar:
+            if c.isdigit():
+                num_str += c
+            else:
+                if re.match(self.cigar_ref_chars, c):
+                    num_aligned += int(num_str)
+                num_str = ''
+        left = self.pos
+        if clipped['LS']:
+            left += int(clipped['LS'])
+        right = left + num_aligned
+        return left, right
     def has_flag(self, flag):
         return self.flag & flag
+
     def is_rvs(self):
         return (self.flag & SamEntry.read_reverse)
 
@@ -61,19 +79,6 @@ class SamEntry():
         elif self.tlen > 0:
             return True
         return False
-
-    # return the number of ref bases between the first and last mapped positions
-    def get_right_pos(self):
-        num = 0
-        num_s = ''
-        for c in self.cigar:
-            if c.isdigit():
-                num_s += c
-            else:
-                if re.match(self.cigar_ref_chars, c):
-                    num += int(num_s)
-                num_s = ''
-        return num + self.pos - 1
 
     # assume entry and mate are mapped
     def is_discordant(self):
@@ -99,17 +104,15 @@ class SamEntry():
                 return False
         return False
 
-    def get_hard_clips(self):
-        m = re.search(SamEntry.cigar_hard_clip, self.cigar)
-        if m.group('R'):
-            if m.group('L'):
-                return (int(m.group('L')), int(m.group('R')))
-            else:
-                return (int(0), int(m.group('R')))
-        elif m.group('L'):
-            return (int(m.group('L')), int(0))
-        else:
-            return (0,0)
+    # return the number of clipped bases
+    def get_num_clipped(self):
+        clipped = 0
+        m = re.search(SamEntry.cigar_clip, self.cigar)
+        matches = m.groupdict()
+        for k in matches:
+            if matches[k]:
+                clipped += int(matches[k])
+        return clipped
 
 
 class Bins:
@@ -121,7 +124,6 @@ class Bins:
         self.size += not (self.size) * 1
         self.num = (end - start + 1) // self.size
         self.end = self.start + self.num * self.size - 1
-        print('bin num: {}'.format(self.num))
 
     def get_bin_coverage(self, start, end):
         if start > self.end or end < self.start:
@@ -160,16 +162,16 @@ class SamStats():
     TOTAL = 0
     MAPQLTT = 1
     MAPQ0 = 2
-    aln_stats_cols = ['reads', 'orphaned', 'inverted', 'samestrand', 'secondary', 'supplementary', 'hardclipped']
+    aln_stats_cols = ['reads', 'orphaned', 'inverted', 'samestrand', 'secondary', 'supplementary', 'clipped']
     READS = 0
     ORPHANED = 1
     INVERTED = 2
     SAMESTRAND = 3
     SECONDARY = 4
     SUPPLEMENTARY = 5
-    HARDCLIPPED = 6
+    CLIPPED = 6
 
-    def __init__(self, depth_bins, bkpt_bins=None, mapq_t=30, hardclip_t=1):
+    def __init__(self, depth_bins, bkpt_bins=None, mapq_t=30, clip_thresh=1):
         # set parameters
         self.depth_bins = depth_bins
         if not bkpt_bins:
@@ -177,7 +179,7 @@ class SamStats():
         else:
             self.bkpt_bins = bkpt_bins
         self.mapQT = mapq_t
-        self.hcT = hardclip_t
+        self.clip_thresh = clip_thresh
 
         # initialise data structures
         self.depths = np.zeros((self.depth_bins.num, len(SamStats.depth_cols)), dtype=np.intc)
@@ -209,7 +211,7 @@ class SamStats():
                 self.aln_stats[idx][i][j] += 1
 
     def process(self, sam_entry):
-        cov = self.depth_bins.get_bin_coverage(sam_entry.pos, sam_entry.get_right_pos())
+        cov = self.depth_bins.get_bin_coverage(sam_entry.left, sam_entry.right)
         if cov is None:
             return None
         depth_cols = [SamStats.TOTAL]
@@ -223,7 +225,7 @@ class SamStats():
         self.add_to_depth(cov, depth_cols)
 
         for idx, bins in enumerate(self.bkpt_bins):
-            cov = bins.get_bin_coverage(sam_entry.pos, sam_entry.get_right_pos())
+            cov = bins.get_bin_coverage(sam_entry.left, sam_entry.right)
             if cov is None:
                 continue
             stats_cols = [SamStats.READS]
@@ -234,8 +236,8 @@ class SamStats():
             if (sam_entry.flag & SamEntry.supplementary):
                 stats_cols.append(SamStats.SUPPLEMENTARY)
 
-            if max(sam_entry.get_hard_clips()) >= self.hcT:
-                stats_cols.append(SamStats.HARDCLIPPED)
+            if sam_entry.get_num_clipped() >= self.clip_thresh:
+                stats_cols.append(SamStats.CLIPPED)
 
             if sam_entry.has_unmapped_mate():
                 stats_cols.append(SamStats.ORPHANED)
@@ -250,12 +252,12 @@ class SamStats():
                     if not sam_entry.tlen == 0 and sam_entry.mapQ > self.mapQT:
                         # pairs are mapped correctly, so add to insert sizes
                         if sam_entry.is_rvs():
-                            ins_cov = bins.get_bin_coverage(sam_entry.get_right_pos(), sam_entry.get_right_pos())
+                            ins_cov = bins.get_bin_coverage(sam_entry.right, sam_entry.right)
                             if ins_cov is None:
                                 continue
                             self.rvs_inserts[idx][ins_cov[1][0]].append(-1 * sam_entry.tlen)
                         else:
-                            ins_cov = bins.get_bin_coverage(sam_entry.pos, sam_entry.pos)
+                            ins_cov = bins.get_bin_coverage(sam_entry.left, sam_entry.left)
                             if ins_cov is None:
                                 continue
                             self.fwd_inserts[idx][ins_cov[0][0]].append(sam_entry.tlen)
