@@ -54,6 +54,7 @@ class SamEntry():
             left += int(clipped['LS'])
         right = left + num_aligned
         return left, right
+
     def has_flag(self, flag):
         return self.flag & flag
 
@@ -346,8 +347,7 @@ class SAMtools:
     @staticmethod
     def view(sam, region, include_flag=None, exclude_flag=
             (SamEntry.duplicate + SamEntry.fails_QC + SamEntry.read_unmapped), samtools='samtools'):
-        cmd = []
-        cmd.append(samtools)
+        cmd = [samtools]
         cmd.append('view')
         if include_flag:
             cmd.append('-f')
@@ -356,6 +356,19 @@ class SAMtools:
             cmd.append('-F')
             cmd.append(str(exclude_flag))
         cmd.append(sam)
+        cmd.append(region)
+        print(' '.join(cmd) + '\n')
+        p = subprocess.Popen(cmd, bufsize=1024, stdout=PIPE, universal_newlines=True)
+        if p.poll():
+            print("Error code %d from command:\n%s\n" % (' '.join(cmd) + '\n'))
+            exit(1)
+        return p
+
+    @staticmethod
+    def faidx(fasta, region, samtools='samtools'):
+        cmd = [samtools]
+        cmd.append('faidx')
+        cmd.append(fasta)
         cmd.append(region)
         print(' '.join(cmd) + '\n')
         p = subprocess.Popen(cmd, bufsize=1024, stdout=PIPE, universal_newlines=True)

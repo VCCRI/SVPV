@@ -211,8 +211,6 @@ class SV:
         self.svtype = fields[3]
         if db_mode:
             self.GTs = None
-            ''' TODO '''
-            ''' need to do this properly for multi-allelic positions - currently just showing allele B freq '''
             self.AF = float(fields[4].split(',')[0])
         else:
             self.GTs = fields[4:]

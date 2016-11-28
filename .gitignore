@@ -2,3 +2,5 @@
 *.pyc
 *.idea
 *output/
+*todo.txt
+

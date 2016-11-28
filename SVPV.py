@@ -57,8 +57,6 @@ usage = 'Usage example:\n' \
         '[optional]\n' \
         '-gui\t\tRun in gui mode.\n' \
         '-no_display\tdon\'t attempt to display pdf files in gui mode \n' \
-        '-alt_vcf\tAlternate structural variant prediction vcf/bcf file,' \
-            '\n\t\tCalled on the same set of samples as primary.\n' \
         '-ref_vcf\tReference structural variant vcf/bcf file for annotation.\n' \
         '-ref_gene\tRefseq genes file for annotation.\n' \
         '-manifest\tWhitespace delimited file with first column sample names and' \
@@ -81,7 +79,7 @@ usage = 'Usage example:\n' \
         '-or\t0/[1]\tforce orphaned reads plot on or off.\n' \
         '-v\t0/[1]\tforce inverted pairs plot on or off.\n' \
         '-ss\t0/[1]\tforce same strand pairs plot on or off.\n' \
-        '-hc\t0/[1]\tforce hardclipped reads plot on or off.\n' \
+        '-cl\t0/[1]\tforce clipped reads plot on or off.\n' \
         '-se\t[0]/1\tforce SAM \'secondary alignment\' plot on or off.\n' \
         '-su\t[0]/1\tforce SAM \'supplementary alignment\' plot on or off.\n' \
         '-i\t0/[1]\tforce inferred insert size plot on or off.\n' \
@@ -107,20 +105,15 @@ class Params:
             if a[0] == '-':
                 # set run parameters
                 if a in RunParams.valid:
+                    '''
+                    Accept comma separated list of vcfs.
+                    First one should be "primary"
+                        in batch mode only SVs from this VCF are printed
+                        in GUI mode we default to loading the list of SVs from this VCF
+                            -but can switch primary VCFs dynamically
+                    '''
                     if a == '-vcf':
-                        if ':' in args[i + 1]:
-                            check_file_exists(args[i + 1].split(':')[1])
-                            self.run.vcf = VCFManager(args[i + 1].split(':')[1], name=args[i + 1].split(':')[0])
-                        else:
-                            check_file_exists(args[i + 1])
-                            self.run.vcf = VCFManager(args[i + 1], name='primary')
-                    elif a == '-alt_vcf':
-                        if ':' in args[i + 1]:
-                            check_file_exists(args[i + 1].split(':')[1])
-                            self.run.alt_vcf = VCFManager( args[i + 1].split(':')[1], name=args[i + 1].split(':')[0])
-                        else:
-                            check_file_exists(args[i + 1])
-                            self.run.alt_vcf = VCFManager(args[i + 1], name='alternate')
+                        self.run.set_vcfs(args[i + 1])
                     elif a == '-aln':
                         self.run.alns = args[i + 1].split(',')
                     elif a == '-all':
@@ -266,10 +259,13 @@ class Params:
 
 # class to store run parameters
 class RunParams:
-    valid = ('-vcf','-aln', '-samples', '-manifest', '-o', '-gui', '-ref_gene', '-ref_vcf', '-alt_vcf', '-no_display')
+    valid = ('-vcf','-aln', '-samples', '-manifest', '-o', '-gui', '-ref_gene', '-ref_vcf', '-no_display')
+
     def __init__(self):
         # path to vcf
         self.vcf = None
+        # set of alternate sv callsets to visualise against
+        self.alt_vcfs = []
         # list of bams
         self.alns = []
         # list of samples
@@ -280,10 +276,8 @@ class RunParams:
         self.gui = False
         # refgene manager
         self.ref_genes = None
-        #vcf for including population frequencies
+        # vcf for including population frequencies
         self.ref_vcf = None
-        #set of alternate sv callsets to visualise against
-        self.alt_vcf = None
         self.all = False
 
         # get configurations
@@ -305,7 +299,6 @@ class RunParams:
         except AttributeError:
             self.num_bins = 100
 
-
     def get_bams(self, samples):
         bams = []
         for s in samples:
@@ -323,6 +316,20 @@ class RunParams:
             self.samples.append(line.split()[0].strip())
             self.alns.append(line.split()[1].strip())
             check_file_exists(self.alns[-1])
+
+    # set up the input vcfs (comma separated list, names included with colons name:file or file)
+    def set_vcfs(self, vcfs_arg):
+        for sv_vcf in vcfs_arg.split(','):
+            if ':' in sv_vcf:
+                check_file_exists(sv_vcf.split(':')[1])
+                vcf = VCFManager(sv_vcf.split(':')[1], name=sv_vcf.split(':')[0])
+            else:
+                check_file_exists(sv_vcf)
+                vcf = VCFManager(sv_vcf)
+            if self.vcf is None:
+                self.vcf = vcf
+            else:
+                self.alt_vcfs.append(vcf)
 
     def check(self):
         if not self.vcf:
@@ -391,9 +398,10 @@ class FilterParams:
 
 # class to store parameters for what to show in R plots
 class PlotParams:
-    valid = ('-d', '-or', '-v', '-ss', '-se', '-su', '-cl', '-i', '-r', '-af', '-l', '-separate_plots')
+    valid = ('-d', '-or', '-v', '-ss', '-se', '-su', '-cl', '-i', '-r', '-af', '-l', '-gc', '-separate_plots')
 
     def __init__(self):
+        self.gc = False
         self.depth = True
         self.orphaned = True
         self.inverted = True
@@ -432,6 +440,8 @@ class PlotParams:
             args.append("-af")
         if self.legend:
             args.append("-l")
+        if self.gc:
+            args.append("-gc")
         return args
 
 
@@ -459,9 +469,7 @@ def example(argv):
     run_argv.append('-aln')
     run_argv.append(','.join(samples.values()))
     run_argv.append('-vcf')
-    run_argv.append('delly:' + os.path.join(path, 'delly.vcf'))
-    run_argv.append('-alt_vcf')
-    run_argv.append('cnvnator:' + os.path.join(path, 'cnvnator.vcf'))
+    run_argv.append('delly:' + os.path.join(path, 'delly.vcf') + ',cnvnator:' + os.path.join(path, 'cnvnator.vcf'))
     run_argv.append('-ref_vcf')
     run_argv.append('1000G:' + os.path.join(path, '1000G.vcf'))
     run_argv.append('-ref_gene')

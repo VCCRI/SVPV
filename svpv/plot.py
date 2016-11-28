@@ -46,6 +46,7 @@ class Plot:
         self.add_vcf_annotation()
 
     def add_vcf_annotation(self):
+        # sample-wise SV annotation
         for i, s in enumerate(self.samples):
             sv_file = open(os.path.join(self.dirs[s], 'svs.tsv'), 'w')
             svs = self.par.run.vcf.get_svs_in_range(self.sv.chrom, self.start, self.end, sample=s)
@@ -53,34 +54,26 @@ class Plot:
                 svs.append(self.sv)
             SV.print_SVs_header(sv_file, sample_index=self.par.run.vcf.get_sample_index(s))
             SV.print_SVs(svs, sv_file, self.par.run.vcf.name, sample_index=self.par.run.vcf.get_sample_index(s))
-            if self.par.run.alt_vcf:
-                alt_svs = self.par.run.alt_vcf.get_svs_in_range(self.sv.chrom, self.start, self.end, sample=s)
-            else:
-                alt_svs = None
-            if alt_svs:
-                SV.print_SVs(alt_svs, sv_file, self.par.run.alt_vcf.name,
-                             sample_index=self.par.run.alt_vcf.get_sample_index(s))
+            for vcf in self.par.run.alt_vcfs:
+                alt_svs = vcf.get_svs_in_range(self.sv.chrom, self.start, self.end, sample=s)
+                if alt_svs:
+                    SV.print_SVs(alt_svs, sv_file, vcf.name, sample_index=vcf.get_sample_index(s))
             sv_file.close()
 
-        # print annotation data to file
-        batch_svs = self.par.run.vcf.get_svs_in_range(self.sv.chrom, self.start, self.end)
-        if self.par.run.ref_vcf:
-            ref_svs = self.par.run.ref_vcf.get_svs_in_range(self.sv.chrom, self.start, self.end)
-        else:
-            ref_svs = None
-        if self.par.run.alt_vcf:
-            alt_svs = self.par.run.alt_vcf.get_svs_in_range(self.sv.chrom, self.start, self.end)
-        else:
-            alt_svs = None
-
+        # batch-wise SV annotation
         svs_file = open(os.path.join(self.dirs['pos'], 'SV_AF.tsv'), 'w')
         SV.print_SVs_header(svs_file)
+        batch_svs = self.par.run.vcf.get_svs_in_range(self.sv.chrom, self.start, self.end)
         if batch_svs:
             SV.print_SVs(batch_svs, svs_file, self.par.run.vcf.name)
-        if alt_svs:
-            SV.print_SVs(alt_svs, svs_file, self.par.run.alt_vcf.name)
-        if ref_svs:
-            SV.print_SVs(ref_svs, svs_file, self.par.run.ref_vcf.name)
+        if self.par.run.ref_vcf:
+            ref_svs = self.par.run.ref_vcf.get_svs_in_range(self.sv.chrom, self.start, self.end)
+            if ref_svs:
+                SV.print_SVs(ref_svs, svs_file, self.par.run.ref_vcf.name)
+        for vcf in self.par.run.alt_vcfs:
+            alt_svs = vcf.get_svs_in_range(self.sv.chrom, self.start, self.end)
+            if alt_svs:
+                SV.print_SVs(alt_svs, svs_file, vcf.name)
         svs_file.close()
 
     def plot_figure(self, group=8, display=False):
@@ -94,7 +87,7 @@ class Plot:
             else:
                 id = sha1(''.join(current_samples).encode('utf-8')).hexdigest()[0:10]
             out = os.path.join(self.dirs['pos'], '%s.%s.%s.%s.%s.pdf' % (self.sv.chrom, self.sv.start, self.sv.svtype,
-                                                                         self.get_good_length_units(), id))
+                                                                         self.get_length_units(), id))
             cmd = ['Rscript']
             cmd.append(Plot.svpv_r)
             cmd.append(','.join(current_samples))
@@ -103,11 +96,10 @@ class Plot:
             cmd.append('"%s at %s:%d-%d"' % (self.sv.svtype, self.sv.chrom, self.sv.start, self.sv.end))
             cmd.extend(self.par.plot.get_R_args())
             print(' '.join(cmd) + '\n')
-
             try:
                 subprocess.call(cmd)
             except OSError:
-                print('Error: could not run Rscript. Are you sure it is installed?')
+                print('Error: failed to run Rscript. Are you sure R is installed?')
                 exit(1)
 
             if display:
@@ -144,7 +136,7 @@ class Plot:
                 os.mkdir(dirs[s])
         return dirs
 
-    def get_good_length_units(self):
+    def get_length_units(self):
         length = self.sv.end - self.sv.start + 1
         if length < 1e3:
             return '%d_%s' % (length, 'bp')

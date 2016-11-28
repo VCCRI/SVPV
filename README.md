@@ -36,16 +36,19 @@ Running in GUI mode allows users to select and view individual structural varian
 ```
 python SVPV.py -gui -o ./example/output/ -vcf delly:./example/delly.vcf -alt_vcf cnvnator:./example/cnvnator.vcf -manifest ./example/example.manifest -ref_gene ./example/hg38.refgene.partial.txt -ref_vcf ./example/1000G.vcf
 ```
+**another example:**
+```
+python SVPV.py -vcf caller1_svs.vcf -samples sample1,sample2,sample3 -aln alignment1.bam,alignment2.bam,alignment3.bam -o /out/directory/ -alt_vcf caller2_svs.vcf -ref_vcf 1000_genomes_svs.vcf -ref_gene hg38.refgene.txt -max_len 100000 -af <0.25 -gts sample1:1/1,0/1;sample3:0/0 -svtype DEL -exonic -ss 0 -se 1
+```
 
 |Run args:            | Description                                                               | Notes    |
 |---------------------|---------------------------------------------------------------------------|----------|
-|-vcf<sup>1</sup>     | Primary structural variant prediction VCF/BCF file                        | required |
+|-vcf<sup>1</sup>     | list of structural variant prediction VCF/BCF files                       | required |
 |-o                   | Output directory                                                          | required |
 |-aln                 | Comma separated list of alignment files (indexed BAM/CRAM)                | required <sup>2</sup>
 |-samples             | Comma separated list of samples to view, names must be the same as in VCF | required <sup>2</sup>
 |-gui                 | run in gui mode                                                           | optional |
 |-no_display          | don't attempt to display pdf files in GUI mode                            | optional |
-|-alt_vcf<sup>1</sup> | Alternate structural variant prediction vcf/bcf file, <br> called on the same set of samples as primary   | optional
 |-ref_vcf<sup>1</sup> | Reference structural variant vcf/bcf file for annotation                  | optional |
 |-ref_gene            | Refseq genes regene table file for annotation<sup>3</sup>                 | optional |
 |-manifest            | Whitespace delimited file, first column sample names, <br> second column alignment file path. Overrides '-samples' and '-aln' if also given. | optional
@@ -87,7 +90,10 @@ python SVPV.py -gui -o ./example/output/ -vcf delly:./example/delly.vcf -alt_vcf
 
 
 
-**another example:**  
-```
-python SVPV.py -vcf caller1_svs.vcf -samples sample1,sample2,sample3 -aln alignment1.bam,alignment2.bam,alignment3.bam -o /out/directory/ -alt_vcf caller2_svs.vcf -ref_vcf 1000_genomes_svs.vcf -ref_gene hg38.refgene.txt -max_len 100000 -af <0.25 -gts sample1:1/1,0/1;sample3:0/0 -svtype DEL -exonic -ss 0 -se 1
-```
+
+### Structural Variant VCFs
+BCFtools is used to parse vcf/bcf formatted files.
+SVPV requires the 'SVTYPE' info field in the VCF entries to recognise structural variant calls.
+'END' is required for deletion, duplication and CNV type variants and 'ISLEN' for insertions.
+Transversions require the 'CHR2' field.
+Please see the [VCF specifications](http://samtools.github.io/hts-specs/VCFv4.3.pdf) for clarification.
