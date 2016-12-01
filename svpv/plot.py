@@ -19,8 +19,13 @@ class Plot:
     def __init__(self, sv, samples, par, breakpoint_zoom=True):
         self.par = par
         self.sv = sv
-        self.start = sv.start - par.run.expansion * (sv.end - sv.start + 1)
-        self.end = sv.end + par.run.expansion * (sv.end - sv.start + 1)
+        if self.sv.svtype in ('DEL', 'DUP', 'INV', 'CNV'):
+            self.start = sv.start - par.run.expansion * (sv.end - sv.start + 1)
+            self.end = sv.end + par.run.expansion * (sv.end - sv.start + 1)
+        else:
+            self.start = sv.start - par.run.expansion * par.run.is_len
+            self.end = sv.start + par.run.expansion * par.run.is_len
+
         self.samples = samples
         self.dirs = self.create_dirs(par.run.out_dir)
 

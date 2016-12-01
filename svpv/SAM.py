@@ -29,12 +29,13 @@ class SamEntry():
     duplicate = np.uint16(1024)
     supplementary = np.uint16(2048)
 
-    def __init__(self, fields):
-        self.flag = np.uint16(fields[1])
-        self.pos = int(fields[3])
-        self.mapQ = int(fields[4])
-        self.cigar = fields[5]
-        self.tlen = int(fields[8])
+    def __init__(self, FLAG, POS, MAPQ, CIGAR, RNEXT, TLEN):
+        self.flag = np.uint16(FLAG)
+        self.mate_diff_molecule = '=' not in RNEXT
+        self.pos = int(POS)
+        self.mapQ = int(MAPQ)
+        self.cigar = CIGAR
+        self.tlen = int(TLEN)
         self.left, self.right = self.get_aligned_pos()
 
     # return the positions of the left aligned and right aligned bases
@@ -163,7 +164,7 @@ class SamStats():
     TOTAL = 0
     MAPQLTT = 1
     MAPQ0 = 2
-    aln_stats_cols = ['reads', 'orphaned', 'inverted', 'samestrand', 'secondary', 'supplementary', 'clipped']
+    aln_stats_cols = ['reads', 'orphaned', 'inverted', 'samestrand', 'secondary', 'supplementary', 'clipped', 'diffmol']
     READS = 0
     ORPHANED = 1
     INVERTED = 2
@@ -171,6 +172,7 @@ class SamStats():
     SECONDARY = 4
     SUPPLEMENTARY = 5
     CLIPPED = 6
+    DIFFMOL = 7
 
     def __init__(self, depth_bins, bkpt_bins=None, mapq_t=30, clip_thresh=1):
         # set parameters
@@ -243,7 +245,9 @@ class SamStats():
             if sam_entry.has_unmapped_mate():
                 stats_cols.append(SamStats.ORPHANED)
             else:
-                if sam_entry.mate_same_strand():
+                if sam_entry.mate_diff_molecule:
+                    stats_cols.append(SamStats.DIFFMOL)
+                elif sam_entry.mate_same_strand():
                     stats_cols.append(SamStats.SAMESTRAND)
                 elif sam_entry.is_inverted():
                     stats_cols.append(SamStats.INVERTED)
@@ -301,6 +305,8 @@ class SamStats():
                     for k in range(0, len(self.fwd_inserts[i][j])-1):
                          fwd_ins_file.write(str(self.fwd_inserts[i][j][k]) + ',')
                     fwd_ins_file.write(str(self.fwd_inserts[i][j][-1]))
+                else:
+                    fwd_ins_file.write('NA')
                 fwd_ins_file.write('\n')
                 # rvs inserts
                 rvs_ins_file.write(str(bin.start + j * bin.size) + '\t')
@@ -308,6 +314,8 @@ class SamStats():
                     for k in range(0, len(self.rvs_inserts[i][j])-1):
                         rvs_ins_file.write(str(self.rvs_inserts[i][j][k]) + ',')
                     rvs_ins_file.write(str(self.rvs_inserts[i][j][-1]))
+                else:
+                    rvs_ins_file.write('NA')
                 rvs_ins_file.write('\n')
         fwd_ins_file.close()
         rvs_ins_file.close()
@@ -329,8 +337,14 @@ class SamStats():
             p = SAMtools.view(s, region)
             line = p.stdout.readline()
             while line:
-                sam_stats[-1].process(SamEntry(line.split()))
-                line = p.stdout.readline()
+                try:
+                    FLAG, RNAME, POS, MAPQ, CIGAR, RNEXT, PNEXT, TLEN = line.split()[1:9]
+                except ValueError:
+                    line = p.stdout.readline()
+                    continue
+                else:
+                    sam_stats[-1].process(SamEntry(FLAG, POS, MAPQ, CIGAR, RNEXT, TLEN))
+                    line = p.stdout.readline()
         return sam_stats
 
 
@@ -376,3 +390,19 @@ class SAMtools:
             print("Error code %d from command:\n%s\n" % (' '.join(cmd) + '\n'))
             exit(1)
         return p
+
+    @staticmethod
+    def get_GC(fasta, region):
+        GC = 0
+        AT = 0
+        p = SAMtools.faidx(fasta, region)
+        line = p.stdout.readline()
+        while line:
+            if line[0] != '>':
+                for base in line:
+                    if base.upper() in ('G', 'C'):
+                        GC += 1
+                    elif base.upper() in ('A', 'T'):
+                        AT += 1
+            line = p.stdout.readline()
+        return GC / (AT + GC)

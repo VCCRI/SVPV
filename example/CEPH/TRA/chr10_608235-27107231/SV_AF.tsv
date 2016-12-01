@@ -1,0 +1,3 @@
+vcf	chrom	start	end	svtype	MAF
+Delly	chr10	10283	248945746	TRA	0.1875
+Delly	chr10	608235	27107231	TRA	0.3125

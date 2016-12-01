@@ -22,10 +22,6 @@ def main(argv=sys.argv):
         print("Error: python 2.7+ required. Please update your python installation.")
         exit(1)
 
-    if len(argv) <= 1:
-        print(usage)
-        exit(1)
-
     BCFtools.check_installation()
     SAMtools.check_installation()
     if '-example' in argv:
@@ -105,13 +101,6 @@ class Params:
             if a[0] == '-':
                 # set run parameters
                 if a in RunParams.valid:
-                    '''
-                    Accept comma separated list of vcfs.
-                    First one should be "primary"
-                        in batch mode only SVs from this VCF are printed
-                        in GUI mode we default to loading the list of SVs from this VCF
-                            -but can switch primary VCFs dynamically
-                    '''
                     if a == '-vcf':
                         self.run.set_vcfs(args[i + 1])
                     elif a == '-aln':
@@ -224,6 +213,11 @@ class Params:
                             self.plot.supplementary = False
                         if (args[i + 1]) == '1':
                             self.plot.supplementary = True
+                    elif a == '-dm':
+                        if (args[i + 1]) == '0':
+                            self.plot.diff_mol = False
+                        if (args[i + 1]) == '1':
+                            self.plot.diff_mol = True
                     elif a == '-cl':
                         if (args[i + 1]) == '0':
                             self.plot.clipped = False
@@ -385,20 +379,22 @@ class FilterParams:
         self.svtype = None
         # path to genes list file
         self.gene_list = None
-        #switch for filtering by gene list
+        # switch for filtering by gene list
         self.gene_list_intersection = False
-        #intersection with refgenes
+        # intersection with refgenes
         self.RG_intersection = False
-        #filter SVs by length
+        # filter SVs by length
         self.min_len = None
         self.max_len = None
+        # pointer to refgenes
         self.ref_genes = None
+        # filter for SVs that intersect exons only
         self.exonic = False
 
 
 # class to store parameters for what to show in R plots
 class PlotParams:
-    valid = ('-d', '-or', '-v', '-ss', '-se', '-su', '-cl', '-i', '-r', '-af', '-l', '-gc', '-separate_plots')
+    valid = ('-d', '-or', '-v', '-ss', '-se', '-su', '-cl', '-i', '-r', '-af', '-l', '-gc', '-dm', '-separate_plots')
 
     def __init__(self):
         self.gc = False
@@ -413,6 +409,7 @@ class PlotParams:
         self.refgene = True
         self.sv_af = True
         self.legend = True
+        self.diff_mol = True
         self.grouping = 8
 
     # command line arguments for calling Rscipt
@@ -442,6 +439,8 @@ class PlotParams:
             args.append("-l")
         if self.gc:
             args.append("-gc")
+        if self.diff_mol:
+            args.append("-dm")
         return args
 
 

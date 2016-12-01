@@ -1,0 +1,2 @@
+vcf	chrom	start	end	svtype	gt
+Delly	chr1	4064709	4065679	DEL	0/0

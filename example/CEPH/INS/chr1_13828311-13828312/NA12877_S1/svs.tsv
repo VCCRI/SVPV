@@ -1,0 +1,2 @@
+vcf	chrom	start	end	svtype	gt
+Delly	chr1	13828311	13828312	INS	1/1

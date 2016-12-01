@@ -7,6 +7,7 @@ PlotParams <- function(args) {
     samestrand = ('-ss' %in% args),
     secondary = ('-se' %in% args),
     supplementary = ('-su' %in% args),
+    diffmol = ('-dm' %in% args),
     clipped = ('-cl' %in% args),
     ins = ('-i' %in% args),
     refgene = ('-r' %in% args),
@@ -392,6 +393,9 @@ plot_sample <- function(sample, plot_params, ins_ylim) {
   if (plot_params$supplementary) {
     plot_aln_stats( sample$Aln_stats$reads, sample$Aln_stats$supplementary, 'supplementary', sample$Split)
   }
+  if (plot_params$diffmol) {
+    plot_aln_stats( sample$Aln_stats$reads, sample$Aln_stats$supplementary, 'diffmol', sample$Split)
+  }
   if (plot_params$orphaned) {
     plot_aln_stats( sample$Aln_stats$reads, sample$Aln_stats$orphaned, 'orphaned', sample$Split)
   }
@@ -545,6 +549,7 @@ get_plot_layout <- function(plot_params, annotations, num_samples, vcfs_per_samp
       if (plot_params$clipped) {  heights <- c(heights, 1) }
       if (plot_params$secondary) { heights <- c(heights, 1) }
       if (plot_params$supplementary) { heights <- c(heights, 1) }
+      if (plot_params$diffmol) { heights <- c(heights, 1) }
       if (plot_params$orphaned) { heights <- c(heights, 1) }
       if (plot_params$inverted) { heights <- c(heights, 1) }
       if (plot_params$samestrand) { heights <- c(heights, 1) }

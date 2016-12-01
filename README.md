@@ -74,26 +74,28 @@ python SVPV.py -vcf caller1_svs.vcf -samples sample1,sample2,sample3 -aln alignm
 
 
 
-|Plot args: | Default | Description                                        |
-|-----------|---------|----------------------------------------------------|
-|-d         | 1       | force sequencing depth plot on or off              |
-|-or        | 1       | force orphaned reads plot on or off                |
-|-v         | 1       | force inverted pairs plot on or off                |
-|-ss        | 1       | force same strand pairs plot on or off             |
-|-cl        | 1       | force clipped reads plot on or off                 |
-|-se        | 0       | force SAM 'secondary alignment' plot on or off     |
-|-su        | 0       | force SAM 'supplementary alignment' plot on or off |
-|-i         | 1       | force inferred insert size plot on or off          |
-|-r         | 1       | force refgenes plot on or off                      |
-|-af        | 1       | force allele frequency plot on or off              | 
-|-l         | 1       | force plot legend on or off                        |
-
+|Plot args: | Default | Description                                             |
+|-----------|---------|---------------------------------------------------------|
+|-d         | 1       | force sequencing depth plot on or off                   |
+|-or        | 1       | force orphaned reads plot on or off                     |
+|-v         | 1       | force inverted pairs plot on or off                     |
+|-ss        | 1       | force same strand pairs plot on or off                  |
+|-cl        | 1       | force clipped reads plot on or off                      |
+|-se        | 0       | force SAM 'secondary alignment' plot on or off          |
+|-su        | 0       | force SAM 'supplementary alignment' plot on or off      |
+|-dm        | 0       | force mate different molecule alignment plot on or off  |
+|-i         | 1       | force inferred insert size plot on or off               |
+|-r         | 1       | force refgenes plot on or off                           |
+|-af        | 1       | force allele frequency plot on or off                   |
+|-l         | 1       | force plot legend on or off                             |
 
 
 
 ### Structural Variant VCFs
 BCFtools is used to parse vcf/bcf formatted files.
-SVPV requires the 'SVTYPE' info field in the VCF entries to recognise structural variant calls.
+SVPV expects the 'SVTYPE' info field in the VCF entries to recognise structural variant calls,
+however if this is absent symbolic alternative alleles (e.g. '<DEL>') will be used.
+VCF entries with neither 'SVTYPE' or symbolic allele on the supported SVtype list (DEL, DUP, CNV, TRA, INS, INV) will be ignored.
 'END' is required for deletion, duplication and CNV type variants and 'ISLEN' for insertions.
 Transversions require the 'CHR2' field.
 Please see the [VCF specifications](http://samtools.github.io/hts-specs/VCFv4.3.pdf) for clarification.

@@ -3,10 +3,10 @@
 # author: Jacob Munro, Victor Chang Cardiac Research Institute
 # """
 from __future__ import print_function
+from __future__ import division
 import subprocess
 from subprocess import PIPE
-import copy
-
+import copy, re
 
 
 class VCFManager:
@@ -18,9 +18,9 @@ class VCFManager:
         self.samples = BCFtools.get_samples(vcf_file)
         # count of svs in vcf
         self.count = 0
-        #dict of Structural variants
-        #chromosoms as keys
-        #SVs['chr1'] = [list of SVs on chromosome 1]
+        # dict of Structural variants
+        # chromosoms as keys
+        # SVs['chr1'] = [list of SVs on chromosome 1]
         self.SVs = {}
         self.set_svs(vcf_file, db_mode)
 
@@ -50,7 +50,7 @@ class VCFManager:
         p = BCFtools.get_SV_sites(vcf, db_mode)
         line = p.stdout.readline()
         while line:
-            sv = SV.attempt_sv_parse(line.split(), db_mode)
+            sv = SV.attempt_sv_parse(line, db_mode)
             if sv is not None:
                 self.count += 1
                 if sv.chrom in self.SVs:
@@ -128,10 +128,10 @@ class VCFManager:
                 delete = []
                 for i, sv in enumerate(matching[chrom]):
                     if filter_par.AF_thresh_is_LT:
-                        if not sv.get_AF() < filter_par.AF_thresh:
+                        if not sv.AF < filter_par.AF_thresh:
                             delete.append(i)
                     else:
-                        if not sv.get_AF() > filter_par.AF_thresh:
+                        if not sv.AF > filter_par.AF_thresh:
                             delete.append(i)
                 delete.sort(reverse=True)
                 for i in delete:
@@ -195,26 +195,43 @@ class VCFManager:
 
 
 class SV:
-    valid_SVs = ['DEL', 'DUP', 'CNV', 'INV']
+    valid_SVs = ['DEL', 'DUP', 'CNV', 'INV', 'TRA', 'INS']
 
     @staticmethod
-    def attempt_sv_parse(fields, db_mode):
-        if not len(fields) > 3 or not fields[3] in SV.valid_SVs:
-            return None
-        else:
-            return SV(fields, db_mode)
+    def attempt_sv_parse(line, db_mode):
+        # BCFtools format string:
+        # "%CHROM\\t%POS\\t%ALT{0}\\t%INFO/END\\t%INFO/SVTYPE\\t%INFO/ISLEN\\t%INFO/CHR2\\t%INFO/AF\\n"
+        try:
+            if db_mode:
+                chrom, pos, alt, end, svtype, islen, chr2, af = line.split()[0:8]
+                if svtype not in SV.valid_SVs:
+                    svtype = re.sub('[<>]', '', alt)
+                if svtype in SV.valid_SVs:
+                    return SV(chrom, pos, end, svtype, islen, chr2, af=af)
+            else:
+                chrom, pos, alt, end, svtype, islen, chr2 = line.split()[0:7]
+                gts = line.split()[7:]
+                if svtype not in SV.valid_SVs:
+                    svtype = re.sub('[<>]', '', alt)
+                if svtype in SV.valid_SVs:
+                    return SV(chrom, pos, end, svtype, islen, chr2, gts=gts)
+        except ValueError:
+            pass
+        print('SV parsing failed for line:\n{}'.format(line))
+        return None
 
-    def __init__(self, fields, db_mode):
-        self.chrom = fields[0]
-        self.start = int(fields[1])
-        self.end = int(fields[2])
-        self.svtype = fields[3]
-        if db_mode:
-            self.GTs = None
-            self.AF = float(fields[4].split(',')[0])
-        else:
-            self.GTs = fields[4:]
+    def __init__(self, chrom, start, end, svtype, islen, chr2, gts=None, af=float(0)):
+        self.chrom = chrom
+        self.start = int(start)
+        self.end = int(end)
+        self.svtype = svtype
+        self.islen = islen
+        self.chr2 = chr2
+        self.GTs = gts
+        if gts:
             self.AF = self.get_AF()
+        else:
+            self.AF = float(af)
 
     def get_AF(self):
         if len(self.GTs):
@@ -225,18 +242,21 @@ class SV:
                         n += 2
                     else:
                         n += 1
-            return (n // float(2 * len(self.GTs)))
+            return n / (2 * len(self.GTs))
 
     # helper method for print_SVs
     def to_string(self, sample_index=None):
-        if not sample_index == None:
+        if sample_index is not None:
             return '\t'.join([self.chrom, str(self.start), str(self.end), self.svtype, self.GTs[sample_index]]) + '\n'
         else:
             return '\t'.join([self.chrom, str(self.start), str(self.end), self.svtype, str(self.AF)]) + '\n'
 
     def string_tuple(self):
-        return (self.svtype, self.chrom, str(self.start), str(self.end - self.start +1),
-                ('{0:.2f}'.format(self.get_AF())))
+        if self.svtype in ('TRA', 'INS'):
+            l = 'NA'
+        else:
+            l = str(self.end - self.start +1)
+        return (self.svtype, self.chrom, str(self.start), l, ('{0:.2f}'.format(self.AF)))
 
     # print SVs, either with genotype per sample, or MAF for whole BATCH annotation
     @staticmethod
@@ -265,14 +285,11 @@ class BCFtools:
     # return a pipe to the set of sv sites
     @staticmethod
     def get_SV_sites(vcf, db_mode=False):
-        cmd = []
-        cmd.append("bcftools")
-        cmd.append("query")
-        cmd.append("-f")
+        cmd = ["bcftools", "query", "-f"]
         if db_mode:
-            cmd.append("%CHROM\\t%POS\\t%INFO/END\\t%INFO/SVTYPE\\t%INFO/AF\\n")
+            cmd.append("%CHROM\\t%POS\\t%ALT{0}\\t%INFO/END\\t%INFO/SVTYPE\\t%INFO/INSLEN\\t%INFO/CHR2\\t%INFO/AF\\n")
         else:
-            cmd.append("%CHROM\\t%POS\\t%INFO/END\\t%INFO/SVTYPE[\\t%GT]\\n")
+            cmd.append("%CHROM\\t%POS\\t%ALT{0}\\t%INFO/END\\t%INFO/SVTYPE\\t%INFO/INSLEN\\t%INFO/CHR2[\\t%GT]\\n")
         cmd.append(vcf)
         print(' '.join(cmd) + '\n')
         p = subprocess.Popen(cmd, bufsize=1024, stdout=PIPE, universal_newlines=True)
@@ -284,10 +301,6 @@ class BCFtools:
     #return a list of samples
     @staticmethod
     def get_samples(vcf):
-        cmd = []
-        cmd.append("bcftools")
-        cmd.append("query")
-        cmd.append("-l")
-        cmd.append(vcf)
+        cmd = ["bcftools", "query", "-l", vcf]
         print(' '.join(cmd) + '\n')
         return subprocess.check_output(cmd, universal_newlines=True).split()
