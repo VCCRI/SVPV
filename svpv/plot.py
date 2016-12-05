@@ -16,7 +16,16 @@ from .refgene import RefGeneEntry
 class Plot:
     svpv_r = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'SVPV.r')
 
-    def __init__(self, sv, samples, par, breakpoint_zoom=True):
+    '''
+            for DEL/DUP/CNV we want to show depth over entire interval
+                -- no change required
+            for TRA/INV/INS/BND
+                -- plot windows around each breakpoint (3 x library insert size)
+                -- for simple tra show two chroms
+                -- for inv/ intra tra show one chrom
+    '''
+    def __init__(self, sv, samples, par, type='CNV', breakpoint_zoom=True):
+
         self.par = par
         self.sv = sv
         if self.sv.svtype in ('DEL', 'DUP', 'INV', 'CNV'):

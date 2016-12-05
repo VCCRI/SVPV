@@ -22,6 +22,7 @@ class VCFManager:
         # chromosoms as keys
         # SVs['chr1'] = [list of SVs on chromosome 1]
         self.SVs = {}
+        self.BNDs = BNDs()
         self.set_svs(vcf_file, db_mode)
 
     # for all svs, remove those that have not been called in the list of samples
@@ -52,11 +53,14 @@ class VCFManager:
         while line:
             sv = SV.attempt_sv_parse(line, db_mode)
             if sv is not None:
-                self.count += 1
-                if sv.chrom in self.SVs:
-                    self.SVs[sv.chrom].append(sv)
+                if isinstance(sv, BND_SV):
+                    self.BNDs.add_BND(sv)
                 else:
-                    self.SVs[sv.chrom] = [sv]
+                    self.count += 1
+                    if sv.chrom in self.SVs:
+                        self.SVs[sv.chrom].append(sv)
+                    else:
+                        self.SVs[sv.chrom] = [sv]
             line = p.stdout.readline()
 
     # return all SV calls that overlap with given range
@@ -195,7 +199,7 @@ class VCFManager:
 
 
 class SV:
-    valid_SVs = ['DEL', 'DUP', 'CNV', 'INV', 'TRA', 'INS']
+    valid_SVs = ['DEL', 'DUP', 'CNV', 'INV', 'TRA', 'INS', 'BND']
 
     @staticmethod
     def attempt_sv_parse(line, db_mode):
@@ -203,29 +207,35 @@ class SV:
         # "%CHROM\\t%POS\\t%ALT{0}\\t%INFO/END\\t%INFO/SVTYPE\\t%INFO/ISLEN\\t%INFO/CHR2\\t%INFO/AF\\n"
         try:
             if db_mode:
-                chrom, pos, alt, end, svtype, islen, chr2, af = line.split()[0:8]
+                chrom, pos, alt, end, svtype, svlen, pairid, mateid, inslen, chr2, af = line.split()[0:10]
                 if svtype not in SV.valid_SVs:
                     svtype = re.sub('[<>]', '', alt)
                 if svtype in SV.valid_SVs:
-                    return SV(chrom, pos, end, svtype, islen, chr2, af=af)
+                    if svtype == 'BND':
+                        None
+                    else:
+                        return SV(chrom, pos, end, svtype, svlen,  inslen, chr2, af=af)
             else:
-                chrom, pos, alt, end, svtype, islen, chr2 = line.split()[0:7]
-                gts = line.split()[7:]
+                chrom, pos, alt, end, svtype, svlen, pairid, mateid, inslen, chr2 = line.split()[0:9]
+                gts = line.split()[9:]
                 if svtype not in SV.valid_SVs:
                     svtype = re.sub('[<>]', '', alt)
                 if svtype in SV.valid_SVs:
-                    return SV(chrom, pos, end, svtype, islen, chr2, gts=gts)
+                    if svtype == 'BND':
+                        None
+                    else:
+                        return SV(chrom, pos, end, svtype, svlen, pairid, mateid, inslen, chr2, gts=gts)
         except ValueError:
             pass
         print('SV parsing failed for line:\n{}'.format(line))
         return None
 
-    def __init__(self, chrom, start, end, svtype, islen, chr2, gts=None, af=float(0)):
+    def __init__(self, chrom, start, end, svtype, svlen, inslen, chr2, gts=None, af=float(0)):
         self.chrom = chrom
         self.start = int(start)
         self.end = int(end)
         self.svtype = svtype
-        self.islen = islen
+        self.inslen = inslen
         self.chr2 = chr2
         self.GTs = gts
         if gts:
@@ -272,6 +282,90 @@ class SV:
             out.write('\t'.join(['vcf', 'chrom', 'start', 'end', 'svtype', 'MAF']) + '\n')
 
 
+class BNDs:
+    def __init__(self):
+        # store bnds with EVENTID together as a list of ids
+        self.events = {}
+        # store remainder (no EVENTID) as set
+        self.non_events = set()
+        # store each bnd, and their relationships
+        self.IDs = {}
+        self.mates = {}
+        self.pairs = {}
+
+    def add_BND(self, bnd_sv):
+        self.IDs[bnd_sv.id] = bnd_sv
+        # update the list in events
+        if bnd_sv.event_id is not None:
+            if bnd_sv.event_id in self.events:
+                if bnd_sv not in self.events[bnd_sv.event_id]:
+                    self.events[bnd_sv.event_id].append(bnd_sv.id)
+            else:
+                self.events[bnd_sv.event_id] = [bnd_sv.id]
+        else:
+            self.non_events.add(bnd_sv.id)
+        # update the pointers in mates and pairs
+        if bnd_sv.mate_id is not None:
+            if bnd_sv.mate_id in self.IDs:
+                self.mates[bnd_sv.id] = self.IDs[bnd_sv.mate_id]
+                self.mates[bnd_sv.mate_id] = self.IDs[bnd_sv.id]
+        if bnd_sv.pair_id is not None:
+            if bnd_sv.pair_id in self.IDs:
+                self.mates[bnd_sv.id] = self.IDs[bnd_sv.pair_id]
+                self.mates[bnd_sv.pair_id] = self.IDs[bnd_sv.id]
+
+    def resolve(self):
+        '''
+
+        :return: a list of BND_svs ready to add to SVs
+        '''
+        '''
+        build list by parsing over events and non-events.
+        exclude events with more than two locii
+           - can't really view these
+           - too complicated
+        i.e. accept chrA chrB Tra, chrA chrA Inv
+        '''
+
+class BND_SV():
+    right_fwd = re.compile('^.+\[(?P<chr>.+):(?P<pos>.+)\[$')
+    right_rvs = re.compile('^.+\](?P<chr>.+):(?P<pos>.+)\]$')
+    left_fwd = re.compile('^\](?P<chr>.+):(?P<pos>.+)\].+$')
+    left_rvs = re.compile('^\[(?P<chr>.+):(?P<pos>.+)\[.+$')
+
+    def __init__(self, SV, ALT, ID, MATEID, PAIRID, EVENTID):
+        self.__SV = SV
+        self.id = ID
+        self.mate_id = MATEID
+        self.pair_id = PAIRID
+        self.event_id = EVENTID
+        self.event_members = []
+
+        if re.match(BND_SV.right_fwd, ALT):
+            m = re.match(BND_SV.right_fwd)
+            self.type = 'right_fwd'
+        elif re.match(BND_SV.right_rvs, ALT):
+            m = re.match(BND_SV.right_rvs)
+            self.type = 'right_rvs'
+        elif re.match(BND_SV.left_fwd, ALT):
+            m = re.match(BND_SV.left_fwd)
+            self.type = 'left_fwd'
+        elif re.match(BND_SV.left_rvs, ALT):
+            m = re.match(BND_SV.left_rvs)
+            self.type = 'left_rvs'
+        else:
+            return None
+
+        self.mate_chr = m.group('chr')
+        self.mate_pos = int(m.group('pos'))
+
+    def __getattr__(self, item):
+        return getattr(self.__SV, item)
+
+    def __setattr__(self, key, value):
+        return setattr(self.__SV, key, value)
+
+
 class BCFtools:
     @staticmethod
     def check_installation():
@@ -285,11 +379,13 @@ class BCFtools:
     # return a pipe to the set of sv sites
     @staticmethod
     def get_SV_sites(vcf, db_mode=False):
-        cmd = ["bcftools", "query", "-f"]
+        cmd = ["bcftools", "query", "-u", "-f"]
         if db_mode:
-            cmd.append("%CHROM\\t%POS\\t%ALT{0}\\t%INFO/END\\t%INFO/SVTYPE\\t%INFO/INSLEN\\t%INFO/CHR2\\t%INFO/AF\\n")
+            cmd.append("%CHROM\\t%POS\\t%ALT{0}\\t%INFO/END\\t%INFO/SVTYPE\\t%INFO/SVLEN\\t%INFO/EVENTID"
+                       "\\t%INFO/PAIRID\\t%INFO/MATEID\\t%INFO/INSLEN\\t%INFO/CHR2\\t%INFO/AF\\n")
         else:
-            cmd.append("%CHROM\\t%POS\\t%ALT{0}\\t%INFO/END\\t%INFO/SVTYPE\\t%INFO/INSLEN\\t%INFO/CHR2[\\t%GT]\\n")
+            cmd.append("%CHROM\\t%POS\\t%ALT{0}\\t%INFO/END\\t%INFO/SVTYPE\\t%INFO/SVLEN\\t%INFO/EVENTID"
+                       "\\t%INFO/PAIRID\\t%INFO/MATEID\\t%INFO/INSLEN\\t%INFO/CHR2[\\t%GT]\\n")
         cmd.append(vcf)
         print(' '.join(cmd) + '\n')
         p = subprocess.Popen(cmd, bufsize=1024, stdout=PIPE, universal_newlines=True)
