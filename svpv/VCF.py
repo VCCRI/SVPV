@@ -19,7 +19,7 @@ class VCFManager:
         # count of svs in vcf
         self.count = 0
         # dict of Structural variants
-        # chromosoms as keys
+        # chromosomes as keys
         # SVs['chr1'] = [list of SVs on chromosome 1]
         self.SVs = {}
         self.BNDs = BNDs()
@@ -201,47 +201,58 @@ class VCFManager:
 class SV:
     valid_SVs = ['DEL', 'DUP', 'CNV', 'INV', 'TRA', 'INS', 'BND']
 
-    @staticmethod
-    def attempt_sv_parse(line, db_mode):
-        # BCFtools format string:
-        # "%CHROM\\t%POS\\t%ALT{0}\\t%INFO/END\\t%INFO/SVTYPE\\t%INFO/ISLEN\\t%INFO/CHR2\\t%INFO/AF\\n"
-        try:
-            if db_mode:
-                chrom, pos, alt, end, svtype, svlen, pairid, mateid, inslen, chr2, af = line.split()[0:10]
-                if svtype not in SV.valid_SVs:
-                    svtype = re.sub('[<>]', '', alt)
-                if svtype in SV.valid_SVs:
-                    if svtype == 'BND':
-                        None
-                    else:
-                        return SV(chrom, pos, end, svtype, svlen,  inslen, chr2, af=af)
-            else:
-                chrom, pos, alt, end, svtype, svlen, pairid, mateid, inslen, chr2 = line.split()[0:9]
-                gts = line.split()[9:]
-                if svtype not in SV.valid_SVs:
-                    svtype = re.sub('[<>]', '', alt)
-                if svtype in SV.valid_SVs:
-                    if svtype == 'BND':
-                        None
-                    else:
-                        return SV(chrom, pos, end, svtype, svlen, pairid, mateid, inslen, chr2, gts=gts)
-        except ValueError:
-            pass
-        print('SV parsing failed for line:\n{}'.format(line))
-        return None
-
     def __init__(self, chrom, start, end, svtype, svlen, inslen, chr2, gts=None, af=float(0)):
         self.chrom = chrom
         self.start = int(start)
         self.end = int(end)
+        if svlen != '.':
+            self.len = int(svlen)
+        elif inslen != '.' and int(inslen) > 0:
+            self.len = int(inslen)
+        else:
+            self.len = str(self.end - self.start +1)
         self.svtype = svtype
+        # delly sv field
         self.inslen = inslen
+        # delly sv field
         self.chr2 = chr2
         self.GTs = gts
         if gts:
             self.AF = self.get_AF()
         else:
             self.AF = float(af)
+
+    @staticmethod
+    def attempt_sv_parse(line, db_mode):
+        # BCFtools format string:
+        # ""%CHROM\\t%POS\\t%ID\\t%ALT{0}\\t%INFO/END\\t%INFO/SVTYPE\\t%INFO/SVLEN\\t%INFO/EVENTID"
+        #"\\t%INFO/PAIRID\\t%INFO/MATEID\\t%INFO/INSLEN\\t%INFO/CHR2[\\t%GT]\\n")
+        try:
+            if db_mode:
+                chrom, pos, id, alt, end, svtype, svlen, eventid, pairid, mateid, inslen, chr2, af = line.split()[0:13]
+                if svtype not in SV.valid_SVs:
+                    svtype = re.sub('[<>]', '', alt)
+                if svtype in SV.valid_SVs:
+                    if svtype == 'BND':
+                        return(BND_SV(SV(chrom, pos, end, svtype, svlen,  inslen, chr2, af=af)),
+                               alt, id, mateid, pairid, eventid)
+                    else:
+                        return SV(chrom, pos, end, svtype, svlen,  inslen, chr2, af=af)
+            else:
+                chrom, pos, id, alt, end, svtype, svlen, eventid, pairid, mateid, inslen, chr2 = line.split()[0:12]
+                gts = line.split()[9:]
+                if svtype not in SV.valid_SVs:
+                    svtype = re.sub('[<>]', '', alt)
+                if svtype in SV.valid_SVs:
+                    if svtype == 'BND':
+                        return(BND_SV(SV(chrom, pos, end, svtype, svlen, pairid, mateid, inslen, chr2, gts=gts),
+                                      alt, id, mateid, pairid, eventid))
+                    else:
+                        return SV(chrom, pos, end, svtype, svlen, pairid, mateid, inslen, chr2, gts=gts)
+        except ValueError:
+            pass
+        print('SV parsing failed for line:\n{}'.format(line))
+        return None
 
     def get_AF(self):
         if len(self.GTs):
@@ -381,10 +392,10 @@ class BCFtools:
     def get_SV_sites(vcf, db_mode=False):
         cmd = ["bcftools", "query", "-u", "-f"]
         if db_mode:
-            cmd.append("%CHROM\\t%POS\\t%ALT{0}\\t%INFO/END\\t%INFO/SVTYPE\\t%INFO/SVLEN\\t%INFO/EVENTID"
+            cmd.append("%CHROM\\t%POS\\t%ID\\t%ALT{0}\\t%INFO/END\\t%INFO/SVTYPE\\t%INFO/SVLEN\\t%INFO/EVENTID"
                        "\\t%INFO/PAIRID\\t%INFO/MATEID\\t%INFO/INSLEN\\t%INFO/CHR2\\t%INFO/AF\\n")
         else:
-            cmd.append("%CHROM\\t%POS\\t%ALT{0}\\t%INFO/END\\t%INFO/SVTYPE\\t%INFO/SVLEN\\t%INFO/EVENTID"
+            cmd.append("%CHROM\\t%POS\\t%ID\\t%ALT{0}\\t%INFO/END\\t%INFO/SVTYPE\\t%INFO/SVLEN\\t%INFO/EVENTID"
                        "\\t%INFO/PAIRID\\t%INFO/MATEID\\t%INFO/INSLEN\\t%INFO/CHR2[\\t%GT]\\n")
         cmd.append(vcf)
         print(' '.join(cmd) + '\n')
