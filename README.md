@@ -93,9 +93,9 @@ python SVPV.py -vcf caller1_svs.vcf -samples sample1,sample2,sample3 -aln alignm
 
 ### Structural Variant VCFs
 BCFtools is used to parse vcf/bcf formatted files.
-SVPV expects the 'SVTYPE' info field in the VCF entries to recognise structural variant calls,
-however if this is absent symbolic alternative alleles (e.g. '\<DEL\>') will be used.
-VCF entries with neither 'SVTYPE' or symbolic allele on the supported SVtype list (DEL, DUP, CNV, TRA, INS, INV) will be ignored.
+SVPV expects either the 'SVTYPE' info field or symbolic alternative alleles (e.g. '\<DEL\>') to recognise structural variant calls.
+VCF entries with neither 'SVTYPE' or symbolic allele on the supported SVtype list (DEL, DUP, CNV, INS*, INV, BND, TRA*) will be ignored.
 'END' is required for deletion, duplication and CNV type variants and 'ISLEN' for insertions.
-Transversions require the 'CHR2' field.
+SVTYPE='BND': Translocations, inversions and generic breakend types are also supported. These require the either MATEID or EVENTID fields.
 Please see the [VCF specifications](http://samtools.github.io/hts-specs/VCFv4.3.pdf) for clarification.
+*For compatipility with Delly, SVTYPE='TRA' is supported, and info fields 'CHR2' and 'INSLEN' are parsed.
