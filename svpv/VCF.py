@@ -51,7 +51,7 @@ class VCFManager:
         p = BCFtools.get_SV_sites(vcf, db_mode)
         line = p.stdout.readline()
         while line:
-            sv = SV.attempt_sv_parse(line, db_mode)
+            sv = SV.parse_sv(line, db_mode)
             if sv is not None:
                 if isinstance(sv, BND_SV):
                     self.BNDs.add_BND(sv)
@@ -198,6 +198,7 @@ class VCFManager:
         return matching
 
 
+# basic SV class
 class SV:
     valid_SVs = ['DEL', 'DUP', 'CNV', 'INV', 'TRA', 'INS', 'BND']
 
@@ -223,7 +224,7 @@ class SV:
             self.AF = float(af)
 
     @staticmethod
-    def attempt_sv_parse(line, db_mode):
+    def parse_sv(line, db_mode):
         # BCFtools format string:
         # ""%CHROM\\t%POS\\t%ID\\t%ALT{0}\\t%INFO/END\\t%INFO/SVTYPE\\t%INFO/SVLEN\\t%INFO/EVENTID"
         #"\\t%INFO/PAIRID\\t%INFO/MATEID\\t%INFO/INSLEN\\t%INFO/CHR2[\\t%GT]\\n")
@@ -300,12 +301,12 @@ class BNDs:
         # store remainder (no EVENTID) as set
         self.non_events = set()
         # store each bnd, and their relationships
-        self.IDs = {}
+        self.BNDs = {}
         self.mates = {}
         self.pairs = {}
 
     def add_BND(self, bnd_sv):
-        self.IDs[bnd_sv.id] = bnd_sv
+        self.BNDs[bnd_sv.id] = bnd_sv
         # update the list in events
         if bnd_sv.event_id is not None:
             if bnd_sv.event_id in self.events:
@@ -317,26 +318,73 @@ class BNDs:
             self.non_events.add(bnd_sv.id)
         # update the pointers in mates and pairs
         if bnd_sv.mate_id is not None:
-            if bnd_sv.mate_id in self.IDs:
-                self.mates[bnd_sv.id] = self.IDs[bnd_sv.mate_id]
-                self.mates[bnd_sv.mate_id] = self.IDs[bnd_sv.id]
+            if bnd_sv.mate_id in self.BNDs:
+                self.mates[bnd_sv.id] = self.BNDs[bnd_sv.mate_id]
+                self.mates[bnd_sv.mate_id] = self.BNDs[bnd_sv.id]
         if bnd_sv.pair_id is not None:
-            if bnd_sv.pair_id in self.IDs:
-                self.mates[bnd_sv.id] = self.IDs[bnd_sv.pair_id]
-                self.mates[bnd_sv.pair_id] = self.IDs[bnd_sv.id]
+            if bnd_sv.pair_id in self.BNDs:
+                self.mates[bnd_sv.id] = self.BNDs[bnd_sv.pair_id]
+                self.mates[bnd_sv.pair_id] = self.BNDs[bnd_sv.id]
 
+    # get a list of mates from the list of bnds
+    def mate_tuples(self, bnds):
+        mates = []
+        for bnd in bnds:
+            if bnd in self.mates:
+                mates.append((self.BNDs[bnd], self.BNDs[self.mates[bnd]]))
+                bnds.remove(self.mates[bnd])
+            else:
+                mates.append((self.BNDs[bnd],))
+        return mates
+
+    # get a grouping of bnds that don't have an assigned event id
+    def pop_non_event(self, ne):
+        bnds = [ne]
+        if ne in self.mates:
+            bnds.append(self.mates[ne])
+            if bnds[-1] in self.pairs:
+                if self.pairs[bnds[-1]] not in bnds:
+                    bnds.append(self.pairs[bnds[-1]])
+        if ne in self.pairs:
+            if self.pairs[ne] not in bnds:
+                bnds.append(self.pairs[ne])
+            if bnds[-1] in self.mates:
+                if self.mates[bnds[-1]] not in bnds:
+                    bnds.append(self.mates[bnds[-1]])
+        self.non_events.difference_update(bnds)
+        return bnds
+
+    # process and return the list of bnd events to include in SVPV
     def resolve(self):
-        '''
+        bnd_events = []
+        for e in self.events:
+            mates = self.mate_tuples(self.events[e])
+            try:
+                bnd_events.append(BND_Event(mates))
+            except ValueError:
+                pass
+        for ne in self.non_events:
+            bnds = self.pop_non_event(ne)
+            mates = self.mate_tuples(bnds)
+            try:
+                bnd_events.append(BND_Event(mates))
+            except ValueError:
+                pass
+        return bnd_events
 
-        :return: a list of BND_svs ready to add to SVs
-        '''
-        '''
-        build list by parsing over events and non-events.
-        exclude events with more than two locii
-           - can't really view these
-           - too complicated
-        i.e. accept chrA chrB Tra, chrA chrA Inv
-        '''
+# class to hold a BND event
+class BND_Event():
+    delta = 10
+
+    # list of tuples of mates
+    def __init__(self, bnd_mates):
+        isValid = True
+        self.locus_A = None
+        self.locus_B = None
+
+        if not isValid:
+            raise ValueError
+
 
 class BND_SV():
     right_fwd = re.compile('^.+\[(?P<chr>.+):(?P<pos>.+)\[$')
@@ -350,7 +398,6 @@ class BND_SV():
         self.mate_id = MATEID
         self.pair_id = PAIRID
         self.event_id = EVENTID
-        self.event_members = []
 
         if re.match(BND_SV.right_fwd, ALT):
             m = re.match(BND_SV.right_fwd)
