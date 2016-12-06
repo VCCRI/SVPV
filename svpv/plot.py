@@ -21,6 +21,7 @@ class Plot:
         self.samples = samples
         self.dirs = self.create_dirs(par.run.out_dir)
         self.sv = sv
+        # show depth over whole region but zoom in on breakpoints if necessary
         if self.sv.svtype in ('DEL', 'DUP', 'CNV'):
             self.start = sv.start - par.run.expansion * (sv.end - sv.start + 1)
             self.end = sv.end + par.run.expansion * (sv.end - sv.start + 1)
@@ -29,22 +30,14 @@ class Plot:
                 bkpt_bins = (Bins(sv.chrom, sv.start - int(1.5 * par.run.is_len), sv.start + int(1.5 * par.run.is_len)),
                              Bins(sv.chrom, sv.end - int(1.5 * par.run.is_len), sv.end + int(1.5 * par.run.is_len)))
                 sam_stats = SamStats.get_sam_stats(depth_bins=depth_bins, bkpt_bins=bkpt_bins)
+            else:
+                sam_stats = SamStats.get_sam_stats(depth_bins=depth_bins)
+        # do not show depth over whole region
         else:
+            ''' TBD '''
             self.start = sv.start - par.run.expansion * par.run.is_len
             self.end = sv.start + par.run.expansion * par.run.is_len
 
-        self.samples = samples
-        self.dirs = self.create_dirs(par.run.out_dir)
-
-        bin_size = (self.end - self.start) // par.run.num_bins
-        if bin_size // float(par.run.is_len) > 0.25:
-            breakpoints = ((sv.start - int(1.5 * par.run.is_len), sv.start + int(1.5 * par.run.is_len)),
-                           (sv.end - int(1.5 * par.run.is_len), sv.end + int(1.5 * par.run.is_len)))
-            sam_stats = SamStats.get_sam_stats(sv.chrom, self.start, self.end, par.run.get_bams(samples),
-                                               par.run.num_bins, breakpoints=breakpoints)
-        else:
-            sam_stats = SamStats.get_sam_stats(sv.chrom, self.start, self.end, par.run.get_bams(samples),
-                                               par.run.num_bins)
 
         # print sample data to file
         for i, s in enumerate(samples):

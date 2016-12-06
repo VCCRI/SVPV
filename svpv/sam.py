@@ -85,7 +85,7 @@ class SamEntry():
     # assume entry and mate are mapped
     def is_discordant(self):
         if (self.flag & SamEntry.read_reverse):
-            if(self.flag & SamEntry.mate_reverse):
+            if (self.flag & SamEntry.mate_reverse):
                 '''  <--1 <--2  or  <--2 <--1  '''
                 return True
             elif self.tlen > 0:
@@ -117,48 +117,6 @@ class SamEntry():
         return clipped
 
 
-class Bins:
-    def __init__(self, start, end, ideal_num_bins=100):
-        # aim for ideal_num_bins, but bins need to be uniformally distributed and of equal size
-        # smallest bins size is 1bp, so for regions < num_bins bp there will be less than num_bins bins
-        self.start = start
-        self.size = (end - start + 1) // ideal_num_bins
-        self.size += not (self.size) * 1
-        self.num = (end - start + 1) // self.size
-        self.end = self.start + self.num * self.size - 1
-
-    def get_bin_coverage(self, start, end):
-        if start > self.end or end < self.start:
-            return None
-
-        if start <= self.start:
-            first = 0
-            if end >= self.start + self.size:
-               first_bp = self.size
-            else:
-               first_bp = (end - self.start + 1)
-        else:
-            first = (start- self.start) // self.size
-            first_bp = self.size - ((start - self.start + 1) % self.size)
-
-        if end >= self.end:
-            last = self.num - 1
-            if start <= self.end - self.size:
-                last_bp = self.size
-            else:
-                last_bp = start- (self.end - self.size)
-        else:
-            last = (end - self.start) // self.size
-            last_bp = (end - self.start + 1) % self.size
-
-        if first < 0 or first >= self.num or last < 0 or last >= self.num:
-            return None
-
-        if first == last:
-            last_bp = 0
-        return ((first, first_bp),(last,last_bp))
-
-
 class SamStats():
     depth_cols = ['total', 'mapQltT', 'mapQ0']
     TOTAL = 0
@@ -174,7 +132,7 @@ class SamStats():
     CLIPPED = 6
     DIFFMOL = 7
 
-    def __init__(self, depth_bins, bkpt_bins=None, mapq_t=30, clip_thresh=1):
+    def __init__(self, depth_bins=None, bkpt_bins=None, mapq_t=30, clip_thresh=1):
         # set parameters
         self.depth_bins = depth_bins
         if not bkpt_bins:
@@ -271,7 +229,7 @@ class SamStats():
     def convert_depths(self):
         for i in range(0, self.depth_bins.num):
             for j in range(0, len(SamStats.depth_cols)):
-                self.depths[i][j] /=  self.depth_bins.size
+                self.depths[i][j] /= self.depth_bins.size
 
     # Print the collected stats
     def print_stats(self, dir):
@@ -323,47 +281,28 @@ class SamStats():
 
     # returns a list of sam_stats corresponding to the list of bams given for this position
     @staticmethod
-    def get_sam_stats(chrom, start, end, sams, num_bins=100, breakpoints=None):
-        depth_bins = Bins(start, end, ideal_num_bins=num_bins)
-        region = chrom + ':' + str(depth_bins.start) + '-' + str(depth_bins.end)
-        bkpt_bins = []
-        # breakpoints is an iterable of regions (start, end)
-        if breakpoints is not None:
-            for bkpt in breakpoints:
-                bkpt_bins.append(Bins(bkpt[0],bkpt[1], ideal_num_bins=num_bins/2))
-        sam_stats = []
-        for s in sams:
-            sam_stats.append(SamStats(depth_bins, bkpt_bins=bkpt_bins))
-            p = SAMtools.view(s, region)
-            line = p.stdout.readline()
-            while line:
-                try:
-                    FLAG, RNAME, POS, MAPQ, CIGAR, RNEXT, PNEXT, TLEN = line.split()[1:9]
-                except ValueError:
+    def get_sam_stats_2(sams, depth_bins=None, bkpt_bins=None):
+        if depth_bins or bkpt_bins:
+            if not bkpt_bins:
+                bkpt_bins = [depth_bins]
+            sam_stats = []
+            for s in sams:
+                sam_stats.append(SamStats(depth_bins=depth_bins, bkpt_bins=bkpt_bins))
+                for bkpt in bkpt_bins:
+                    p = SAMtools.view(s, bkpt.region)
                     line = p.stdout.readline()
-                    continue
-                else:
-                    sam_stats[-1].process(SamEntry(FLAG, POS, MAPQ, CIGAR, RNEXT, TLEN))
-                    line = p.stdout.readline()
-        return sam_stats
-
-    @staticmethod
-    def get_sam_stats_2(depth_bins=None, bkpt_bins=None):
-        if depth_bins and not bkpt_bins:
-            None
-            # plot and get stats from depth bins
-            # for CNV, DEL, DUP
-        elif depth_bins and bkpt_bins:
-            None
-            # depth for depth bins only
-            # aln stats for bkptA and or bkptB
-        elif not depth_bins and bkpt_bins:
-            None
-            # depth and aln stats at bkpt bins
+                    while line:
+                        try:
+                            FLAG, RNAME, POS, MAPQ, CIGAR, RNEXT, PNEXT, TLEN = line.split()[1:9]
+                        except ValueError:
+                            line = p.stdout.readline()
+                            continue
+                        else:
+                            sam_stats[-1].process(SamEntry(FLAG, POS, MAPQ, CIGAR, RNEXT, TLEN))
+                            line = p.stdout.readline()
+            return sam_stats
         else:
             raise ValueError("Must provide at least one of depth_bins, bkpt_A_bins or bkpt_B_bins")
-
-        return sam_stats
 
 
 class SAMtools:
@@ -379,8 +318,7 @@ class SAMtools:
     @staticmethod
     def view(sam, region, include_flag=None, exclude_flag=
             (SamEntry.duplicate + SamEntry.fails_QC + SamEntry.read_unmapped), samtools='samtools'):
-        cmd = [samtools]
-        cmd.append('view')
+        cmd = [samtools, 'view']
         if include_flag:
             cmd.append('-f')
             cmd.append(str(include_flag))
@@ -398,16 +336,50 @@ class SAMtools:
 
     @staticmethod
     def faidx(fasta, region, samtools='samtools'):
-        cmd = [samtools]
-        cmd.append('faidx')
-        cmd.append(fasta)
-        cmd.append(region)
+        cmd = [samtools, 'faidx', fasta, region]
         print(' '.join(cmd) + '\n')
         p = subprocess.Popen(cmd, bufsize=1024, stdout=PIPE, universal_newlines=True)
         if p.poll():
             print("Error code %d from command:\n%s\n" % (' '.join(cmd) + '\n'))
             exit(1)
         return p
+
+    @staticmethod
+    def bedcov(num_bins, bin_size, bed, bam):
+        cmd = ['samtools', 'bedcov', '-Q', '30', bed, bam]
+        p = subprocess.Popen(cmd, bufsize=-1, stdout=subprocess.PIPE, universal_newlines=True)
+        data = np.zeros((num_bins,))
+        bin = 0
+        bin_start = None
+        line = p.stdout.readline()
+        values = []
+
+        while line:
+            try:
+                chrom, start, end, cov = line.split()
+            except ValueError:
+                print('unexpected number of fields in samtools bedcov output\n')
+                break
+            line = p.stdout.readline()
+            if bin_start is None:
+                bin_start = int(start)
+                values = [int(cov) / (int(end) - int(start) + 1)]
+            else:
+                if int(start) - bin_start < bin_size:
+                    values.append(int(cov) / (int(end) - int(start) + 1))
+                else:
+                    data[bin] = np.mean(values)
+                    bin_start = int(start)
+                    values = [int(cov) / (int(end) - int(start) + 1)]
+                    bin += 1
+                    if bin >= num_bins:
+                        print('Error: exceeded allocation for this chromosome')
+                        break
+        data[bin] = np.mean(values)
+        if bin + 1 != num_bins:
+            print('Error: allocation for this chromosome not filled')
+            print('{} of {} bins'.format(bin + 1, num_bins))
+        return data
 
     @staticmethod
     def get_GC(fasta, region):

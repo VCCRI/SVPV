@@ -98,4 +98,5 @@ VCF entries with neither 'SVTYPE' or symbolic allele on the supported SVtype lis
 'END' is required for deletion, duplication and CNV type variants and 'ISLEN' for insertions.
 SVTYPE='BND': Translocations, inversions and generic breakend types are also supported. These require the either MATEID or EVENTID fields.
 Please see the [VCF specifications](http://samtools.github.io/hts-specs/VCFv4.3.pdf) for clarification.
+
 \*For compatipility with Delly, SVTYPE='TRA' is supported, and info fields 'CHR2' and 'INSLEN' are parsed.
