@@ -8,29 +8,27 @@ import os
 import subprocess
 from hashlib import sha1
 import copy
-from .SAM import SamStats
-from .VCF import SV
+from .sam import SamStats
+from .vcf import SV
 from .refgene import RefGeneEntry
 
 
 class Plot:
-    svpv_r = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'SVPV.r')
+    svpv_r = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'svpv.r')
 
-    '''
-            for DEL/DUP/CNV we want to show depth over entire interval
-                -- no change required
-            for TRA/INV/INS/BND
-                -- plot windows around each breakpoint (3 x library insert size)
-                -- for simple tra show two chroms
-                -- for inv/ intra tra show one chrom
-    '''
-    def __init__(self, sv, samples, par, type='CNV', breakpoint_zoom=True):
-
+    def __init__(self, sv, samples, par):
         self.par = par
+        self.samples = samples
+        self.dirs = self.create_dirs(par.run.out_dir)
         self.sv = sv
-        if self.sv.svtype in ('DEL', 'DUP', 'INV', 'CNV'):
+        if self.sv.svtype in ('DEL', 'DUP', 'CNV'):
             self.start = sv.start - par.run.expansion * (sv.end - sv.start + 1)
             self.end = sv.end + par.run.expansion * (sv.end - sv.start + 1)
+            depth_bins = Bins(sv.chrom, self.start, self.end)
+            if depth_bins.size // float(par.run.is_len) > 0.25:
+                bkpt_bins = (Bins(sv.chrom, sv.start - int(1.5 * par.run.is_len), sv.start + int(1.5 * par.run.is_len)),
+                             Bins(sv.chrom, sv.end - int(1.5 * par.run.is_len), sv.end + int(1.5 * par.run.is_len)))
+                sam_stats = SamStats.get_sam_stats(depth_bins=depth_bins, bkpt_bins=bkpt_bins)
         else:
             self.start = sv.start - par.run.expansion * par.run.is_len
             self.end = sv.start + par.run.expansion * par.run.is_len
@@ -39,7 +37,7 @@ class Plot:
         self.dirs = self.create_dirs(par.run.out_dir)
 
         bin_size = (self.end - self.start) // par.run.num_bins
-        if breakpoint_zoom and bin_size // float(par.run.is_len) > 0.25:
+        if bin_size // float(par.run.is_len) > 0.25:
             breakpoints = ((sv.start - int(1.5 * par.run.is_len), sv.start + int(1.5 * par.run.is_len)),
                            (sv.end - int(1.5 * par.run.is_len), sv.end + int(1.5 * par.run.is_len)))
             sam_stats = SamStats.get_sam_stats(sv.chrom, self.start, self.end, par.run.get_bams(samples),
@@ -160,3 +158,48 @@ class Plot:
             return '%d_%s' % (length/1e6, 'Mbp')
         else:
             return '%d_%s' % (length/1e9, 'Gbp')
+
+
+class Bins:
+    def __init__(self, chrom, start, end, ideal_num_bins=100):
+
+        # aim for ideal_num_bins, but bins need to be uniformally distributed and of equal size
+        # smallest bins size is 1bp, so for regions < num_bins bp there will be less than num_bins bins
+        self.chrom = chrom
+        self.start = start
+        self.size = (end - start + 1) // ideal_num_bins
+        self.size += not (self.size) * 1
+        self.num = (end - start + 1) // self.size
+        self.end = self.start + self.num * self.size - 1
+        self.region = chrom + ':' + str(self.start) + '-' + str(self.end)
+
+    def get_bin_coverage(self, start, end):
+        if start > self.end or end < self.start:
+            return None
+
+        if start <= self.start:
+            first = 0
+            if end >= self.start + self.size:
+               first_bp = self.size
+            else:
+               first_bp = (end - self.start + 1)
+        else:
+            first = (start- self.start) // self.size
+            first_bp = self.size - ((start - self.start + 1) % self.size)
+
+        if end >= self.end:
+            last = self.num - 1
+            if start <= self.end - self.size:
+                last_bp = self.size
+            else:
+                last_bp = start- (self.end - self.size)
+        else:
+            last = (end - self.start) // self.size
+            last_bp = (end - self.start + 1) % self.size
+
+        if first < 0 or first >= self.num or last < 0 or last >= self.num:
+            return None
+
+        if first == last:
+            last_bp = 0
+        return ((first, first_bp),(last,last_bp))

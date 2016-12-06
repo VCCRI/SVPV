@@ -372,18 +372,32 @@ class BNDs:
                 pass
         return bnd_events
 
+
 # class to hold a BND event
 class BND_Event():
-    delta = 10
-
-    # list of tuples of mates
-    def __init__(self, bnd_mates):
-        isValid = True
-        self.locus_A = None
-        self.locus_B = None
-
-        if not isValid:
-            raise ValueError
+    def __init__(self, bnd_mates, delta=10):
+        self.bnd_mates = bnd_mates
+        # set up loci
+            # for now only allow events with two loci
+            # e.g. simple INV, TRA
+        self.loci = []
+        for bm in bnd_mates:
+            for bnd in bm:
+                if self.loci:
+                    is_proximal = False
+                    mate_proximal = False
+                    for chr, pos in self.loci:
+                        if bnd.chrom == chr:
+                            if pos - delta <= bnd.start <= pos + delta:
+                                is_proximal = True
+                        if bnd.mate_chr == chr:
+                            if pos - delta <= bnd.mate_pos <= pos + delta:
+                                mate_proximal = True
+                    if not mate_proximal and is_proximal:
+                        raise ValueError
+                else:
+                    self.loci.append((bnd.chrom, bnd.start))
+                    self.loci.append((bnd.mate_chr, bnd.mate_pos))
 
 
 class BND_SV():

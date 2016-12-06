@@ -347,6 +347,24 @@ class SamStats():
                     line = p.stdout.readline()
         return sam_stats
 
+    @staticmethod
+    def get_sam_stats_2(depth_bins=None, bkpt_bins=None):
+        if depth_bins and not bkpt_bins:
+            None
+            # plot and get stats from depth bins
+            # for CNV, DEL, DUP
+        elif depth_bins and bkpt_bins:
+            None
+            # depth for depth bins only
+            # aln stats for bkptA and or bkptB
+        elif not depth_bins and bkpt_bins:
+            None
+            # depth and aln stats at bkpt bins
+        else:
+            raise ValueError("Must provide at least one of depth_bins, bkpt_A_bins or bkpt_B_bins")
+
+        return sam_stats
+
 
 class SAMtools:
     @staticmethod

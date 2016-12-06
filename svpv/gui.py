@@ -4,7 +4,7 @@
 # """
 from __future__ import print_function
 import Tkinter as tk
-import GUI_Widgets as gw
+import gui_widgets as gw
 from plot import Plot
 import tkFileDialog
 

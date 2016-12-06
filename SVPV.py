@@ -8,8 +8,8 @@ import sys
 import os
 import re
 import config
-from svpv.VCF import VCFManager, BCFtools
-from svpv.SAM import SAMtools
+from svpv.vcf import VCFManager, BCFtools
+from svpv.sam import SAMtools
 from svpv.refgene import RefgeneManager
 from svpv.plot import Plot
 
@@ -32,7 +32,7 @@ def main(argv=sys.argv):
             par.run.vcf.remove_absent_svs(par.run.samples)
 
         if par.run.gui:
-            import svpv.GUI as GUI
+            import svpv.gui as GUI
             par.filter.gene_list_intersection = False
             GUI.main(par)
         else:

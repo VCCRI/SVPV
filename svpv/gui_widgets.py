@@ -9,7 +9,6 @@ import re
 from shutil import copyfile
 
 
-
 class MenuBar(tk.Menu):
     def __init__(self, parent):
         tk.Menu.__init__(self, parent)
