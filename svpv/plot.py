@@ -8,7 +8,7 @@ import os
 import subprocess
 from hashlib import sha1
 import copy
-from .sam import SamStats
+from .sam import AlignStats
 from .vcf import SV
 from .refgene import RefGeneEntry
 
@@ -29,9 +29,9 @@ class Plot:
             if depth_bins.size // float(par.run.is_len) > 0.25:
                 bkpt_bins = (Bins(sv.chrom, sv.start - int(1.5 * par.run.is_len), sv.start + int(1.5 * par.run.is_len)),
                              Bins(sv.chrom, sv.end - int(1.5 * par.run.is_len), sv.end + int(1.5 * par.run.is_len)))
-                sam_stats = SamStats.get_sam_stats(depth_bins=depth_bins, bkpt_bins=bkpt_bins)
+                sam_stats = AlignStats.get_sam_stats(depth_bins=depth_bins, bkpt_bins=bkpt_bins)
             else:
-                sam_stats = SamStats.get_sam_stats(depth_bins=depth_bins)
+                sam_stats = AlignStats.get_sam_stats(depth_bins=depth_bins)
         # do not show depth over whole region
         else:
             ''' TBD '''

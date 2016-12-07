@@ -9,6 +9,7 @@ import subprocess
 import os
 from subprocess import PIPE
 import numpy as np
+import tempfile
 
 
 class SamEntry():
@@ -117,11 +118,50 @@ class SamEntry():
         return clipped
 
 
-class SamStats():
+class SamStats:
+    def __init__(self, aln_stats, depth_stats=None):
+        # list of aln_stats for each breakpoint
+        self.aln_stats = aln_stats
+        # single depth stats
+        self.depth_stats = depth_stats
+
+
+class DepthStats:
     depth_cols = ['total', 'mapQltT', 'mapQ0']
     TOTAL = 0
     MAPQLTT = 1
     MAPQ0 = 2
+
+    def __init__(self, bins, mapq_thresh=30, dtype=np.float):
+        self.bins = bins
+        self.depths = np.zeros((self.depth_bins.num, len(AlignStats.depth_cols)), dtype=dtype)
+        self.mapq_thresh = mapq_thresh
+
+
+    def set_depths(self, bam):
+        # TODO: need to make this work for all mapQs, disable other implementation in SamStats
+        bed = tempfile.NamedTemporaryFile(mode='wt', delete=False)
+        for i in range(self.bins.num):
+            bed.write('{}\t{}\t{}\n'.format(self.bins.chrom, self.bins.start + i*self.bins.size,
+                                            self.bins.start + (i+1)*self.bins.size))
+        bed_name = bed.name
+        bed.close()
+        depths_gt_1 = SAMtools.bedcov(self.bins.num, self.bins.size, bed_name, bam, min_Q=1)
+        depths_gt_T = SAMtools.bedcov(self.bins.num, self.bins.size, bed_name, bam, min_Q=self.mapq_thresh)
+        self.depths[DepthStats.TOTAL] = SAMtools.bedcov(self.bins.num, self.bins.size, bed_name, bam, min_Q=0)
+        self.depths[DepthStats.MAPQ0] = self.depths[DepthStats.TOTAL] - depths_gt_1
+        self.depths[DepthStats.MAPQLTT] = self.depths[DepthStats.TOTAL] - depths_gt_T - self.depths[DepthStats.MAPQ0]
+        os.remove(bed_name)
+
+    # convert depths from bp/bin count to depth/bp
+    def convert_depths(self):
+        # should only be done on integer count depths
+        if self.depths.dtype is np.float:
+            raise ValueError
+        self.depths = self.depths.astype(np.float) / self.bins.size
+
+
+class AlignStats:
     aln_stats_cols = ['reads', 'orphaned', 'inverted', 'samestrand', 'secondary', 'supplementary', 'clipped', 'diffmol']
     READS = 0
     ORPHANED = 1
@@ -132,39 +172,37 @@ class SamStats():
     CLIPPED = 6
     DIFFMOL = 7
 
-    def __init__(self, depth_bins=None, bkpt_bins=None, mapq_t=30, clip_thresh=1):
+    def __init__(self, bkpt_bins, mapq_thresh=30, clip_thresh=1):
         # set parameters
-        self.depth_bins = depth_bins
-        if not bkpt_bins:
-            self.bkpt_bins = [depth_bins]
-        else:
-            self.bkpt_bins = bkpt_bins
-        self.mapQT = mapq_t
+        self.bkpt_bins = bkpt_bins
+        self.mapQT = mapq_thresh
         self.clip_thresh = clip_thresh
 
         # initialise data structures
-        self.depths = np.zeros((self.depth_bins.num, len(SamStats.depth_cols)), dtype=np.intc)
+        self.depth_stats = []
         self.aln_stats = []
         self.fwd_inserts = []
         self.rvs_inserts = []
-        for bin in self.bkpt_bins:
-            self.aln_stats.append(np.zeros((bin.num, len(SamStats.aln_stats_cols)), dtype=np.intc))
-            self.fwd_inserts.append(np.empty(bin.num, dtype=list))
-            self.rvs_inserts.append(np.empty(bin.num, dtype=list))
-            for j in range(0, bin.num):
+        for bins in self.bkpt_bins:
+            self.depth_stats.append(DepthStats(bins, mapq_thresh=mapq_thresh), dtype=np.intc)
+            self.aln_stats.append(np.zeros((bins.num, len(AlignStats.aln_stats_cols)), dtype=np.intc))
+            self.fwd_inserts.append(np.empty(bins.num, dtype=list))
+            self.rvs_inserts.append(np.empty(bins.num, dtype=list))
+            for j in range(0, bins.num):
                 self.fwd_inserts[-1][j] = []
                 self.rvs_inserts[-1][j] = []
 
-    def add_to_depth(self, coverage, cols):
+
+    def add_to_depth(self, idx, coverage, cols):
         # add start and end covered bins, partial coverage
         for j in cols:
-            self.depths[coverage[0][0]][j] += coverage[0][1]
-            self.depths[coverage[1][0]][j] += coverage[1][1]
+            self.depth_stats[idx].depths[coverage[0][0]][j] += coverage[0][1]
+            self.depth_stats[idx].depths[coverage[1][0]][j] += coverage[1][1]
 
         # add in all bins that have full coverage
         for i in range(coverage[0][0]+1, coverage[1][0]):
             for j in cols:
-                self.depths[i][j] += self.depth_bins.size
+                self.depth_stats[idx].depths[i][j] += self..depths.bins.size
 
     def add_to_aln_stats(self, idx, coverage, cols):
         for i in range(coverage[0][0], coverage[1][0]+1):
@@ -172,43 +210,36 @@ class SamStats():
                 self.aln_stats[idx][i][j] += 1
 
     def process(self, sam_entry):
-        cov = self.depth_bins.get_bin_coverage(sam_entry.left, sam_entry.right)
-        if cov is None:
-            return None
-        depth_cols = [SamStats.TOTAL]
-
-        if sam_entry.mapQ <= self.mapQT:
-            if sam_entry.mapQ == 0:
-                depth_cols.append(SamStats.MAPQ0)
-            else:
-                depth_cols.append(SamStats.MAPQLTT)
-
-        self.add_to_depth(cov, depth_cols)
-
         for idx, bins in enumerate(self.bkpt_bins):
+
             cov = bins.get_bin_coverage(sam_entry.left, sam_entry.right)
             if cov is None:
                 continue
-            stats_cols = [SamStats.READS]
 
+            depth_cols = [DepthStats.TOTAL]
+            if sam_entry.mapQ <= self.mapQT:
+                if sam_entry.mapQ == 0:
+                    depth_cols.append(DepthStats.MAPQ0)
+                else:
+                    depth_cols.append(DepthStats.MAPQLTT)
+            self.add_to_depth(idx, cov, depth_cols)
+
+            aln_cols = [AlignStats.READS]
             if (sam_entry.flag & SamEntry.secondary):
-                stats_cols.append(SamStats.SECONDARY)
-
+                aln_cols.append(AlignStats.SECONDARY)
             if (sam_entry.flag & SamEntry.supplementary):
-                stats_cols.append(SamStats.SUPPLEMENTARY)
-
+                aln_cols.append(AlignStats.SUPPLEMENTARY)
             if sam_entry.get_num_clipped() >= self.clip_thresh:
-                stats_cols.append(SamStats.CLIPPED)
-
+                aln_cols.append(AlignStats.CLIPPED)
             if sam_entry.has_unmapped_mate():
-                stats_cols.append(SamStats.ORPHANED)
+                aln_cols.append(AlignStats.ORPHANED)
             else:
                 if sam_entry.mate_diff_molecule:
-                    stats_cols.append(SamStats.DIFFMOL)
+                    aln_cols.append(AlignStats.DIFFMOL)
                 elif sam_entry.mate_same_strand():
-                    stats_cols.append(SamStats.SAMESTRAND)
+                    aln_cols.append(AlignStats.SAMESTRAND)
                 elif sam_entry.is_inverted():
-                    stats_cols.append(SamStats.INVERTED)
+                    aln_cols.append(AlignStats.INVERTED)
                 else:
                     # correctly oriented pair reads
                     # filter low mapQ reads as these give spurious mapping distances
@@ -224,12 +255,12 @@ class SamStats():
                             if ins_cov is None:
                                 continue
                             self.fwd_inserts[idx][ins_cov[0][0]].append(sam_entry.tlen)
-            self.add_to_aln_stats(idx, cov, stats_cols)
+            self.add_to_aln_stats(idx, cov, aln_cols)
 
     def convert_depths(self):
         for i in range(0, self.depth_bins.num):
-            for j in range(0, len(SamStats.depth_cols)):
-                self.depths[i][j] /= self.depth_bins.size
+            for j in range(0, len(AlignStats.depth_cols)):
+                self.depth_stats[i][j] /= self.depth_bins.size
 
     # Print the collected stats
     def print_stats(self, dir):
@@ -240,8 +271,8 @@ class SamStats():
 
         self.convert_depths()
         # print depths
-        depth_file.write('bin\t' + '\t'.join(SamStats.depth_cols) + '\n')
-        for i, row in enumerate(self.depths):
+        depth_file.write('bin\t' + '\t'.join(AlignStats.depth_cols) + '\n')
+        for i, row in enumerate(self.depth_stats):
             depth_file.write(str(self.depth_bins.start + i*self.depth_bins.size) + '\t')
             for j in range(0, len(row)-1):
                 depth_file.write(str(row[j]) + '\t')
@@ -249,7 +280,7 @@ class SamStats():
         depth_file.close()
 
         # print alignmet stats and insert sizes
-        aln_stats_file.write('bin\t' + '\t'.join(SamStats.aln_stats_cols) + '\n')
+        aln_stats_file.write('bin\t' + '\t'.join(AlignStats.aln_stats_cols) + '\n')
         for i, bin in enumerate(self.bkpt_bins):
             for j, row in enumerate(self.aln_stats[i]):
                 # aln_stats
@@ -281,15 +312,17 @@ class SamStats():
 
     # returns a list of sam_stats corresponding to the list of bams given for this position
     @staticmethod
-    def get_sam_stats_2(sams, depth_bins=None, bkpt_bins=None):
+    def get_sam_stats(bams, depth_bins=None, bkpt_bins=None):
         if depth_bins or bkpt_bins:
             if not bkpt_bins:
                 bkpt_bins = [depth_bins]
             sam_stats = []
-            for s in sams:
-                sam_stats.append(SamStats(depth_bins=depth_bins, bkpt_bins=bkpt_bins))
+            for bam in bams:
+                sam_stats.append(SamStats(AlignStats(bkpt_bins), depth_stats=DepthStats(depth_bins)))
+                sam_stats[-1].depth_stats.set_depths(bam)
+
                 for bkpt in bkpt_bins:
-                    p = SAMtools.view(s, bkpt.region)
+                    p = SAMtools.view(bam, bkpt.region)
                     line = p.stdout.readline()
                     while line:
                         try:
@@ -345,8 +378,8 @@ class SAMtools:
         return p
 
     @staticmethod
-    def bedcov(num_bins, bin_size, bed, bam):
-        cmd = ['samtools', 'bedcov', '-Q', '30', bed, bam]
+    def bedcov(num_bins, bin_size, bed, bam, min_Q=30):
+        cmd = ['samtools', 'bedcov', '-Q', str(min_Q), bed, bam]
         p = subprocess.Popen(cmd, bufsize=-1, stdout=subprocess.PIPE, universal_newlines=True)
         data = np.zeros((num_bins,))
         bin = 0
@@ -373,11 +406,11 @@ class SAMtools:
                     values = [int(cov) / (int(end) - int(start) + 1)]
                     bin += 1
                     if bin >= num_bins:
-                        print('Error: exceeded allocation for this chromosome')
+                        print('Error: exceeded allocation for this region')
                         break
         data[bin] = np.mean(values)
         if bin + 1 != num_bins:
-            print('Error: allocation for this chromosome not filled')
+            print('Error: allocation for this region not filled')
             print('{} of {} bins'.format(bin + 1, num_bins))
         return data
 
