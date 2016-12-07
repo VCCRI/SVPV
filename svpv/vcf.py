@@ -18,12 +18,60 @@ class VCFManager:
         self.samples = BCFtools.get_samples(vcf_file)
         # count of svs in vcf
         self.count = 0
-        # dict of Structural variants
-        # chromosomes as keys
-        # SVs['chr1'] = [list of SVs on chromosome 1]
+        # TODO - define this
         self.SVs = {}
-        self.BNDs = BNDs()
+        # dict of chr, sorted lists of positions
+        self.positions = {}
         self.set_svs(vcf_file, db_mode)
+
+
+    # read in all SV sites
+    def set_svs(self, vcf, db_mode):
+        p = BCFtools.get_SV_sites(vcf, db_mode)
+        line = p.stdout.readline()
+        bnds = BNDs()
+        while line:
+            sv = SV.parse_sv(line, db_mode)
+            if sv is not None:
+                if isinstance(sv, BND_SV):
+                    bnds.add_BND(sv)
+                else:
+                    self.count += 1
+                    if sv.chrom in self.SVs:
+                        if sv.start in self.SVs[sv.chrom]:
+                            self.SVs[sv.chrom][sv.start].append(sv)
+                        else:
+                            self.SVs[sv.chrom][sv.start] = [sv]
+                    else:
+                        self.SVs[sv.chrom] = {}
+                        self.SVs[sv.chrom][sv.start] = [sv]
+                    # delly
+                    if sv.svtype == 'TRA':
+                        if sv.chr2 in self.SVs:
+                            if sv.start in self.SVs[sv.chr2]:
+                                self.SVs[sv.chr2][sv.end].append(sv)
+                            else:
+                                self.SVs[sv.chr2][sv.end] = [sv]
+                        else:
+                            self.SVs[sv.chr2] = {}
+                            self.SVs[sv.chr2][sv.end] = [sv]
+            line = p.stdout.readline()
+        # add processed breakends into SVs
+        for bnd_e in bnds.get_events():
+            for chr, pos in (bnd_e.loci[0], bnd_e.loci[1]):
+                if chr in self.SVs:
+                    if sv.start in self.SVs[chr]:
+                        self.SVs[chr][pos].append(sv)
+                    else:
+                        self.SVs[chr][pos] = [sv]
+                else:
+                    self.SVs[chr] = {}
+                    self.SVs[chr][pos] = [sv]
+        # keep track of where SVs are for faster query
+        for chr in self.SVs:
+            self.positions[chr] = sorted(list(self.SVs[chr].keys()))
+
+
 
     # for all svs, remove those that have not been called in the list of samples
     def remove_absent_svs(self, samples):
@@ -45,23 +93,6 @@ class VCFManager:
             for i in sorted(delete, reverse=True):
                 del self.SVs[chrom][i]
                 self.count -= 1
-
-    # read in all SV sites
-    def set_svs(self, vcf, db_mode):
-        p = BCFtools.get_SV_sites(vcf, db_mode)
-        line = p.stdout.readline()
-        while line:
-            sv = SV.parse_sv(line, db_mode)
-            if sv is not None:
-                if isinstance(sv, BND_SV):
-                    self.BNDs.add_BND(sv)
-                else:
-                    self.count += 1
-                    if sv.chrom in self.SVs:
-                        self.SVs[sv.chrom].append(sv)
-                    else:
-                        self.SVs[sv.chrom] = [sv]
-            line = p.stdout.readline()
 
     # return all SV calls that overlap with given range
     def get_svs_in_range(self, chrom, start, end, sample=None):
@@ -355,7 +386,7 @@ class BNDs:
         return bnds
 
     # process and return the list of bnd events to include in SVPV
-    def resolve(self):
+    def get_events(self):
         bnd_events = []
         for e in self.events:
             mates = self.mate_tuples(self.events[e])
@@ -400,9 +431,6 @@ class BND_Event():
                     self.loci.append((bnd.mate_chr, bnd.mate_pos))
 
         self.__SV = bnd_mates[0][0].__SV
-        if self.loci[0][0] != self.loci[1][0]:
-            self.__SV.svtype = 'TRA'
-            self.__SV.chr2 = self.loci[1][0]
 
     def __getattr__(self, item):
         return getattr(self.__SV, item)
