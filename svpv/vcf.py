@@ -211,7 +211,7 @@ class SV:
         elif inslen != '.' and int(inslen) > 0:
             self.len = int(inslen)
         else:
-            self.len = str(self.end - self.start +1)
+            self.len = self.end - self.start +1
         self.svtype = svtype
         # delly sv field
         self.inslen = inslen
@@ -399,6 +399,18 @@ class BND_Event():
                     self.loci.append((bnd.chrom, bnd.start))
                     self.loci.append((bnd.mate_chr, bnd.mate_pos))
 
+        self.__SV = bnd_mates[0][0].__SV
+        if self.loci[0][0] != self.loci[1][0]:
+            self.__SV.svtype = 'TRA'
+            self.__SV.chr2 = self.loci[1][0]
+
+    def __getattr__(self, item):
+        return getattr(self.__SV, item)
+
+    def __setattr__(self, key, value):
+        return setattr(self.__SV, key, value)
+
+
 
 class BND_SV():
     right_fwd = re.compile('^.+\[(?P<chr>.+):(?P<pos>.+)\[$')
@@ -466,7 +478,7 @@ class BCFtools:
             exit(1)
         return p
 
-    #return a list of samples
+    # return a list of samples
     @staticmethod
     def get_samples(vcf):
         cmd = ["bcftools", "query", "-l", vcf]

@@ -119,11 +119,89 @@ class SamEntry():
 
 
 class SamStats:
-    def __init__(self, aln_stats, depth_stats=None):
-        # list of aln_stats for each breakpoint
-        self.aln_stats = aln_stats
-        # single depth stats
-        self.depth_stats = depth_stats
+    def __init__(self):
+        # list of alignment stats
+        self.align = []
+        # single depth stats or none
+        self.depth = None
+
+    # Print the collected stats
+    def print_stats(self, dir):
+        if self.depth:
+            depth_file = open(os.path.join(dir, 'depths.tsv'), 'wt')
+            # print depths
+            depth_file.write('bin\t' + '\t'.join(AlignStats.depth_cols) + '\n')
+            for i, row in enumerate(self.depth):
+                depth_file.write(str(self.depth_bins.start + i * self.depth_bins.size) + '\t')
+                for i in range(0, len(row) - 1):
+                    depth_file.write(str(row[i]) + '\t')
+                depth_file.write(str(row[-1]) + '\n')
+            depth_file.close()
+
+        for d in self.align.depth_stats:
+            d.convert_depths()
+
+
+        for aln in self.align:
+            aln_stats_file = open(os.path.join(dir, '{}.{}.aln_stats.tsv'.format(aln.bins.chrom, aln.bins.start)), 'wt')
+            fwd_ins_file = open(os.path.join(dir, '{}.{}.fwd_ins.tsv'.format(aln.bins.chrom, aln.bins.start)), 'wt')
+            rvs_ins_file = open(os.path.join(dir, '{}.{}.rvs_ins.tsv'.format(aln.bins.chrom, aln.bins.start)),'wt')
+
+            # print alignmet stats and insert sizes
+            aln_stats_file.write('bin\t' + '\t'.join(AlignStats.aln_stats_cols) + '\n')
+
+            for i, row in enumerate(aln.aln_stats):
+                # aln_stats
+                aln_stats_file.write(str(aln.bins.start + i*aln.bins.size) + '\t')
+                for k in range(0,len(row)-1):
+                    aln_stats_file.write(str(row[k]) + '\t')
+                aln_stats_file.write(str(row[k]) + '\n')
+                # fwd inserts
+                fwd_ins_file.write(str(aln.bins.start + i * aln.bins.size) + '\t')
+                if self.fwd_inserts[i]:
+                    for k in range(0, len(self.fwd_inserts[i])-1):
+                         fwd_ins_file.write(str(self.fwd_inserts[i][k]) + ',')
+                    fwd_ins_file.write(str(self.fwd_inserts[i][-1]))
+                else:
+                    fwd_ins_file.write('NA')
+                fwd_ins_file.write('\n')
+                # rvs inserts
+                rvs_ins_file.write(str(aln.bins.start + i * aln.bins.size) + '\t')
+                if self.rvs_inserts[i]:
+                    for k in range(0, len(self.rvs_inserts[i])-1):
+                        rvs_ins_file.write(str(self.rvs_inserts[i][k]) + ',')
+                    rvs_ins_file.write(str(self.rvs_inserts[i][-1]))
+                else:
+                    rvs_ins_file.write('NA')
+                rvs_ins_file.write('\n')
+            fwd_ins_file.close()
+            rvs_ins_file.close()
+            aln_stats_file.close()
+
+    # returns a list of sam_stats corresponding to the list of bams given for this position
+    @staticmethod
+    def get_sam_stats(bams, bkpt_bins_list, depth_bins=None):
+        sam_stats = []
+        for bam in bams:
+            sam_stats.append(SamStats())
+            if depth_bins is not None:
+                sam_stats[-1].depth = DepthStats(depth_bins)
+                sam_stats[-1].depth.set_depths(bam)
+
+            for bins in bkpt_bins_list:
+                sam_stats[-1].align.append(AlignStats(bins))
+                p = SAMtools.view(bam, bins.region)
+                line = p.stdout.readline()
+                while line:
+                    try:
+                        FLAG, RNAME, POS, MAPQ, CIGAR, RNEXT, PNEXT, TLEN = line.split()[1:9]
+                    except ValueError:
+                        line = p.stdout.readline()
+                        continue
+                    else:
+                        sam_stats[-1].align[-1].process(SamEntry(FLAG, POS, MAPQ, CIGAR, RNEXT, TLEN))
+                        line = p.stdout.readline()
+        return sam_stats
 
 
 class DepthStats:
@@ -139,7 +217,7 @@ class DepthStats:
 
 
     def set_depths(self, bam):
-        # TODO: need to make this work for all mapQs, disable other implementation in SamStats
+        # get depths using samtools bedcov
         bed = tempfile.NamedTemporaryFile(mode='wt', delete=False)
         for i in range(self.bins.num):
             bed.write('{}\t{}\t{}\n'.format(self.bins.chrom, self.bins.start + i*self.bins.size,
@@ -172,170 +250,83 @@ class AlignStats:
     CLIPPED = 6
     DIFFMOL = 7
 
-    def __init__(self, bkpt_bins, mapq_thresh=30, clip_thresh=1):
+    def __init__(self, bins, mapq_thresh=30, clip_thresh=1):
         # set parameters
-        self.bkpt_bins = bkpt_bins
+        self.bins = bins
         self.mapQT = mapq_thresh
         self.clip_thresh = clip_thresh
 
         # initialise data structures
-        self.depth_stats = []
-        self.aln_stats = []
-        self.fwd_inserts = []
-        self.rvs_inserts = []
-        for bins in self.bkpt_bins:
-            self.depth_stats.append(DepthStats(bins, mapq_thresh=mapq_thresh), dtype=np.intc)
-            self.aln_stats.append(np.zeros((bins.num, len(AlignStats.aln_stats_cols)), dtype=np.intc))
-            self.fwd_inserts.append(np.empty(bins.num, dtype=list))
-            self.rvs_inserts.append(np.empty(bins.num, dtype=list))
-            for j in range(0, bins.num):
-                self.fwd_inserts[-1][j] = []
-                self.rvs_inserts[-1][j] = []
+        self.depth_stats = DepthStats(bins, mapq_thresh=mapq_thresh, dtype=np.intc)
+        self.aln_stats = np.zeros((bins.num, len(AlignStats.aln_stats_cols)), dtype=np.intc)
+        self.fwd_inserts = np.empty(bins.num, dtype=list)
+        self.rvs_inserts = np.empty(bins.num, dtype=list)
+        for j in range(0, bins.num):
+            self.fwd_inserts[j] = []
+            self.rvs_inserts[j] = []
 
 
-    def add_to_depth(self, idx, coverage, cols):
+    def add_to_depth(self, coverage, cols):
         # add start and end covered bins, partial coverage
         for j in cols:
-            self.depth_stats[idx].depths[coverage[0][0]][j] += coverage[0][1]
-            self.depth_stats[idx].depths[coverage[1][0]][j] += coverage[1][1]
+            self.depth_stats.depths[coverage[0][0]][j] += coverage[0][1]
+            self.depth_stats.depths[coverage[1][0]][j] += coverage[1][1]
 
         # add in all bins that have full coverage
         for i in range(coverage[0][0]+1, coverage[1][0]):
             for j in cols:
-                self.depth_stats[idx].depths[i][j] += self..depths.bins.size
+                self.depth_stats.depths[i][j] += self.depth_stats.bins.size
 
-    def add_to_aln_stats(self, idx, coverage, cols):
+    def add_to_aln_stats(self, coverage, cols):
         for i in range(coverage[0][0], coverage[1][0]+1):
             for j in cols:
-                self.aln_stats[idx][i][j] += 1
+                self.aln_stats[i][j] += 1
 
     def process(self, sam_entry):
-        for idx, bins in enumerate(self.bkpt_bins):
+        cov = self.bins.get_bin_coverage(sam_entry.left, sam_entry.right)
+        if cov is None:
+            return
 
-            cov = bins.get_bin_coverage(sam_entry.left, sam_entry.right)
-            if cov is None:
-                continue
-
-            depth_cols = [DepthStats.TOTAL]
-            if sam_entry.mapQ <= self.mapQT:
-                if sam_entry.mapQ == 0:
-                    depth_cols.append(DepthStats.MAPQ0)
-                else:
-                    depth_cols.append(DepthStats.MAPQLTT)
-            self.add_to_depth(idx, cov, depth_cols)
-
-            aln_cols = [AlignStats.READS]
-            if (sam_entry.flag & SamEntry.secondary):
-                aln_cols.append(AlignStats.SECONDARY)
-            if (sam_entry.flag & SamEntry.supplementary):
-                aln_cols.append(AlignStats.SUPPLEMENTARY)
-            if sam_entry.get_num_clipped() >= self.clip_thresh:
-                aln_cols.append(AlignStats.CLIPPED)
-            if sam_entry.has_unmapped_mate():
-                aln_cols.append(AlignStats.ORPHANED)
+        depth_cols = [DepthStats.TOTAL]
+        if sam_entry.mapQ <= self.mapQT:
+            if sam_entry.mapQ == 0:
+                depth_cols.append(DepthStats.MAPQ0)
             else:
-                if sam_entry.mate_diff_molecule:
-                    aln_cols.append(AlignStats.DIFFMOL)
-                elif sam_entry.mate_same_strand():
-                    aln_cols.append(AlignStats.SAMESTRAND)
-                elif sam_entry.is_inverted():
-                    aln_cols.append(AlignStats.INVERTED)
-                else:
-                    # correctly oriented pair reads
-                    # filter low mapQ reads as these give spurious mapping distances
-                    if not sam_entry.tlen == 0 and sam_entry.mapQ > self.mapQT:
-                        # pairs are mapped correctly, so add to insert sizes
-                        if sam_entry.is_rvs():
-                            ins_cov = bins.get_bin_coverage(sam_entry.right, sam_entry.right)
-                            if ins_cov is None:
-                                continue
-                            self.rvs_inserts[idx][ins_cov[1][0]].append(-1 * sam_entry.tlen)
-                        else:
-                            ins_cov = bins.get_bin_coverage(sam_entry.left, sam_entry.left)
-                            if ins_cov is None:
-                                continue
-                            self.fwd_inserts[idx][ins_cov[0][0]].append(sam_entry.tlen)
-            self.add_to_aln_stats(idx, cov, aln_cols)
+                depth_cols.append(DepthStats.MAPQLTT)
+        self.add_to_depth(cov, depth_cols)
 
-    def convert_depths(self):
-        for i in range(0, self.depth_bins.num):
-            for j in range(0, len(AlignStats.depth_cols)):
-                self.depth_stats[i][j] /= self.depth_bins.size
-
-    # Print the collected stats
-    def print_stats(self, dir):
-        depth_file = open(os.path.join(dir, 'depths.tsv'), 'w')
-        aln_stats_file = open(os.path.join(dir, 'aln_stats.tsv'), 'w')
-        fwd_ins_file = open(os.path.join(dir, 'fwd_ins.tsv'), 'w')
-        rvs_ins_file = open(os.path.join(dir, 'rvs_ins.tsv'), 'w')
-
-        self.convert_depths()
-        # print depths
-        depth_file.write('bin\t' + '\t'.join(AlignStats.depth_cols) + '\n')
-        for i, row in enumerate(self.depth_stats):
-            depth_file.write(str(self.depth_bins.start + i*self.depth_bins.size) + '\t')
-            for j in range(0, len(row)-1):
-                depth_file.write(str(row[j]) + '\t')
-            depth_file.write(str(row[-1]) + '\n')
-        depth_file.close()
-
-        # print alignmet stats and insert sizes
-        aln_stats_file.write('bin\t' + '\t'.join(AlignStats.aln_stats_cols) + '\n')
-        for i, bin in enumerate(self.bkpt_bins):
-            for j, row in enumerate(self.aln_stats[i]):
-                # aln_stats
-                aln_stats_file.write(str(bin.start + j*bin.size) + '\t')
-                for k in range(0,len(row)-1):
-                    aln_stats_file.write(str(row[k]) + '\t')
-                aln_stats_file.write(str(row[k]) + '\n')
-                # fwd inserts
-                fwd_ins_file.write(str(bin.start + j * bin.size) + '\t')
-                if self.fwd_inserts[i][j]:
-                    for k in range(0, len(self.fwd_inserts[i][j])-1):
-                         fwd_ins_file.write(str(self.fwd_inserts[i][j][k]) + ',')
-                    fwd_ins_file.write(str(self.fwd_inserts[i][j][-1]))
-                else:
-                    fwd_ins_file.write('NA')
-                fwd_ins_file.write('\n')
-                # rvs inserts
-                rvs_ins_file.write(str(bin.start + j * bin.size) + '\t')
-                if self.rvs_inserts[i][j]:
-                    for k in range(0, len(self.rvs_inserts[i][j])-1):
-                        rvs_ins_file.write(str(self.rvs_inserts[i][j][k]) + ',')
-                    rvs_ins_file.write(str(self.rvs_inserts[i][j][-1]))
-                else:
-                    rvs_ins_file.write('NA')
-                rvs_ins_file.write('\n')
-        fwd_ins_file.close()
-        rvs_ins_file.close()
-        aln_stats_file.close()
-
-    # returns a list of sam_stats corresponding to the list of bams given for this position
-    @staticmethod
-    def get_sam_stats(bams, depth_bins=None, bkpt_bins=None):
-        if depth_bins or bkpt_bins:
-            if not bkpt_bins:
-                bkpt_bins = [depth_bins]
-            sam_stats = []
-            for bam in bams:
-                sam_stats.append(SamStats(AlignStats(bkpt_bins), depth_stats=DepthStats(depth_bins)))
-                sam_stats[-1].depth_stats.set_depths(bam)
-
-                for bkpt in bkpt_bins:
-                    p = SAMtools.view(bam, bkpt.region)
-                    line = p.stdout.readline()
-                    while line:
-                        try:
-                            FLAG, RNAME, POS, MAPQ, CIGAR, RNEXT, PNEXT, TLEN = line.split()[1:9]
-                        except ValueError:
-                            line = p.stdout.readline()
-                            continue
-                        else:
-                            sam_stats[-1].process(SamEntry(FLAG, POS, MAPQ, CIGAR, RNEXT, TLEN))
-                            line = p.stdout.readline()
-            return sam_stats
+        aln_cols = [AlignStats.READS]
+        if (sam_entry.flag & SamEntry.secondary):
+            aln_cols.append(AlignStats.SECONDARY)
+        if (sam_entry.flag & SamEntry.supplementary):
+            aln_cols.append(AlignStats.SUPPLEMENTARY)
+        if sam_entry.get_num_clipped() >= self.clip_thresh:
+            aln_cols.append(AlignStats.CLIPPED)
+        if sam_entry.has_unmapped_mate():
+            aln_cols.append(AlignStats.ORPHANED)
         else:
-            raise ValueError("Must provide at least one of depth_bins, bkpt_A_bins or bkpt_B_bins")
+            if sam_entry.mate_diff_molecule:
+                aln_cols.append(AlignStats.DIFFMOL)
+            elif sam_entry.mate_same_strand():
+                aln_cols.append(AlignStats.SAMESTRAND)
+            elif sam_entry.is_inverted():
+                aln_cols.append(AlignStats.INVERTED)
+            else:
+                # correctly oriented pair reads
+                # filter low mapQ reads as these give spurious mapping distances
+                if not sam_entry.tlen == 0 and sam_entry.mapQ > self.mapQT:
+                    # pairs are mapped correctly, so add to insert sizes
+                    if sam_entry.is_rvs():
+                        ins_cov = self.bins.get_bin_coverage(sam_entry.right, sam_entry.right)
+                        if ins_cov is None:
+                            return
+                        self.rvs_inserts[ins_cov[1][0]].append(-1 * sam_entry.tlen)
+                    else:
+                        ins_cov = self.bins.get_bin_coverage(sam_entry.left, sam_entry.left)
+                        if ins_cov is None:
+                            return
+                        self.fwd_inserts[ins_cov[0][0]].append(sam_entry.tlen)
+        self.add_to_aln_stats(cov, aln_cols)
 
 
 class SAMtools:

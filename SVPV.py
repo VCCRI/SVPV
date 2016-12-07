@@ -104,13 +104,13 @@ class Params:
                     if a == '-vcf':
                         self.run.set_vcfs(args[i + 1])
                     elif a == '-aln':
-                        self.run.alns = args[i + 1].split(',')
+                        self.run.bams = args[i + 1].split(',')
                     elif a == '-all':
                         self.run.all = True
                     elif a == '-samples':
                         self.run.samples = args[i + 1].split(',')
                     elif a == '-manifest':
-                        if self.run.samples or self.run.alns:
+                        if self.run.samples or self.run.bams:
                             print("samples and alignments provided as command line arguments overriden by manifest file\n")
                         self.run.read_samples_file(args[i + 1])
                     elif a == '-o':
@@ -261,7 +261,7 @@ class RunParams:
         # set of alternate sv callsets to visualise against
         self.alt_vcfs = []
         # list of bams
-        self.alns = []
+        self.bams = []
         # list of samples
         self.samples = []
         # directory to write data to
@@ -296,7 +296,7 @@ class RunParams:
     def get_bams(self, samples):
         bams = []
         for s in samples:
-            bams.append(self.alns[self.samples.index(s)])
+            bams.append(self.bams[self.samples.index(s)])
         return bams
 
     def read_samples_file(self, filepath):
@@ -308,8 +308,8 @@ class RunParams:
             elif len(line.split()) < 2:
                 continue
             self.samples.append(line.split()[0].strip())
-            self.alns.append(line.split()[1].strip())
-            check_file_exists(self.alns[-1])
+            self.bams.append(line.split()[1].strip())
+            check_file_exists(self.bams[-1])
 
     # set up the input vcfs (comma separated list, names included with colons name:file or file)
     def set_vcfs(self, vcfs_arg):
@@ -339,15 +339,15 @@ class RunParams:
             print(usage)
             print("Error: please specify samples to visualise")
             exit(1)
-        if not self.alns:
+        if not self.bams:
             print(usage)
             print("Error: please specify BAM/SAM files")
             exit(1)
-        if not len(self.alns) == len(self.samples):
+        if not len(self.bams) == len(self.samples):
             print(usage)
             print("Error:\nRequires same number of samples and alignments")
             exit(1)
-        for b in self.alns:
+        for b in self.bams:
             check_file_exists(b)
         delete = []
         for i, s in enumerate(self.samples):
@@ -356,7 +356,7 @@ class RunParams:
                 delete.append(i)
         for i in sorted(delete, reverse=True):
             del self.samples[i]
-            del self.alns[i]
+            del self.bams[i]
         #self.plot_par.check()
 
 

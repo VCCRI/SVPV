@@ -8,7 +8,7 @@ import os
 import subprocess
 from hashlib import sha1
 import copy
-from .sam import AlignStats
+from .sam import SamStats
 from .vcf import SV
 from .refgene import RefGeneEntry
 
@@ -19,25 +19,58 @@ class Plot:
     def __init__(self, sv, samples, par):
         self.par = par
         self.samples = samples
-        self.dirs = self.create_dirs(par.run.out_dir)
         self.sv = sv
-        # show depth over whole region but zoom in on breakpoints if necessary
-        if self.sv.svtype in ('DEL', 'DUP', 'CNV'):
-            self.start = sv.start - par.run.expansion * (sv.end - sv.start + 1)
-            self.end = sv.end + par.run.expansion * (sv.end - sv.start + 1)
-            depth_bins = Bins(sv.chrom, self.start, self.end)
-            if depth_bins.size // float(par.run.is_len) > 0.25:
-                bkpt_bins = (Bins(sv.chrom, sv.start - int(1.5 * par.run.is_len), sv.start + int(1.5 * par.run.is_len)),
-                             Bins(sv.chrom, sv.end - int(1.5 * par.run.is_len), sv.end + int(1.5 * par.run.is_len)))
-                sam_stats = AlignStats.get_sam_stats(depth_bins=depth_bins, bkpt_bins=bkpt_bins)
-            else:
-                sam_stats = AlignStats.get_sam_stats(depth_bins=depth_bins)
-        # do not show depth over whole region
-        else:
-            ''' TBD '''
-            self.start = sv.start - par.run.expansion * par.run.is_len
-            self.end = sv.start + par.run.expansion * par.run.is_len
+        self.region_bins = None
+        self.bkpt_bins = None
 
+        # show depth over whole region but zoom in on breakpoints if necessary
+        if sv.svtype in ('DEL', 'DUP', 'CNV', 'INV'):
+            start = sv.start - par.run.expansion * (sv.end - sv.start + 1)
+            end = sv.end + par.run.expansion * (sv.end - sv.start + 1)
+            self.region_bins = Bins(sv.chrom, start, end)
+            if self.region_bins.size // float(par.run.is_len) > 0.25:
+                self.bkpt_bins = (Bins(sv.chrom, sv.start - int(1.5 * par.run.is_len), sv.start + int(1.5 * par.run.is_len)),
+                             Bins(sv.chrom, sv.end - int(1.5 * par.run.is_len), sv.end + int(1.5 * par.run.is_len)))
+                sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.bkpt_bins,
+                                                   depth_bins=self.region_bins)
+            else:
+                sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.region_bins)
+
+        # show as single region if small enought, otherwise just window around breakpoints
+        elif sv.svtype == 'INV':
+            start = sv.start - par.run.expansion * (sv.end - sv.start + 1)
+            end = sv.end + par.run.expansion * (sv.end - sv.start + 1)
+            self.region_bins = Bins(sv.chrom, start, end)
+            if self.region_bins.size // float(par.run.is_len) > 0.25:
+                self.bkpt_bins = (
+                Bins(sv.chrom, sv.start - int(1.5 * par.run.is_len), sv.start + int(1.5 * par.run.is_len)),
+                Bins(sv.chrom, sv.end - int(1.5 * par.run.is_len), sv.end + int(1.5 * par.run.is_len)))
+                sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.bkpt_bins)
+                self.region_bins = None
+            else:
+                sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.region_bins)
+
+        # single breakpoint
+        elif sv.svtype =='INS':
+            self.bkpt_bins = (Bins(sv.chrom, sv.start - int(1.5 * par.run.is_len), sv.start + int(1.5 * par.run.is_len)),)
+            sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples))
+
+        # do not show depth region, just stats at pair of breakpoints
+        elif sv.svtype in ('BND', 'TRA'):
+            if sv.svtype == 'BND':
+                chr1, pos1 = sv.loci[0]
+                chr2, pos2 = sv.loci[1]
+            # delly TRA spec
+            elif sv.svtype == 'TRA':
+                chr1, pos1 = sv.chrom, sv.start
+                chr2, pos2 = sv.chr2, sv.end
+            self.bkpt_bins = (Bins(chr1, pos1 - int(1.5 * par.run.is_len), pos1 + int(1.5 * par.run.is_len)),
+                              Bins(chr2, pos2 - int(1.5 * par.run.is_len), pos2 + int(1.5 * par.run.is_len)))
+            sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.bkpt_bins)
+        else:
+            raise ValueError('unsupported svtype: {}'.format(self.sv.svtype))
+
+        self.dirs = self.create_dirs(par.run.out_dir)
 
         # print sample data to file
         for i, s in enumerate(samples):
@@ -104,7 +137,7 @@ class Plot:
             try:
                 subprocess.call(cmd)
             except OSError:
-                print('Error: failed to run Rscript. Are you sure R is installed?')
+                print('Error: failed to run Rscript. Are you sure it is installed?')
                 exit(1)
 
             if display:
@@ -132,7 +165,7 @@ class Plot:
         dirs['svtype'] = os.path.join(dirs['root'], self.sv.svtype)
         if not os.path.exists(dirs['svtype']):
             os.mkdir(dirs['svtype'])
-        dirs['pos'] = os.path.join(dirs['svtype'], '%s_%d-%d' % (self.sv.chrom, self.sv.start, self.sv.end))
+        dirs['pos'] = os.path.join(dirs['svtype'], '%s_%d' % (self.sv.chrom, self.sv.start))
         if not os.path.exists(dirs['pos']):
             os.mkdir(dirs['pos'])
         for s in self.samples:
@@ -195,4 +228,4 @@ class Bins:
 
         if first == last:
             last_bp = 0
-        return ((first, first_bp),(last,last_bp))
+        return (first, first_bp), (last,last_bp)
