@@ -81,9 +81,28 @@ class Plot:
             if genes:
                 RefGeneEntry.print_entries(genes, open(os.path.join(self.dirs['pos'], 'refgene.tsv'), 'w'))
 
-        self.add_vcf_annotation()
+        self.add_annotation()
 
-    def add_vcf_annotation(self):
+    def add_annotation(self):
+        # plot details.txt
+        # region    r_bin_size  r_bin_num   loci    l_bin_size  l_bin_num
+        # chr1:10-20  150       100         chr1:10-20,chr2:40-50   100 200
+        plot_attr = open(os.path.join(self.dirs['pos'], 'plot_attr.tsv'), 'wt')
+        plot_attr.write('\t'.join(('region', 'r_bin_size', 'r_bin_num', 'loci', 'l_bin_size', 'l_bin_num')) + '\n')
+        if self.region_bins:
+            plot_attr.write('{}\t{}\t{}\t'.format(self.region_bins.region, self.region_bins.size, self.region_bins.num))
+        else:
+            plot_attr.write('NA\tNA\tNA\t')
+        if self.bkpt_bins:
+            for bin in self.bkpt_bins:
+                plot_attr.write('{},'.format(bin.region))
+            plot_attr.write('\t{}\t{}\n'.format(self.bkpt_bins[0].size, self.bkpt_bins[0].num))
+        else:
+            plot_attr.write('NA\tNA\tNA\n')
+        plot_attr.close()
+
+
+
         # sample-wise SV annotation
         for i, s in enumerate(self.samples):
             sv_file = open(os.path.join(self.dirs[s], 'svs.tsv'), 'w')

@@ -406,7 +406,7 @@ class BNDs:
 
 # class to hold a BND event
 class BND_Event():
-    def __init__(self, bnd_mates, delta=10):
+    def __init__(self, bnd_mates, delta=15):
         self.bnd_mates = bnd_mates
         # set up loci
             # for now only allow events with two loci

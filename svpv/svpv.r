@@ -1,4 +1,4 @@
-# Container for plot parameters
+# store plot parameters
 PlotParams <- function(args) {
   this <- list(
     depth = ('-d' %in% args),
@@ -17,51 +17,83 @@ PlotParams <- function(args) {
   class(this) <- append(class(this), "PlotParams")
   return (this)
 }
-
-# Container for data for a given sample
+# split a region string (eg 'chr1:100-200')
+Region <- function(region){
+  return(list(
+    chr=gsub(':.+$', '', region, perl=TRUE),
+    start=as.numeric(gsub('^.+:', '', gsub('-.+$', '', region, perl=TRUE), perl=TRUE)),
+    end=as.numeric(gsub('^.+-', '', region, perl=TRUE))
+    ))
+}
+# parse plot attributes
+PlotAttr <- function(folder){
+  attr <- read.table(paste0(folder, '/plot_attr.tsv'), header=TRUE, colClasses=c('character', 'numeric', 'numeric'), sep='\t')
+  return(list(region=Region(attr$region),
+              r_bin_size=attr$r_bin_size,
+              r_bin_num=attr$r_bin_num,
+              loci=lapply(unlist(strsplit(attr$loci, ',')), function(x) Region(x)),
+              l_bin_size=attr$l_bin_size,
+              l_bin_num=attr$l_bin_num))
+}
+# parse insert size files
+Inserts <- function(files){
+  fwd_ins <- list()
+  rvs_ins <- list()
+  for (f in files){
+    if (grepl('fwd_ins.csv', f)){
+      pos <- sub('.fwd_ins.csv', '', basename(f))
+      fwd_ins[[pos]] <- scan(f, sep='\n', what='character', quiet=TRUE)
+      fwd_ins[[pos]] <- lapply(fwd_ins[[pos]], function(x) as.numeric(unlist(strsplit(x, ','))))
+      rvs_ins[[pos]] <- scan(sub('fwd', 'rvs', f), sep='\n', what='character', quiet=TRUE)
+      rvs_ins[[pos]] <- lapply(rvs_ins[[pos]], function(x) as.numeric(unlist(strsplit(x, ','))))
+    }
+  }
+  # this probably wont work
+  ylim <- estimate_upper_bound(c(unlist(fwd_ins, use.names=FALSE), unlist(rvs_ins, use.names=FALSE)))
+  return(list(fwd=fwd_ins, rvs=rvs_ins, ylim=ylim))
+}
+# parse depth files
+Depths <- function(files){
+  region <- NULL
+  loci <- list()
+  for (f in files){
+    if (grepl('region_depths.tsv', f)){
+      region <- read.delim(f, header = TRUE,  sep = '\t')
+    } else if (grepl('.depths.tsv', f)){
+      pos <- sub('.depths.tsv', '', basename(f))
+      loci[[pos]] <- read.delim(f, header = TRUE,  sep = '\t')
+    }
+  }
+  return(list(region=region, loci=loci))
+}
+# parse alignment stats files
+AlnStats <- function(files){
+  aln_stats <- list()
+  for (f in files){
+    if (grepl('.aln_stats.tsv', f)){
+      pos <- sub('.aln_stats.tsv', '', basename(f))
+      aln_stats[[pos]] <- read.delim(f, header = TRUE,  sep = '\t')
+    }
+  }
+  return(aln_stats)
+}
+# store data for a given sample
 Sample <- function(folder, sample, label = FALSE) {
-  depths <- read.delim(paste0(folder, sample, '/depths.tsv'), header = TRUE,  sep = '\t')
-  bin_size <- depths$bin[2] -  depths$bin[1]
-  num_bins <- nrow(depths)
-  xlims <- c(depths$bin[1], (depths$bin[nrow(depths)] + bin_size))
+  files <- list.files(folder)
   #read in SV calls for this sample
   svs <- read.delim(paste0(folder, sample, '/svs.tsv'), header = TRUE, sep = '\t')
   #convert to list, separating calls from different vcfs
   svs <- split.data.frame(svs, svs$vcf)
   svTracks <- lapply(svs, function(x) get_tracks(x$start, x$end))
-  #read in foward and reverse inserts
-  fwd_ins <- read.table(paste0(folder, sample, '/fwd_ins.tsv'), fill=TRUE, sep="\t", stringsAsFactors = FALSE, header = FALSE)
-  rvs_ins <- read.delim(paste0(folder, sample, '/rvs_ins.tsv'), fill=TRUE, sep="\t", stringsAsFactors = FALSE, header = FALSE)
-  #convert inserts from strings to numerics
-  fwd_ins <- cbind(fwd_ins[,1], lapply(fwd_ins[,2], function(x) as.numeric(unlist(strsplit(x, ',')))))
-  rvs_ins <- cbind(rvs_ins[,1], lapply(rvs_ins[,2], function(x) as.numeric(unlist(strsplit(x, ',')))))
-  #read aln_stats
-  aln_stats <- read.delim(paste0(folder, sample, '/aln_stats.tsv'), header = TRUE,  sep = '\t')
-  aln_stats_bin_size <- aln_stats$bin[2] - aln_stats$bin[1]
-  split <- FALSE
-  for (i in 3:nrow(aln_stats)){
-    if (aln_stats_bin_size != aln_stats$bin[i] - aln_stats$bin[i-1]){
-      split = i
-    }
-  }
-  ins_ylim <- max(max(unlist(sapply(fwd_ins, function(x)  estimate_upper_bound(x)))),  max(unlist(sapply(rvs_ins, function(x) estimate_upper_bound(x)))))
-  
-  this <- list(
+  return(list(
     Name = sample,
-    Depths = depths,
-    Bin_size = bin_size,
-    Num_bins = num_bins,
-    Xlims = xlims,
+    Depths = Depths(files),
+    Attr = PlotAttr(folder),
     SVs = svs,
     SVtracks = svTracks,
-    Fwd_ins = fwd_ins,
-    Rvs_ins = rvs_ins,
-    Aln_stats = aln_stats,
-    Split = split,
-    Ins_ylim = ins_ylim
-  )
-  class(this) <- append(class(this), "Sample")
-  return(this)
+    Ins = Inserts(files),
+    Aln_stats = AlnStats(files),
+    Ins_ylim = ins_ylim))
 }
 #container for annotations
 Annotations <- function(folder) {

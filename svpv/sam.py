@@ -127,28 +127,30 @@ class SamStats:
 
     # Print the collected stats
     def print_stats(self, dir):
+
         if self.depth:
-            depth_file = open(os.path.join(dir, 'depths.tsv'), 'wt')
+            depth_file = open(os.path.join(dir, 'region_depths.tsv'), 'wt')
             # print depths
-            depth_file.write('bin\t' + '\t'.join(AlignStats.depth_cols) + '\n')
+            depth_file.write('bin\t' + '\t'.join(DepthStats.depth_cols) + '\n')
             for i, row in enumerate(self.depth):
-                depth_file.write(str(self.depth_bins.start + i * self.depth_bins.size) + '\t')
-                for i in range(0, len(row) - 1):
-                    depth_file.write(str(row[i]) + '\t')
+                depth_file.write(str(self.depth.bins.start + i * self.depth.bins.size) + '\t')
+                for j in range(0, len(row) - 1):
+                    depth_file.write(str(row[j]) + '\t')
                 depth_file.write(str(row[-1]) + '\n')
             depth_file.close()
 
         for d in self.align.depth_stats:
             d.convert_depths()
 
-
         for aln in self.align:
             aln_stats_file = open(os.path.join(dir, '{}.{}.aln_stats.tsv'.format(aln.bins.chrom, aln.bins.start)), 'wt')
             fwd_ins_file = open(os.path.join(dir, '{}.{}.fwd_ins.tsv'.format(aln.bins.chrom, aln.bins.start)), 'wt')
             rvs_ins_file = open(os.path.join(dir, '{}.{}.rvs_ins.tsv'.format(aln.bins.chrom, aln.bins.start)),'wt')
+            depth_file = open(os.path.join(dir, '{}.{}.depths.tsv'.format(aln.bins.chrom, aln.bins.start)), 'wt')
 
-            # print alignmet stats and insert sizes
+            # print alignmet stats, insert sizes and depths
             aln_stats_file.write('bin\t' + '\t'.join(AlignStats.aln_stats_cols) + '\n')
+            depth_file.write('bin\t' + '\t'.join(DepthStats.depth_cols) + '\n')
 
             for i, row in enumerate(aln.aln_stats):
                 # aln_stats
@@ -157,26 +159,33 @@ class SamStats:
                     aln_stats_file.write(str(row[k]) + '\t')
                 aln_stats_file.write(str(row[k]) + '\n')
                 # fwd inserts
-                fwd_ins_file.write(str(aln.bins.start + i * aln.bins.size) + '\t')
-                if self.fwd_inserts[i]:
-                    for k in range(0, len(self.fwd_inserts[i])-1):
-                         fwd_ins_file.write(str(self.fwd_inserts[i][k]) + ',')
-                    fwd_ins_file.write(str(self.fwd_inserts[i][-1]))
+                if aln.fwd_inserts[i]:
+                    for k in range(0, len(aln.fwd_inserts[i])-1):
+                         fwd_ins_file.write(str(aln.fwd_inserts[i][k]) + ',')
+                    fwd_ins_file.write(str(aln.fwd_inserts[i][-1]))
                 else:
                     fwd_ins_file.write('NA')
                 fwd_ins_file.write('\n')
                 # rvs inserts
-                rvs_ins_file.write(str(aln.bins.start + i * aln.bins.size) + '\t')
-                if self.rvs_inserts[i]:
-                    for k in range(0, len(self.rvs_inserts[i])-1):
-                        rvs_ins_file.write(str(self.rvs_inserts[i][k]) + ',')
-                    rvs_ins_file.write(str(self.rvs_inserts[i][-1]))
+                if aln.rvs_inserts[i]:
+                    for k in range(0, len(aln.rvs_inserts[i])-1):
+                        rvs_ins_file.write(str(aln.rvs_inserts[i][k]) + ',')
+                    rvs_ins_file.write(str(aln.rvs_inserts[i][-1]))
                 else:
                     rvs_ins_file.write('NA')
                 rvs_ins_file.write('\n')
+                # depths
+                depth_file.write(str(aln.depth_stats.bins.start + i * aln.depth_stats.bins.size) + '\t')
+                for j in range(0, len(row) - 1):
+                    depth_file.write(str(row[j]) + '\t')
+                depth_file.write(str(row[-1]) + '\n')
+
+            if not self.depth:
+                depth_file.close()
             fwd_ins_file.close()
             rvs_ins_file.close()
             aln_stats_file.close()
+
 
     # returns a list of sam_stats corresponding to the list of bams given for this position
     @staticmethod
