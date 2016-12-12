@@ -18,7 +18,7 @@ class VCFManager:
         self.samples = BCFtools.get_samples(vcf_file)
         # count of svs in vcf
         self.count = 0
-        # TODO - define this
+        # dict by chrom of dict by pos of lists of SVs
         self.SVs = {}
         # dict of chr, sorted lists of positions
         self.positions = {}
@@ -38,17 +38,17 @@ class VCFManager:
                 else:
                     self.count += 1
                     if sv.chrom in self.SVs:
-                        if sv.start in self.SVs[sv.chrom]:
-                            self.SVs[sv.chrom][sv.start].append(sv)
+                        if sv.pos in self.SVs[sv.chrom]:
+                            self.SVs[sv.chrom][sv.pos].append(sv)
                         else:
-                            self.SVs[sv.chrom][sv.start] = [sv]
+                            self.SVs[sv.chrom][sv.pos] = [sv]
                     else:
                         self.SVs[sv.chrom] = {}
-                        self.SVs[sv.chrom][sv.start] = [sv]
+                        self.SVs[sv.chrom][sv.pos] = [sv]
                     # delly
                     if sv.svtype == 'TRA':
                         if sv.chr2 in self.SVs:
-                            if sv.start in self.SVs[sv.chr2]:
+                            if sv.pos in self.SVs[sv.chr2]:
                                 self.SVs[sv.chr2][sv.end].append(sv)
                             else:
                                 self.SVs[sv.chr2][sv.end] = [sv]
@@ -58,20 +58,18 @@ class VCFManager:
             line = p.stdout.readline()
         # add processed breakends into SVs
         for bnd_e in bnds.get_events():
-            for chr, pos in (bnd_e.loci[0], bnd_e.loci[1]):
-                if chr in self.SVs:
-                    if sv.start in self.SVs[chr]:
-                        self.SVs[chr][pos].append(sv)
+            for bnd in bnd_e.bnds:
+                if bnd.chrom in self.SVs:
+                    if bnd.pos in self.SVs[bnd.chrom ]:
+                        self.SVs[bnd.chrom ][bnd.pos].append(bnd)
                     else:
-                        self.SVs[chr][pos] = [sv]
+                        self.SVs[bnd.chrom ][bnd.pos] = [bnd]
                 else:
-                    self.SVs[chr] = {}
-                    self.SVs[chr][pos] = [sv]
+                    self.SVs[bnd.chrom ] = {}
+                    self.SVs[bnd.chrom ][bnd.pos] = [bnd]
         # keep track of where SVs are for faster query
         for chr in self.SVs:
             self.positions[chr] = sorted(list(self.SVs[chr].keys()))
-
-
 
     # for all svs, remove those that have not been called in the list of samples
     def remove_absent_svs(self, samples):
@@ -97,14 +95,17 @@ class VCFManager:
     # return all SV calls that overlap with given range
     def get_svs_in_range(self, chrom, start, end, sample=None):
         ret = []
-        if chrom in self.SVs:
-            for sv in self.SVs[chrom]:
-                if sv.start > end:
-                    continue
-                if sv.end < start:
-                    continue
-                else:
-                    ret.append(sv)
+        if chrom in self.positions:
+            for pos in self.positions[chrom]:
+                if pos > end:
+                    break
+                for sv in self.SVs[chrom][pos]:
+                    if sv.pos > end:
+                        continue
+                    if sv.end < start:
+                        continue
+                    else:
+                        ret.append(sv)
 
         if sample is not None:
             delete = []
@@ -113,7 +114,6 @@ class VCFManager:
                     delete.append(i)
             for i in sorted(delete, reverse=True):
                 del ret[i]
-
         return ret
 
     def get_sample_index(self, sample):
@@ -177,14 +177,14 @@ class VCFManager:
             for chrom in matching:
                 delete = []
                 for i, sv in enumerate(matching[chrom]):
-                    intersecting = filter_par.ref_genes.get_entries_in_range(chrom, sv.start, sv.end)
+                    intersecting = filter_par.ref_genes.get_entries_in_range(chrom, sv.pos, sv.end)
                     if not intersecting:
                         delete.append(i)
                     elif filter_par.gene_list_intersection:
                         in_gene_list = False
                         for gene in intersecting:
                             if gene.name2.upper() in filter_par.gene_list:
-                                if filter_par.exonic and not gene.intersects_exon(sv.start, sv.end):
+                                if filter_par.exonic and not gene.intersects_exon(sv.pos, sv.end):
                                     continue
                                 in_gene_list = True
                                 break
@@ -193,7 +193,7 @@ class VCFManager:
                     elif filter_par.exonic:
                         exonic = False
                         for gene in intersecting:
-                            if gene.intersects_exon(sv.start, sv.end):
+                            if gene.intersects_exon(sv.pos, sv.end):
                                 exonic = True
                                 break
                         if not exonic:
@@ -209,11 +209,11 @@ class VCFManager:
                 delete = []
                 for i, sv in enumerate(matching[chrom]):
                     if not filter_par.min_len == None:
-                        if (sv.end - sv.start + 1) < filter_par.min_len:
+                        if (sv.end - sv.pos + 1) < filter_par.min_len:
                             delete.append(i)
                             continue
                     if not filter_par.max_len == None:
-                        if (sv.end - sv.start + 1) > filter_par.max_len:
+                        if (sv.end - sv.pos + 1) > filter_par.max_len:
                             delete.append(i)
                             continue
                 delete.sort(reverse=True)
@@ -229,25 +229,45 @@ class VCFManager:
         return matching
 
 
-# basic SV class
+# basic vcf SV class
 class SV:
     valid_SVs = ['DEL', 'DUP', 'CNV', 'INV', 'TRA', 'INS', 'BND']
 
-    def __init__(self, chrom, start, end, svtype, svlen, inslen, chr2, gts=None, af=float(0)):
+    def __init__(self, chrom, pos, end, svtype, svlen, inslen, chr2, gts=None, af=float(0)):
         self.chrom = chrom
-        self.start = int(start)
-        self.end = int(end)
+        self.pos = int(pos)
+        try:
+            self.end = int(end)
+        except ValueError:
+            self.end = self.pos
+            pass
+
+        # delly sv field
+        if inslen != '.':
+            self.inslen = int(inslen)
+        else:
+            self.inslen = None
+        # delly sv field
+        if chr2 != '.':
+            self.chr2 = chr2
+            self.chr2_pos = self.end
+            self.end = self.pos
+        else:
+            self.chr2 = None
+            self.chr2_pos = None
+
         if svlen != '.':
-            self.len = int(svlen)
-        elif inslen != '.' and int(inslen) > 0:
+            self.len = abs(int(svlen))
+        elif self.inslen:
             self.len = int(inslen)
         else:
-            self.len = self.end - self.start +1
+            if self.pos and self.end:
+                self.len = self.end - self.pos + 1
+            else:
+                self.len = None
+
         self.svtype = svtype
-        # delly sv field
-        self.inslen = inslen
-        # delly sv field
-        self.chr2 = chr2
+
         self.GTs = gts
         if gts:
             self.AF = self.get_AF()
@@ -256,9 +276,6 @@ class SV:
 
     @staticmethod
     def parse_sv(line, db_mode):
-        # BCFtools format string:
-        # ""%CHROM\\t%POS\\t%ID\\t%ALT{0}\\t%INFO/END\\t%INFO/SVTYPE\\t%INFO/SVLEN\\t%INFO/EVENTID"
-        #"\\t%INFO/PAIRID\\t%INFO/MATEID\\t%INFO/INSLEN\\t%INFO/CHR2[\\t%GT]\\n")
         try:
             if db_mode:
                 chrom, pos, id, alt, end, svtype, svlen, eventid, pairid, mateid, inslen, chr2, af = line.split()[0:13]
@@ -266,21 +283,21 @@ class SV:
                     svtype = re.sub('[<>]', '', alt)
                 if svtype in SV.valid_SVs:
                     if svtype == 'BND':
-                        return(BND_SV(SV(chrom, pos, end, svtype, svlen,  inslen, chr2, af=af)),
-                               alt, id, mateid, pairid, eventid)
+                        return(BND_SV(chrom, pos, end, svtype, svlen, inslen, chr2, alt, id, mateid, pairid, eventid,
+                                      af=af))
                     else:
-                        return SV(chrom, pos, end, svtype, svlen,  inslen, chr2, af=af)
+                        return SV(chrom, pos, end, svtype, svlen, inslen, chr2, af=af)
             else:
                 chrom, pos, id, alt, end, svtype, svlen, eventid, pairid, mateid, inslen, chr2 = line.split()[0:12]
-                gts = line.split()[9:]
+                gts = line.split()[12:]
                 if svtype not in SV.valid_SVs:
                     svtype = re.sub('[<>]', '', alt)
                 if svtype in SV.valid_SVs:
                     if svtype == 'BND':
-                        return(BND_SV(SV(chrom, pos, end, svtype, svlen, pairid, mateid, inslen, chr2, gts=gts),
-                                      alt, id, mateid, pairid, eventid))
+                        return BND_SV(chrom, pos, end, svtype, svlen, inslen, chr2, alt, id, mateid, pairid, eventid,
+                                      gts=gts)
                     else:
-                        return SV(chrom, pos, end, svtype, svlen, pairid, mateid, inslen, chr2, gts=gts)
+                        return SV(chrom, pos, end, svtype, svlen, inslen, chr2, gts=gts)
         except ValueError:
             pass
         print('SV parsing failed for line:\n{}'.format(line))
@@ -300,16 +317,16 @@ class SV:
     # helper method for print_SVs
     def to_string(self, sample_index=None):
         if sample_index is not None:
-            return '\t'.join([self.chrom, str(self.start), str(self.end), self.svtype, self.GTs[sample_index]]) + '\n'
+            return '\t'.join([self.chrom, str(self.pos), str(self.end), self.svtype, self.GTs[sample_index]]) + '\n'
         else:
-            return '\t'.join([self.chrom, str(self.start), str(self.end), self.svtype, str(self.AF)]) + '\n'
+            return '\t'.join([self.chrom, str(self.pos), str(self.end), self.svtype, str(self.AF)]) + '\n'
 
     def string_tuple(self):
         if self.svtype in ('TRA', 'INS'):
             l = 'NA'
         else:
-            l = str(self.end - self.start +1)
-        return (self.svtype, self.chrom, str(self.start), l, ('{0:.2f}'.format(self.AF)))
+            l = str(self.end - self.pos + 1)
+        return (self.svtype, self.chrom, str(self.pos), l, ('{0:.2f}'.format(self.AF)))
 
     # print SVs, either with genotype per sample, or MAF for whole BATCH annotation
     @staticmethod
@@ -325,6 +342,54 @@ class SV:
             out.write('\t'.join(['vcf', 'chrom', 'start', 'end', 'svtype', 'MAF']) + '\n')
 
 
+# extending the SV class to include information relevant to breakends only
+class BND_SV(SV):
+    right_fwd = re.compile('^.+\[(?P<chr>.+):(?P<pos>.+)\[$')
+    right_rvs = re.compile('^.+\](?P<chr>.+):(?P<pos>.+)\]$')
+    left_fwd = re.compile('^\](?P<chr>.+):(?P<pos>.+)\].+$')
+    left_rvs = re.compile('^\[(?P<chr>.+):(?P<pos>.+)\[.+$')
+
+    def __init__(self, chrom, start, end, svtype, svlen, inslen, chr2, ALT, ID, MATEID, PAIRID, EVENTID,
+                 gts=None, af=float(0)):
+        SV.__init__(self, chrom, start, end, svtype, svlen, inslen, chr2, gts=gts, af=af)
+        if ID == '.':
+            raise ValueError
+        self.id = ID
+        if MATEID != '.':
+            self.mate_id = MATEID
+        else:
+            self.mate_id = None
+        if PAIRID != '.':
+            self.pair_id = PAIRID
+        else:
+            self.pair_id = None
+        if EVENTID != '.':
+            self.event_id = EVENTID
+        else:
+            self.event_id = None
+
+        if re.match(BND_SV.right_fwd, ALT):
+            m = re.match(BND_SV.right_fwd, ALT)
+            self.type = 'right_fwd'
+        elif re.match(BND_SV.right_rvs, ALT):
+            m = re.match(BND_SV.right_rvs, ALT)
+            self.type = 'right_rvs'
+        elif re.match(BND_SV.left_fwd, ALT):
+            m = re.match(BND_SV.left_fwd, ALT)
+            self.type = 'left_fwd'
+        elif re.match(BND_SV.left_rvs, ALT):
+            m = re.match(BND_SV.left_rvs, ALT)
+            self.type = 'left_rvs'
+        else:
+            return None
+
+        self.mate_chr = m.group('chr')
+        self.mate_pos = int(m.group('pos'))
+
+        self.BND_Event = None
+        self.MATE = None
+
+# class to manage the set of breakends in a VCF
 class BNDs:
     def __init__(self):
         # store bnds with EVENTID together as a list of ids
@@ -350,133 +415,77 @@ class BNDs:
         # update the pointers in mates and pairs
         if bnd_sv.mate_id is not None:
             if bnd_sv.mate_id in self.BNDs:
-                self.mates[bnd_sv.id] = self.BNDs[bnd_sv.mate_id]
-                self.mates[bnd_sv.mate_id] = self.BNDs[bnd_sv.id]
+                self.mates[bnd_sv.id] = bnd_sv.mate_id
+                self.mates[bnd_sv.mate_id] = bnd_sv.id
+                # maintain a reference for future use
+                bnd_sv.MATE = self.BNDs[bnd_sv.mate_id]
+                self.BNDs[bnd_sv.mate_id].MATE = bnd_sv
         if bnd_sv.pair_id is not None:
             if bnd_sv.pair_id in self.BNDs:
-                self.mates[bnd_sv.id] = self.BNDs[bnd_sv.pair_id]
-                self.mates[bnd_sv.pair_id] = self.BNDs[bnd_sv.id]
+                self.mates[bnd_sv.id] = bnd_sv.pair_id
+                self.mates[bnd_sv.pair_id] = bnd_sv.id
 
-    # get a list of mates from the list of bnds
-    def mate_tuples(self, bnds):
-        mates = []
-        for bnd in bnds:
-            if bnd in self.mates:
-                mates.append((self.BNDs[bnd], self.BNDs[self.mates[bnd]]))
-                bnds.remove(self.mates[bnd])
-            else:
-                mates.append((self.BNDs[bnd],))
-        return mates
 
     # get a grouping of bnds that don't have an assigned event id
-    def pop_non_event(self, ne):
+    def pop_non_event(self):
+        ne = self.non_events.pop()
         bnds = [ne]
         if ne in self.mates:
             bnds.append(self.mates[ne])
+            self.non_events.discard(bnds[-1])
             if bnds[-1] in self.pairs:
                 if self.pairs[bnds[-1]] not in bnds:
                     bnds.append(self.pairs[bnds[-1]])
+                    self.non_events.discard(bnds[-1])
         if ne in self.pairs:
             if self.pairs[ne] not in bnds:
                 bnds.append(self.pairs[ne])
             if bnds[-1] in self.mates:
                 if self.mates[bnds[-1]] not in bnds:
                     bnds.append(self.mates[bnds[-1]])
-        self.non_events.difference_update(bnds)
+                    self.non_events.discard(bnds[-1])
         return bnds
 
     # process and return the list of bnd events to include in SVPV
     def get_events(self):
         bnd_events = []
         for e in self.events:
-            mates = self.mate_tuples(self.events[e])
             try:
-                bnd_events.append(BND_Event(mates))
+                bnd_events.append(BND_Event([self.BNDs[k] for k in self.events[e]]))
             except ValueError:
                 pass
-        for ne in self.non_events:
-            bnds = self.pop_non_event(ne)
-            mates = self.mate_tuples(bnds)
+        while len(self.non_events) > 0:
             try:
-                bnd_events.append(BND_Event(mates))
+                bnds = self.pop_non_event()
+                if bnds:
+                    bnd_events.append(BND_Event([self.BNDs[k] for k in bnds]))
             except ValueError:
                 pass
+
         return bnd_events
 
-
 # class to hold a BND event
+# currently only two loci (distinct genomic positions) are supported
 class BND_Event():
-    def __init__(self, bnd_mates, delta=15):
-        self.bnd_mates = bnd_mates
-        # set up loci
-            # for now only allow events with two loci
-            # e.g. simple INV, TRA
+    def __init__(self, bnds, delta=20, max_loci=2):
+        self.bnds = bnds
         self.loci = []
-        for bm in bnd_mates:
-            for bnd in bm:
-                if self.loci:
-                    is_proximal = False
-                    mate_proximal = False
-                    for chr, pos in self.loci:
-                        if bnd.chrom == chr:
-                            if pos - delta <= bnd.start <= pos + delta:
-                                is_proximal = True
-                        if bnd.mate_chr == chr:
-                            if pos - delta <= bnd.mate_pos <= pos + delta:
-                                mate_proximal = True
-                    if not mate_proximal and is_proximal:
+        for bnd in bnds:
+            bnd.BND_Event = self
+            if self.loci:
+                is_proximal = False
+                for chr, pos in self.loci:
+                    if bnd.chrom == chr:
+                        if pos - delta <= bnd.pos <= pos + delta:
+                            is_proximal = True
+                if not is_proximal:
+                    if len(self.loci) < max_loci:
+                        self.loci.append((bnd.chrom, bnd.pos))
+                    else:
+                        # skip this BND_Event as is too complex to display
                         raise ValueError
-                else:
-                    self.loci.append((bnd.chrom, bnd.start))
-                    self.loci.append((bnd.mate_chr, bnd.mate_pos))
-
-        self.__SV = bnd_mates[0][0].__SV
-
-    def __getattr__(self, item):
-        return getattr(self.__SV, item)
-
-    def __setattr__(self, key, value):
-        return setattr(self.__SV, key, value)
-
-
-
-class BND_SV():
-    right_fwd = re.compile('^.+\[(?P<chr>.+):(?P<pos>.+)\[$')
-    right_rvs = re.compile('^.+\](?P<chr>.+):(?P<pos>.+)\]$')
-    left_fwd = re.compile('^\](?P<chr>.+):(?P<pos>.+)\].+$')
-    left_rvs = re.compile('^\[(?P<chr>.+):(?P<pos>.+)\[.+$')
-
-    def __init__(self, SV, ALT, ID, MATEID, PAIRID, EVENTID):
-        self.__SV = SV
-        self.id = ID
-        self.mate_id = MATEID
-        self.pair_id = PAIRID
-        self.event_id = EVENTID
-
-        if re.match(BND_SV.right_fwd, ALT):
-            m = re.match(BND_SV.right_fwd)
-            self.type = 'right_fwd'
-        elif re.match(BND_SV.right_rvs, ALT):
-            m = re.match(BND_SV.right_rvs)
-            self.type = 'right_rvs'
-        elif re.match(BND_SV.left_fwd, ALT):
-            m = re.match(BND_SV.left_fwd)
-            self.type = 'left_fwd'
-        elif re.match(BND_SV.left_rvs, ALT):
-            m = re.match(BND_SV.left_rvs)
-            self.type = 'left_rvs'
-        else:
-            return None
-
-        self.mate_chr = m.group('chr')
-        self.mate_pos = int(m.group('pos'))
-
-    def __getattr__(self, item):
-        return getattr(self.__SV, item)
-
-    def __setattr__(self, key, value):
-        return setattr(self.__SV, key, value)
-
+            else:
+                self.loci.append((bnd.chrom, bnd.pos))
 
 class BCFtools:
     @staticmethod

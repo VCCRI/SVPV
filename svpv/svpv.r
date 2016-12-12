@@ -1,21 +1,19 @@
 # store plot parameters
 PlotParams <- function(args) {
-  this <- list(
-    depth = ('-d' %in% args),
-    orphaned = ('-or' %in% args),
-    inverted = ('-v' %in% args),
-    samestrand = ('-ss' %in% args),
-    secondary = ('-se' %in% args),
-    supplementary = ('-su' %in% args),
-    diffmol = ('-dm' %in% args),
-    clipped = ('-cl' %in% args),
-    ins = ('-i' %in% args),
-    refgene = ('-r' %in% args),
-    svAF = ('-af' %in% args),
-    legend = ('-l' %in% args)
-  )
-  class(this) <- append(class(this), "PlotParams")
-  return (this)
+  return(list(
+        depth = ('-d' %in% args),
+        orphaned = ('-or' %in% args),
+        inverted = ('-v' %in% args),
+        samestrand = ('-ss' %in% args),
+        secondary = ('-se' %in% args),
+        supplementary = ('-su' %in% args),
+        diffmol = ('-dm' %in% args),
+        clipped = ('-cl' %in% args),
+        ins = ('-i' %in% args),
+        refgene = ('-r' %in% args),
+        svAF = ('-af' %in% args),
+        legend = ('-l' %in% args)
+  ))
 }
 # split a region string (eg 'chr1:100-200')
 Region <- function(region){
@@ -95,19 +93,19 @@ Sample <- function(folder, sample, label = FALSE) {
     Aln_stats = AlnStats(files),
     Ins_ylim = ins_ylim))
 }
-#container for annotations
+# container for annotations
 Annotations <- function(folder) {
   #check if refgenes file exists, if so read
   genes_file <- paste0(folder, 'refgene.tsv')
   if (file.exists(genes_file)) {
-    genes <- read.delim(genes_file, header = TRUE, sep = '\t')
+    genes <- read.delim(genes_file, header=TRUE, sep='\t')
   } else {
     genes = NULL
   }
   #check if SV_AF file exists, if so read
   SV_AF_file = paste0(folder, 'SV_AF.tsv')
   if (file.exists(SV_AF_file)) {
-    SV_AF <- read.delim(SV_AF_file, header = TRUE, sep = '\t')
+    SV_AF <- read.delim(SV_AF_file, header=TRUE, sep='\t')
     SV_AF <- split.data.frame(SV_AF, SV_AF$vcf)
     AF_tracks <-
       lapply(SV_AF, function(x)
@@ -127,75 +125,75 @@ Annotations <- function(folder) {
 }
 
 # add a border around a given plot area
-add_border <- function(xlims, ylims, lwd = 0.5) {
-  rect(xlims[1], ylims[1], xlims[2], ylims[2], lwd = lwd)
+add_border <- function(xlims, ylims, lwd=0.5) {
+  rect(xlims[1], ylims[1], xlims[2], ylims[2], lwd=lwd)
 }
 
 # horizontal line separator between samples
 separator <- function() {
   empty_plot(c(0, 1))
-  par(xpd = NA)
-  abline(h = 0.5, lwd = 4, col = 'gray25')
-  par(xpd = FALSE)
+  par(xpd=NA)
+  abline(h=0.5, lwd=4, col='gray25')
+  par(xpd=FALSE)
 }
 
 # create an empty plot
-empty_plot <- function(xlim,ylim = c(0, 1),type = 'n',bty = 'n', xaxt = 'n', yaxt = 'n', ylab = '', xlab = '') {
-    plot(1, type = type, ylim = ylim, xlim = xlim, bty = bty, xaxt = xaxt, yaxt = yaxt, ylab = ylab, xlab = xlab)
+empty_plot <- function(xlim,ylim=c(0, 1),type='n',bty='n', xaxt='n', yaxt='n', ylab='', xlab='') {
+    plot(1, type=type, ylim=ylim, xlim=xlim, bty=bty, xaxt=xaxt, yaxt=yaxt, ylab=ylab, xlab=xlab)
 }
 
 # add axis to a plot
 add_position_axis <- function(xlims, side) {
   units <- get_units(xlims[2] - xlims[1])
   empty_plot(xlims / units$val)
-  mtext( paste0('Position (', units$sym, ')'), side = side, line = -1, cex = 0.85
+  mtext( paste0('Position (', units$sym, ')'), side=side, line=-1, cex=0.85
   )
-  axis(side = side, line = -3)
+  axis(side=side, line=-3)
 }
 
 # plot read depth and mapping quality
 plot_depth <- function(depth, xlims) {
-  par(las = 1)
-  bin_size = depth$bin[2] - depth$bin[1]
-  ylims = c(0, 1.2 * max(depth$total - depth$mapQ0 - depth$mapQltT, na.rm = TRUE))
-  empty_plot(xlims, ylim = ylims)
-  title(ylab = 'Depth\n(reads/ bp)', line=2)
+  par(las=1)
+  bin_size=depth$bin[2] - depth$bin[1]
+  ylims = c(0, 1.2 * max(depth$total - depth$mapQ0 - depth$mapQltT, na.rm=TRUE))
+  empty_plot(xlims, ylim=ylims)
+  title(ylab='Depth\n(reads/ bp)', line=2)
   add_border(xlims, ylims)
   # add depth$total depth
-  rect(depth$bin, c(0), (depth$bin + bin_size), depth$total, col = '#74C476')
+  rect(depth$bin, c(0), (depth$bin + bin_size), depth$total, col='#74C476')
   # add depth$mapQ0 to depth
-  rect(depth$bin, depth$total, (depth$bin + bin_size), (depth$total - depth$mapQ0), col = 'white')
+  rect(depth$bin, depth$total, (depth$bin + bin_size), (depth$total - depth$mapQ0), col='white')
   # add depth$mapQltT to depth
-  rect(depth$bin, (depth$total - depth$mapQ0), (depth$bin + bin_size), depth$total - (depth$mapQ0 + depth$mapQltT), col = 'khaki1')
-  axis(2, tick = TRUE, labels = TRUE, line = -1)
+  rect(depth$bin, (depth$total - depth$mapQ0), (depth$bin + bin_size), depth$total - (depth$mapQ0 + depth$mapQltT), col='khaki1')
+  axis(2, tick=TRUE, labels=TRUE, line=-1)
 }
 
 # add the legend
 add_legend <- function() {
   # create a plot with room for four legends: depth, inserts, mapping stats, svtype/freq
-  empty_plot(c(0, 4), ylim = c(0, 1))
+  empty_plot(c(0, 4), ylim=c(0, 1))
   add_border(c(0, 1), c(0, 1))
   add_border(c(1, 2), c(0, 1))
   add_border(c(2, 3), c(0, 1))
   add_border(c(3, 4), c(0, 1))
-  par(font = 2)
-  text(c(0.5, 1.5, 2.5, 3.5), 1,  pos = 1, labels = c("Read MapQ", "Inferred Insert Size", "Mapping Stats", "SV Allele Frequency"))
-  par(font = 1)
+  par(font=2)
+  text(c(0.5, 1.5, 2.5, 3.5), 1,  pos=1, labels=c("Read MapQ", "Inferred Insert Size", "Mapping Stats", "SV Allele Frequency"))
+  par(font=1)
   # constants
   bottom = 0.20
   top = bottom + 0.20
   # depth legend
-  rect(c((1 / 6 - 0.1), (3 / 6 - 0.1), (5 / 6 - 0.1)), bottom, c((1 / 6 + 0.1), (3 / 6 + 0.1), (5 / 6 + 0.1)), top,  col = c('#74C476', 'khaki1', 'gray95'))
-  text( c((1 / 6), (3 / 6), (5 / 6)), c(top + 0.1), pos = 3, labels = c(">= 30", "< 30", "= 0") )
+  rect(c((1 / 6 - 0.1), (3 / 6 - 0.1), (5 / 6 - 0.1)), bottom, c((1 / 6 + 0.1), (3 / 6 + 0.1), (5 / 6 + 0.1)), top,  col=c('#74C476', 'khaki1', 'gray95'))
+  text( c((1 / 6), (3 / 6), (5 / 6)), c(top + 0.1), pos=3, labels=c(">= 30", "< 30", "= 0") )
   
   # inferred insert size legend
   
-  text(1.5, top + 0.25, labels = c("Proportion in position x\nwith mapping distance y"))
+  text(1.5, top + 0.25, labels=c("Proportion in position x\nwith mapping distance y"))
   rect(1.15 + 0.7 / 10 * (0:9), bottom, 1.15 + 0.7 / 10 * (1:10), top, col=insert_size_pallete(10)[(1:10)])
   text(c(1.18, 1.82), bottom - 0.08, as.character(c(0, 1)))
   
   # Mapping stats legend 
-  text(2.5, top + 0.1, pos = 3, labels = c("proportion of reads in position x"))
+  text(2.5, top + 0.1, pos=3, labels=c("proportion of reads in position x"))
   rect(2.15 + 0.7 / 10 * (0:9), bottom, 2.15 + 0.7 / 10 * (1:10), top, col=aln_stats_pallete(10)[(1:10)])
   text(c(2.18, 2.82), bottom - 0.08, as.character(c(0, 1)))
   
@@ -203,12 +201,12 @@ add_legend <- function() {
   sv_types <- c("DEL", "DUP", "CNV", "INV")
   height = 0.13
   top = bottom + 0.15 * length(sv_types)
-  par(family='mono', font = 2)
+  par(family='mono', font=2)
   for (i in 1:length(sv_types)){
     rect(3.20 + 0.7 / 10 * (0:9), bottom + (i-1) * height, 3.20 + 0.7 / 10 * (1:10), bottom + (i) * height, col=sapply(1:10, function(x) get_sv_col(sv_types[i], x/10)))
     text(3.20, bottom + (i-0.5) * height, sv_types[i], pos=2)
   }
-  par(family='sans', font = 1)
+  par(family='sans', font=1)
   text(c(3.23, 3.87), bottom - 0.08, as.character(c(0, 1)))
 }
 
@@ -217,10 +215,10 @@ aln_stats_pallete <- function(n){
 }
 # plot alignment stats
 plot_aln_stats <- function(total, numerator, label, split, spacer=2) {
-    if (split) {end = length(total)+4*spacer} else { end = length(total)}
+    if (split) {end=length(total)+4*spacer} else { end=length(total)}
     empty_plot(c(0, end))
-    par(las = 1)
-    mtext(label, side = 2, line = -1,  cex = 0.75)
+    par(las=1)
+    mtext(label, side=2, line=-1,  cex=0.75)
     #brewer YlGnBu pallete
     if (split){
       rect(spacer:(spacer+split-2), c(0), (spacer+1):(spacer+split-1), c(1), col=aln_stats_pallete(20)[(19 * numerator[1:(split-1)] / total[1:(split-1)]) + 1], border =NA)
@@ -236,13 +234,13 @@ plot_aln_stats <- function(total, numerator, label, split, spacer=2) {
 # returns a list of the form (val=, sym=)
 get_units <- function(num_bp) {
   if (num_bp < 1000) {
-    return(list(val = 1, sym = 'bp'))
+    return(list(val=1, sym='bp'))
   } else if (num_bp < 1000000) {
-    return(list(val = 1000, sym = 'kbp'))
+    return(list(val=1000, sym='kbp'))
   } else if (num_bp < 1000000000) {
-    return(list(val = 1000000, sym = 'Mbp'))
+    return(list(val=1000000, sym='Mbp'))
   } else {
-    return(list(val = 1000000000, sym = 'Gbp'))
+    return(list(val=1000000000, sym='Gbp'))
   }
 }
 
@@ -258,12 +256,12 @@ insert_size_pallete <- function(n){
 
 # plots the inserts in specifiend interval
 plot_binned_inserts <- function(binned_inserts, num_y_bins, split, spacer=2){
-  if (split) {end = nrow(binned_inserts) + 4*spacer} else {end = nrow(binned_inserts)}
-  empty_plot(c(0,end), ylab = '' ,ylim = c(0, num_y_bins + 1))
+  if (split) {end=nrow(binned_inserts) + 4*spacer} else {end=nrow(binned_inserts)}
+  empty_plot(c(0,end), ylab='' ,ylim=c(0, num_y_bins + 1))
   if (split){
     for (i in 1:(num_y_bins + 1)) {
-      rect(spacer:(spacer+split-2), i - 1, (spacer+1):(spacer+split-1), i, col=insert_size_pallete(25)[24 * binned_inserts[1:(split-1), i] + 1],  border = NA)
-      rect((3*spacer+split-1):(3*spacer+nrow(binned_inserts)-1), i - 1, (3*spacer+split):(3*spacer+nrow(binned_inserts)), i, col=insert_size_pallete(25)[24 * binned_inserts[(split:nrow(binned_inserts)), i] + 1],  border = NA)
+      rect(spacer:(spacer+split-2), i - 1, (spacer+1):(spacer+split-1), i, col=insert_size_pallete(25)[24 * binned_inserts[1:(split-1), i] + 1],  border=NA)
+      rect((3*spacer+split-1):(3*spacer+nrow(binned_inserts)-1), i - 1, (3*spacer+split):(3*spacer+nrow(binned_inserts)), i, col=insert_size_pallete(25)[24 * binned_inserts[(split:nrow(binned_inserts)), i] + 1],  border=NA)
       add_border(c(spacer, spacer+split-1), c(0, num_y_bins))
       add_border(c(spacer, spacer+split-1), c(num_y_bins, num_y_bins + 1))
       add_border(c(3*spacer+split-1, 3*spacer+nrow(binned_inserts)), c(0, num_y_bins))
@@ -271,31 +269,31 @@ plot_binned_inserts <- function(binned_inserts, num_y_bins, split, spacer=2){
     }
   } else {
     for (i in 1:(num_y_bins + 1)) {
-      rect((1:nrow(binned_inserts))-1, i - 1, (1:nrow(binned_inserts)), i, col=insert_size_pallete(25)[24 * binned_inserts[(1:nrow(binned_inserts)), i] + 1],  border = NA)
+      rect((1:nrow(binned_inserts))-1, i - 1, (1:nrow(binned_inserts)), i, col=insert_size_pallete(25)[24 * binned_inserts[(1:nrow(binned_inserts)), i] + 1],  border=NA)
       add_border(c(0, end), c(0, num_y_bins))
       add_border(c(0, end), c(num_y_bins, num_y_bins + 1))
     }
   }
 }
 
-plot_insert_sizes <- function(fwd_ins, rvs_ins, ylim, split, num_y_bins = 10) {
+plot_insert_sizes <- function(fwd_ins, rvs_ins, ylim, split, num_y_bins=10) {
   # divide into 10 bins spaced equally between 0 and ylim
   ybin_size <- ylim / num_y_bins
   # create an extra bin to store anythin larger than ylim
-  fwd_bins <- matrix(nrow = nrow(fwd_ins), ncol = (num_y_bins + 1))
-  rvs_bins <- matrix(nrow = nrow(rvs_ins), ncol = (num_y_bins + 1))
+  fwd_bins <- matrix(nrow=nrow(fwd_ins), ncol=(num_y_bins + 1))
+  rvs_bins <- matrix(nrow=nrow(rvs_ins), ncol=(num_y_bins + 1))
   # get counts for each bin
   for (i in 1:num_y_bins) {
-    fwd_bins[, i] = sapply(fwd_ins[,2], function(x) sum((((i - 1) * ybin_size)  <= x) & (x < ((i) * ybin_size))))
-    rvs_bins[, i] = sapply(rvs_ins[,2], function(x) sum((((i - 1) * ybin_size)  <= x) & (x < ((i) * ybin_size))))
+    fwd_bins[, i]=sapply(fwd_ins[,2], function(x) sum((((i - 1) * ybin_size)  <= x) & (x < ((i) * ybin_size))))
+    rvs_bins[, i]=sapply(rvs_ins[,2], function(x) sum((((i - 1) * ybin_size)  <= x) & (x < ((i) * ybin_size))))
   }
-  fwd_bins[, (num_y_bins + 1)] = sapply(fwd_ins[,2], function(x) sum(ylim <= x))
-  rvs_bins[, (num_y_bins + 1)] = sapply(rvs_ins[,2], function(x) sum(ylim <= x))
+  fwd_bins[, (num_y_bins + 1)]=sapply(fwd_ins[,2], function(x) sum(ylim <= x))
+  rvs_bins[, (num_y_bins + 1)]=sapply(rvs_ins[,2], function(x) sum(ylim <= x))
   
   # convert to proportions
-  fwd_bins = fwd_bins / rowSums(fwd_bins)
+  fwd_bins=fwd_bins / rowSums(fwd_bins)
   # fwd_bins[is.nan(fwd_bins)] <- 0
-  rvs_bins = rvs_bins / rowSums(rvs_bins)
+  rvs_bins=rvs_bins / rowSums(rvs_bins)
   # rvs_bins[is.nan(rvs_bins)] <- 0
   
   # organise sensible units for ticks on plot
@@ -306,32 +304,32 @@ plot_insert_sizes <- function(fwd_ins, rvs_ins, ylim, split, num_y_bins = 10) {
   ticks_at <- c((mid - interval), mid, (mid + interval))
 
   # plot binned foward inserts
-  par(las = 1)
+  par(las=1)
   plot_binned_inserts(fwd_bins, num_y_bins, split)
-  axis(2, at = 10 * ticks_at / ylim,  labels = as.character(ticks_at),  line = -1)
+  axis(2, at=10 * ticks_at / ylim,  labels=as.character(ticks_at),  line=-1)
   title(ylab=paste0('forward\nmapping\ndistance\n (', units$sym, ')'), line=1.5)
-  par(xpd = NA)
-  text(0, num_y_bins + 0.5, labels =">", cex = 0.85, pos = 2)
+  par(xpd=NA)
+  text(0, num_y_bins + 0.5, labels =">", cex=0.85, pos=2)
   
   # plot binned reverse inserts
   plot_binned_inserts(rvs_bins, num_y_bins, split)
-  axis( 2, at = 10 * ticks_at / ylim,  labels = as.character(ticks_at), line = -1)
+  axis( 2, at=10 * ticks_at / ylim,  labels=as.character(ticks_at), line=-1)
   title(ylab=paste0('reverse\nmapping\ndistance\n (', units$sym, ')'), line=1.5)
-  text(0, num_y_bins + 0.5, labels =">", cex = 0.85, pos = 2)
-  par(xpd = FALSE)
+  text(0, num_y_bins + 0.5, labels =">", cex=0.85, pos=2)
+  par(xpd=FALSE)
 }
 # plot structural variants
 plot_svs <- function(svs, xlims, tracks, AF=TRUE) {
   empty_plot(xlims)
   add_border(xlims,c(0,1))
-  mtext(svs$vcf, side = 2, line = -1, cex = 0.8)
+  mtext(svs$vcf, side=2, line=-1, cex=0.8)
   if (is.null(svs)) {
-    text(0.5 * (xlims[1] + xlims[2]), 0.5, labels = "None")
+    text(0.5 * (xlims[1] + xlims[2]), 0.5, labels="None")
   }
   # get mapping of svs to tracks to ensure no overlap
-  scale = 1 / max(tracks)
-  par(las = 1)
-  par(font = 2)
+  scale=1 / max(tracks)
+  par(las=1)
+  par(font=2)
   for (i in 1:nrow(svs)) {
     # create a rectange covering each sv call
     start <- max(xlims[1], svs$start[i])
