@@ -275,7 +275,6 @@ class SV:
                         return SV(chrom, pos, end, svtype, svlen, inslen, chr2, gts=gts)
         except ValueError:
             pass
-        print('SV parsing failed for line:\n{}'.format(line))
         return None
 
     def get_AF(self):
@@ -461,6 +460,8 @@ class BND_Event():
                         raise ValueError
             else:
                 self.loci.append((bnd.chrom, bnd.pos))
+        for bnd in bnds:
+            bnd.BND_Event = self
 
 class BCFtools:
     @staticmethod

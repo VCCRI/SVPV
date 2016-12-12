@@ -25,68 +25,62 @@ class Plot:
 
         # show depth over whole region but zoom in on breakpoints if necessary
         if sv.svtype in ('DEL', 'DUP', 'CNV', 'INV'):
-            start = sv.start - par.run.expansion * (sv.end - sv.start + 1)
-            end = sv.end + par.run.expansion * (sv.end - sv.start + 1)
+            start = sv.pos - par.run.expansion * (sv.end - sv.pos + 1)
+            end = sv.end + par.run.expansion * (sv.end - sv.pos + 1)
             self.region_bins = Bins(sv.chrom, start, end)
             if self.region_bins.size // float(par.run.is_len) > 0.25:
-                self.bkpt_bins = (Bins(sv.chrom, sv.start - int(1.5 * par.run.is_len), sv.start + int(1.5 * par.run.is_len)),
+                self.bkpt_bins = (Bins(sv.chrom, sv.pos - int(1.5 * par.run.is_len), sv.pos + int(1.5 * par.run.is_len)),
                              Bins(sv.chrom, sv.end - int(1.5 * par.run.is_len), sv.end + int(1.5 * par.run.is_len)))
-                sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.bkpt_bins,
+                self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.bkpt_bins,
                                                    depth_bins=self.region_bins)
             else:
-                sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.region_bins)
+                self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.region_bins)
 
         # show as single region if small enought, otherwise just window around breakpoints
         elif sv.svtype == 'INV':
-            start = sv.start - par.run.expansion * (sv.end - sv.start + 1)
-            end = sv.end + par.run.expansion * (sv.end - sv.start + 1)
+            start = sv.pos - par.run.expansion * (sv.end - sv.pos + 1)
+            end = sv.end + par.run.expansion * (sv.end - sv.pos + 1)
             self.region_bins = Bins(sv.chrom, start, end)
             if self.region_bins.size // float(par.run.is_len) > 0.25:
                 self.bkpt_bins = (
-                Bins(sv.chrom, sv.start - int(1.5 * par.run.is_len), sv.start + int(1.5 * par.run.is_len)),
+                Bins(sv.chrom, sv.pos - int(1.5 * par.run.is_len), sv.pos + int(1.5 * par.run.is_len)),
                 Bins(sv.chrom, sv.end - int(1.5 * par.run.is_len), sv.end + int(1.5 * par.run.is_len)))
-                sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.bkpt_bins)
+                self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.bkpt_bins)
                 self.region_bins = None
             else:
-                sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.region_bins)
+                self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.region_bins)
 
         # single breakpoint
         elif sv.svtype =='INS':
-            self.bkpt_bins = (Bins(sv.chrom, sv.start - int(1.5 * par.run.is_len), sv.start + int(1.5 * par.run.is_len)),)
-            sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples))
+            self.bkpt_bins = (Bins(sv.chrom, sv.pos - int(1.5 * par.run.is_len), sv.pos + int(1.5 * par.run.is_len)),)
+            self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples))
 
         # do not show depth region, just stats at pair of breakpoints
         elif sv.svtype in ('BND', 'TRA'):
             if sv.svtype == 'BND':
-                chr1, pos1 = sv.loci[0]
-                chr2, pos2 = sv.loci[1]
+                chr1, pos1 = sv.BND_Event.loci[0]
+                chr2, pos2 = sv.BND_Event.loci[1]
             # delly TRA spec
             elif sv.svtype == 'TRA':
-                chr1, pos1 = sv.chrom, sv.start
+                chr1, pos1 = sv.chrom, sv.pos
                 chr2, pos2 = sv.chr2, sv.end
             self.bkpt_bins = (Bins(chr1, pos1 - int(1.5 * par.run.is_len), pos1 + int(1.5 * par.run.is_len)),
                               Bins(chr2, pos2 - int(1.5 * par.run.is_len), pos2 + int(1.5 * par.run.is_len)))
-            sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.bkpt_bins)
+            self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.bkpt_bins)
         else:
             raise ValueError('unsupported svtype: {}'.format(self.sv.svtype))
+        self.print_data()
 
-        self.dirs = self.create_dirs(par.run.out_dir)
+
+    def print_data(self):
+        # create directories
+        self.dirs = self.create_dirs(self.par.run.out_dir)
 
         # print sample data to file
-        for i, s in enumerate(samples):
-            sam_stats[i].print_stats(self.dirs[s])
+        for i, s in enumerate(self.samples):
+            self.sam_stats[i].print_stats(self.dirs[s])
 
-        if par.run.ref_genes:
-            genes = par.run.ref_genes.get_entries_in_range(sv.chrom, self.start, self.end)
-            if genes:
-                RefGeneEntry.print_entries(genes, open(os.path.join(self.dirs['pos'], 'refgene.tsv'), 'w'))
-
-        self.add_annotation()
-
-    def add_annotation(self):
-        # plot details.txt
-        # region    r_bin_size  r_bin_num   loci    l_bin_size  l_bin_num
-        # chr1:10-20  150       100         chr1:10-20,chr2:40-50   100 200
+        # plot attributes for use in R
         plot_attr = open(os.path.join(self.dirs['pos'], 'plot_attr.tsv'), 'wt')
         plot_attr.write('\t'.join(('region', 'r_bin_size', 'r_bin_num', 'loci', 'l_bin_size', 'l_bin_num')) + '\n')
         if self.region_bins:
@@ -101,36 +95,80 @@ class Plot:
             plot_attr.write('NA\tNA\tNA\n')
         plot_attr.close()
 
+        # extract query regions
+        if self.region_bins:
+            queries = [self.region_bins.get_region_tuple()]
+        else:
+            queries = []
+            for bin in self.bkpt_bins:
+                queries.append(bin.get_region_tuple())
 
+        # gene annotation
+        if self.par.run.ref_genes:
+            genes = []
+            for region in queries:
+                gs =  self.par.run.ref_genes.get_entries_in_range(*region)
+                for g in gs:
+                    if g not in genes:
+                        genes.append(g)
+            RefGeneEntry.print_entries(genes, open(os.path.join(self.dirs['pos'], 'refgene.tsv'), 'w'))
 
         # sample-wise SV annotation
         for i, s in enumerate(self.samples):
             sv_file = open(os.path.join(self.dirs[s], 'svs.tsv'), 'w')
-            svs = self.par.run.vcf.get_svs_in_range(self.sv.chrom, self.start, self.end, sample=s)
+            svs = []
+            for region in queries:
+                _svs_ = self.par.run.vcf.get_svs_in_range(*region, sample=s)
+                for sv in _svs_:
+                    if sv not in svs:
+                        svs.append(sv)
             if self.sv not in svs:
                 svs.append(self.sv)
             SV.print_SVs_header(sv_file, sample_index=self.par.run.vcf.get_sample_index(s))
             SV.print_SVs(svs, sv_file, self.par.run.vcf.name, sample_index=self.par.run.vcf.get_sample_index(s))
             for vcf in self.par.run.alt_vcfs:
-                alt_svs = vcf.get_svs_in_range(self.sv.chrom, self.start, self.end, sample=s)
-                if alt_svs:
-                    SV.print_SVs(alt_svs, sv_file, vcf.name, sample_index=vcf.get_sample_index(s))
+                svs = []
+                for region in queries:
+                    _svs_ = vcf.get_svs_in_range(*region, sample=s)
+                    for sv in _svs_:
+                        if sv not in svs:
+                            svs.append(sv)
+                if svs:
+                    SV.print_SVs(svs, sv_file, vcf.name, sample_index=vcf.get_sample_index(s))
             sv_file.close()
 
         # batch-wise SV annotation
         svs_file = open(os.path.join(self.dirs['pos'], 'SV_AF.tsv'), 'w')
         SV.print_SVs_header(svs_file)
-        batch_svs = self.par.run.vcf.get_svs_in_range(self.sv.chrom, self.start, self.end)
-        if batch_svs:
-            SV.print_SVs(batch_svs, svs_file, self.par.run.vcf.name)
+        # primary vcf
+        svs = []
+        for region in queries:
+            _svs_ = self.par.run.vcf.get_svs_in_range(*region)
+            for sv in _svs_:
+                if sv not in svs:
+                    svs.append(sv)
+        if svs:
+            SV.print_SVs(svs, svs_file, self.par.run.vcf.name)
+        # ref vcf
         if self.par.run.ref_vcf:
-            ref_svs = self.par.run.ref_vcf.get_svs_in_range(self.sv.chrom, self.start, self.end)
-            if ref_svs:
-                SV.print_SVs(ref_svs, svs_file, self.par.run.ref_vcf.name)
+            svs = []
+            for region in queries:
+                _svs_ = self.par.run.ref_vcf.get_svs_in_range(*region)
+                for sv in _svs_:
+                    if sv not in svs:
+                        svs.append(sv)
+            if svs:
+                SV.print_SVs(svs, svs_file, self.par.run.ref_vcf.name)
+        # alt vcfs
         for vcf in self.par.run.alt_vcfs:
-            alt_svs = vcf.get_svs_in_range(self.sv.chrom, self.start, self.end)
-            if alt_svs:
-                SV.print_SVs(alt_svs, svs_file, vcf.name)
+            svs = []
+            for region in queries:
+                _svs_ = vcf.get_svs_in_range(*region)
+                for sv in _svs_:
+                    if sv not in svs:
+                        svs.append(sv)
+            if svs:
+                SV.print_SVs(svs, svs_file, vcf.name)
         svs_file.close()
 
     def plot_figure(self, group=8, display=False):
@@ -143,10 +181,10 @@ class Plot:
                 id = current_samples[0]
             else:
                 id = sha1(''.join(current_samples).encode('utf-8')).hexdigest()[0:10]
-            out = os.path.join(self.dirs['pos'], '%s.%s.%s.%s.%s.pdf' % (self.sv.chrom, self.sv.start, self.sv.svtype,
+            out = os.path.join(self.dirs['pos'], '%s.%s.%s.%s.%s.pdf' % (self.sv.chrom, self.sv.pos, self.sv.svtype,
                                                                          self.get_length_units(), id))
             cmd = ['Rscript', Plot.svpv_r, ','.join(current_samples), os.path.join(self.dirs['pos'], ''), out]
-            cmd.append('"%s at %s:%d-%d"' % (self.sv.svtype, self.sv.chrom, self.sv.start, self.sv.end))
+            cmd.append('"%s at %s:%d-%d"' % (self.sv.svtype, self.sv.chrom, self.sv.pos, self.sv.end))
             cmd.extend(self.par.plot.get_R_args())
             print(' '.join(cmd) + '\n')
             try:
@@ -180,7 +218,7 @@ class Plot:
         dirs['svtype'] = os.path.join(dirs['root'], self.sv.svtype)
         if not os.path.exists(dirs['svtype']):
             os.mkdir(dirs['svtype'])
-        dirs['pos'] = os.path.join(dirs['svtype'], '%s_%d' % (self.sv.chrom, self.sv.start))
+        dirs['pos'] = os.path.join(dirs['svtype'], '%s_%d' % (self.sv.chrom, self.sv.pos))
         if not os.path.exists(dirs['pos']):
             os.mkdir(dirs['pos'])
         for s in self.samples:
@@ -190,7 +228,7 @@ class Plot:
         return dirs
 
     def get_length_units(self):
-        length = self.sv.end - self.sv.start + 1
+        length = self.sv.end - self.sv.pos + 1
         if length < 1e3:
             return '%d_%s' % (length, 'bp')
         elif 1e3 <= length < 1e6:
@@ -199,7 +237,6 @@ class Plot:
             return '%d_%s' % (length/1e6, 'Mbp')
         else:
             return '%d_%s' % (length/1e9, 'Gbp')
-
 
 class Bins:
     def __init__(self, chrom, start, end, ideal_num_bins=100):
@@ -213,6 +250,9 @@ class Bins:
         self.num = (end - start + 1) // self.size
         self.end = self.start + self.num * self.size - 1
         self.region = chrom + ':' + str(self.start) + '-' + str(self.end)
+
+    def get_region_tuple(self):
+        return self.chrom, self.start, self.end
 
     def get_bin_coverage(self, start, end):
         if start > self.end or end < self.start:

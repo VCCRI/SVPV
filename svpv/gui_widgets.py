@@ -156,14 +156,15 @@ class SvTypeFilter(tk.LabelFrame):
         self.ins_on_rb = tk.Radiobutton(self, text='INS', justify=tk.LEFT, variable=self.type_var, value=5)
         self.bnd_on_rb = tk.Radiobutton(self, text='BND', justify=tk.LEFT, variable=self.type_var, value=6)
         self.tra_on_rb = tk.Radiobutton(self, text='TRA', justify=tk.LEFT, variable=self.type_var, value=7)
-        self.all_on_rb.grid(row=0, sticky=tk.W)
-        self.del_on_rb.grid(row=1, sticky=tk.W)
-        self.dup_on_rb.grid(row=2, sticky=tk.W)
-        self.cnv_on_rb.grid(row=3, sticky=tk.W)
-        self.inv_on_rb.grid(row=4, sticky=tk.W)
-        self.ins_on_rb.grid(row=5, sticky=tk.W)
-        self.bnd_on_rb.grid(row=6, sticky=tk.W)
-        self.tra_on_rb.grid(row=7, sticky=tk.W)
+
+        self.all_on_rb.grid(row=0, column=0, sticky=tk.W)
+        self.del_on_rb.grid(row=1, column=0, sticky=tk.W)
+        self.dup_on_rb.grid(row=2, column=0, sticky=tk.W)
+        self.cnv_on_rb.grid(row=3, column=0, sticky=tk.W)
+        self.inv_on_rb.grid(row=0, column=1, sticky=tk.W)
+        self.ins_on_rb.grid(row=1, column=1, sticky=tk.W)
+        self.bnd_on_rb.grid(row=2, column=1, sticky=tk.W)
+        self.tra_on_rb.grid(row=3, column=1, sticky=tk.W)
 
     def reset(self):
         self.type_var.set(0)

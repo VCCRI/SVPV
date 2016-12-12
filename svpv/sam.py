@@ -125,9 +125,8 @@ class SamStats:
         # single depth stats or none
         self.depth = None
 
-    # Print the collected stats
+    # Print the collected stats to text files
     def print_stats(self, dir):
-
         if self.depth:
             depth_file = open(os.path.join(dir, 'region_depths.tsv'), 'wt')
             # print depths
@@ -139,10 +138,8 @@ class SamStats:
                 depth_file.write(str(row[-1]) + '\n')
             depth_file.close()
 
-        for d in self.align.depth_stats:
-            d.convert_depths()
-
         for aln in self.align:
+            aln.depth_stats.convert_depths()
             aln_stats_file = open(os.path.join(dir, '{}.{}.aln_stats.tsv'.format(aln.bins.chrom, aln.bins.start)), 'wt')
             fwd_ins_file = open(os.path.join(dir, '{}.{}.fwd_ins.tsv'.format(aln.bins.chrom, aln.bins.start)), 'wt')
             rvs_ins_file = open(os.path.join(dir, '{}.{}.rvs_ins.tsv'.format(aln.bins.chrom, aln.bins.start)),'wt')
@@ -221,7 +218,7 @@ class DepthStats:
 
     def __init__(self, bins, mapq_thresh=30, dtype=np.float):
         self.bins = bins
-        self.depths = np.zeros((self.depth_bins.num, len(AlignStats.depth_cols)), dtype=dtype)
+        self.depths = np.zeros((self.bins.num, len(DepthStats.depth_cols)), dtype=dtype)
         self.mapq_thresh = mapq_thresh
 
 
@@ -380,6 +377,7 @@ class SAMtools:
     @staticmethod
     def bedcov(num_bins, bin_size, bed, bam, min_Q=30):
         cmd = ['samtools', 'bedcov', '-Q', str(min_Q), bed, bam]
+        print(' '.join(cmd) + '\n')
         p = subprocess.Popen(cmd, bufsize=-1, stdout=subprocess.PIPE, universal_newlines=True)
         data = np.zeros((num_bins,))
         bin = 0
