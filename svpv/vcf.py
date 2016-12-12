@@ -59,11 +59,12 @@ class VCFManager:
         # add processed breakends into SVs
         for bnd_e in bnds.get_events():
             for bnd in bnd_e.bnds:
+                self.count += 1
                 if bnd.chrom in self.SVs:
                     if bnd.pos in self.SVs[bnd.chrom ]:
-                        self.SVs[bnd.chrom ][bnd.pos].append(bnd)
+                        self.SVs[bnd.chrom][bnd.pos].append(bnd)
                     else:
-                        self.SVs[bnd.chrom ][bnd.pos] = [bnd]
+                        self.SVs[bnd.chrom][bnd.pos] = [bnd]
                 else:
                     self.SVs[bnd.chrom ] = {}
                     self.SVs[bnd.chrom ][bnd.pos] = [bnd]
@@ -79,18 +80,19 @@ class VCFManager:
                 idxs.append(self.samples.index(s))
 
         for chrom in self.SVs:
-            delete = []
-            for i, sv in enumerate(self.SVs[chrom]):
-                present = False
-                for idx in idxs:
-                    if '1' in sv.GTs[idx]:
-                        present = True
-                        break
-                if not present:
-                    delete.append(i)
-            for i in sorted(delete, reverse=True):
-                del self.SVs[chrom][i]
-                self.count -= 1
+            for pos in self.SVs[chrom]:
+                delete = []
+                for i, sv in enumerate(self.SVs[chrom][pos]):
+                    present = False
+                    for idx in idxs:
+                        if '1' in sv.GTs[idx]:
+                            present = True
+                            break
+                    if not present:
+                        delete.append(i)
+                for i in sorted(delete, reverse=True):
+                    del self.SVs[chrom][pos][i]
+                    self.count -= 1
 
     # return all SV calls that overlap with given range
     def get_svs_in_range(self, chrom, start, end, sample=None):
@@ -119,114 +121,87 @@ class VCFManager:
     def get_sample_index(self, sample):
         if sample in self.samples:
             return self.samples.index(sample)
-    
-    def filter_svs(self, filter_par, as_list=False):
-        matching = {}
-        if filter_par.chrom:
-            if filter_par.chrom in self.SVs:
-                matching[filter_par.chrom] = copy.copy(self.SVs[filter_par.chrom])
-            else:
-                # no SVs in chrom, return empty dict
-                return matching
-        else:
-            matching = {}
-            for chrom in self.SVs:
-                matching[chrom] = copy.copy(self.SVs[chrom])
 
-        # filter by svtype
-        if filter_par.svtype:
-            for chrom in matching:
-                delete = []
-                for i in range(0, len(matching[chrom])):
-                    if matching[chrom][i].svtype != filter_par.svtype:
+    # return all svs as a list sorted by chrom and pos
+    def get_sv_list(self):
+        svs = []
+        for chrom in sorted(self.positions.keys()):
+            for pos in self.positions[chrom]:
+                svs.extend(self.SVs[chrom][pos])
+        return svs
+
+    # return a list of svs filterd appropriately
+    def filter_svs(self, filter_par):
+        svs = self.get_sv_list()
+        delete = []
+        for i, sv in enumerate(svs):
+            # filter by chrom
+            if filter_par.chrom and sv.chrom != filter_par.chrom:
+                delete.append(i)
+                continue
+            # filter by svtype
+            if filter_par.svtype and sv.svtype != filter_par.svtype:
+                delete.append(i)
+                continue
+            # filter by sample GT
+            if filter_par.sample_GTs:
+                for sample in filter_par.sample_GTs:
+                    if sv.GTs[self.get_sample_index(sample)] not in filter_par.sample_GTs[sample] \
+                                    and '*' not in filter_par.sample_GTs[sample]:
                         delete.append(i)
-                delete.sort(reverse=True)
-                for i in delete:
-                    del matching[chrom][i]
-
-        if filter_par.sample_GTs:
-            # go through all SVs currently in matching and remove those without the correct genotype
-            for chrom in matching:
-                delete = []
-                for i in range(0, len(matching[chrom])):
-                    for sample in filter_par.sample_GTs:
-                        if matching[chrom][i].GTs[self.get_sample_index(sample)] not in filter_par.sample_GTs[sample] \
-                                and '*' not in filter_par.sample_GTs[sample]:
-                            delete.append(i)
+                        break
+                if delete[-1] == i:
+                    continue
+            # filter by maf
+            if filter_par.AF_thresh:
+                if filter_par.AF_thresh_is_LT:
+                    if not sv.AF < filter_par.AF_thresh:
+                        delete.append(i)
+                        continue
+                else:
+                    if not sv.AF > filter_par.AF_thresh:
+                        delete.append(i)
+                        continue
+            # filter by ref_genes/intersection with specific gene
+            if filter_par.RG_intersection or filter_par.gene_list_intersection or filter_par.exonic:
+                intersecting = filter_par.ref_genes.get_entries_in_range(chrom, sv.pos, sv.end)
+                if not intersecting:
+                    delete.append(i)
+                    continue
+                elif filter_par.gene_list_intersection:
+                    in_gene_list = False
+                    for gene in intersecting:
+                        if gene.name2.upper() in filter_par.gene_list:
+                            if filter_par.exonic and not gene.intersects_exon(sv.pos, sv.end):
+                                continue
+                            in_gene_list = True
                             break
-                delete.sort(reverse=True)
-                for i in delete:
-                    del matching[chrom][i]
-        # filter by maf
-        if filter_par.AF_thresh:
-            for chrom in matching:
-                delete = []
-                for i, sv in enumerate(matching[chrom]):
-                    if filter_par.AF_thresh_is_LT:
-                        if not sv.AF < filter_par.AF_thresh:
-                            delete.append(i)
-                    else:
-                        if not sv.AF > filter_par.AF_thresh:
-                            delete.append(i)
-                delete.sort(reverse=True)
-                for i in delete:
-                    del matching[chrom][i]
-
-        # filter by ref_genes/intersection with specific gene
-        if filter_par.RG_intersection or filter_par.gene_list_intersection or filter_par.exonic:
-            for chrom in matching:
-                delete = []
-                for i, sv in enumerate(matching[chrom]):
-                    intersecting = filter_par.ref_genes.get_entries_in_range(chrom, sv.pos, sv.end)
-                    if not intersecting:
+                    if not in_gene_list:
                         delete.append(i)
-                    elif filter_par.gene_list_intersection:
-                        in_gene_list = False
-                        for gene in intersecting:
-                            if gene.name2.upper() in filter_par.gene_list:
-                                if filter_par.exonic and not gene.intersects_exon(sv.pos, sv.end):
-                                    continue
-                                in_gene_list = True
-                                break
-                        if not in_gene_list:
-                            delete.append(i)
-                    elif filter_par.exonic:
-                        exonic = False
-                        for gene in intersecting:
-                            if gene.intersects_exon(sv.pos, sv.end):
-                                exonic = True
-                                break
-                        if not exonic:
-                            delete.append(i)
-
-                delete.sort(reverse=True)
-                for i in delete:
-                    del matching[chrom][i]
-
-        # filter by SV length
-        if (not filter_par.min_len == None) or (not filter_par.max_len == None):
-            for chrom in matching:
-                delete = []
-                for i, sv in enumerate(matching[chrom]):
-                    if not filter_par.min_len == None:
-                        if (sv.end - sv.pos + 1) < filter_par.min_len:
-                            delete.append(i)
-                            continue
-                    if not filter_par.max_len == None:
-                        if (sv.end - sv.pos + 1) > filter_par.max_len:
-                            delete.append(i)
-                            continue
-                delete.sort(reverse=True)
-                for i in delete:
-                    del matching[chrom][i]
-
-        # return the filtered set of SVs
-        if as_list:
-            listed = []
-            for chrom in sorted(matching.keys()):
-                listed.extend(matching[chrom])
-            return listed
-        return matching
+                        continue
+                elif filter_par.exonic:
+                    exonic = False
+                    for gene in intersecting:
+                        if gene.intersects_exon(sv.pos, sv.end):
+                            exonic = True
+                            break
+                    if not exonic:
+                        delete.append(i)
+                        continue
+            # filter by SV length
+            if filter_par.min_len is not None:
+                if (sv.end - sv.pos + 1) < filter_par.min_len:
+                    delete.append(i)
+                    continue
+            if filter_par.max_len is not None:
+                if (sv.end - sv.pos + 1) > filter_par.max_len:
+                    delete.append(i)
+                    continue
+        # remove the identified svs
+        delete.sort(reverse=True)
+        for i in delete:
+            del svs[i]
+        return svs
 
 
 # basic vcf SV class

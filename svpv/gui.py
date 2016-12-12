@@ -27,7 +27,7 @@ class SVPVGui(tk.Tk):
 
         self.config(menu=gw.MenuBar(self))
         self.current_samples = []
-        self.svs = self.par.run.vcf.filter_svs(self.par.filter, as_list=True)
+        self.svs = self.par.run.vcf.filter_svs(self.par.filter)
         self.sample_selector = None
         self.set_sample_selector()
         self.genotype_selector = None
@@ -187,21 +187,11 @@ class SVPVGui(tk.Tk):
                 units = 1000000
             self.par.filter.max_len = units * int(self.filters.len_filter.len_LT_val.get())
 
-        #update svtype filter
-        self.par.filter.svtype = None
-        if self.filters.type_filter.type_var.get():
-            val = self.filters.type_filter.type_var.get()
-            if val == 1:
-                self.par.filter.svtype = 'DEL'
-            elif val == 2:
-                self.par.filter.svtype = 'DUP'
-            elif val == 3:
-                self.par.filter.svtype = 'CNV'
-            elif val == 4:
-                self.par.filter.svtype = 'INV'
+        # update svtype filter
+        self.par.filter.svtype = gw.SvTypeFilter.types[self.filters.type_filter.type_var.get()]
 
         # get list of svs based on current filters
-        self.svs = self.par.run.vcf.filter_svs(self.par.filter, as_list=True)
+        self.svs = self.par.run.vcf.filter_svs(self.par.filter)
         self.set_sv_chooser()
 
     def view_sv(self):

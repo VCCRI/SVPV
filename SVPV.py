@@ -36,7 +36,7 @@ def main(argv=sys.argv):
             par.filter.gene_list_intersection = False
             GUI.main(par)
         else:
-            svs = par.run.vcf.filter_svs(par.filter, as_list=True)
+            svs = par.run.vcf.filter_svs(par.filter)
             for sv in svs:
                 plot = Plot(sv, par.run.samples, par)
                 plot.plot_figure(group=par.plot.grouping)

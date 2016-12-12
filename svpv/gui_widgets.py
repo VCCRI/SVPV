@@ -143,6 +143,8 @@ class Filters(tk.LabelFrame):
         self.type_filter.reset()
 
 class SvTypeFilter(tk.LabelFrame):
+    types = ('ALL', 'DEL', 'DUP', 'CNV', 'INV', 'INS', 'BND', 'TRA')
+
     def __init__(self, parent):
         tk.LabelFrame.__init__(self, parent)
         self.type_var = tk.IntVar(value=0)
@@ -151,11 +153,17 @@ class SvTypeFilter(tk.LabelFrame):
         self.dup_on_rb = tk.Radiobutton(self, text='DUP', justify=tk.LEFT, variable=self.type_var, value=2)
         self.cnv_on_rb = tk.Radiobutton(self, text='CNV', justify=tk.LEFT, variable=self.type_var, value=3)
         self.inv_on_rb = tk.Radiobutton(self, text='INV', justify=tk.LEFT, variable=self.type_var, value=4)
+        self.ins_on_rb = tk.Radiobutton(self, text='INS', justify=tk.LEFT, variable=self.type_var, value=5)
+        self.bnd_on_rb = tk.Radiobutton(self, text='BND', justify=tk.LEFT, variable=self.type_var, value=6)
+        self.tra_on_rb = tk.Radiobutton(self, text='TRA', justify=tk.LEFT, variable=self.type_var, value=7)
         self.all_on_rb.grid(row=0, sticky=tk.W)
         self.del_on_rb.grid(row=1, sticky=tk.W)
         self.dup_on_rb.grid(row=2, sticky=tk.W)
         self.cnv_on_rb.grid(row=3, sticky=tk.W)
         self.inv_on_rb.grid(row=4, sticky=tk.W)
+        self.ins_on_rb.grid(row=5, sticky=tk.W)
+        self.bnd_on_rb.grid(row=6, sticky=tk.W)
+        self.tra_on_rb.grid(row=7, sticky=tk.W)
 
     def reset(self):
         self.type_var.set(0)
