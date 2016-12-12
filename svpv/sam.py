@@ -141,8 +141,8 @@ class SamStats:
         for aln in self.align:
             aln.depth_stats.convert_depths()
             aln_stats_file = open(os.path.join(dir, '{}.{}.aln_stats.tsv'.format(aln.bins.chrom, aln.bins.start)), 'wt')
-            fwd_ins_file = open(os.path.join(dir, '{}.{}.fwd_ins.tsv'.format(aln.bins.chrom, aln.bins.start)), 'wt')
-            rvs_ins_file = open(os.path.join(dir, '{}.{}.rvs_ins.tsv'.format(aln.bins.chrom, aln.bins.start)),'wt')
+            fwd_ins_file = open(os.path.join(dir, '{}.{}.fwd_ins.csv'.format(aln.bins.chrom, aln.bins.start)), 'wt')
+            rvs_ins_file = open(os.path.join(dir, '{}.{}.rvs_ins.csv'.format(aln.bins.chrom, aln.bins.start)),'wt')
             depth_file = open(os.path.join(dir, '{}.{}.depths.tsv'.format(aln.bins.chrom, aln.bins.start)), 'wt')
 
             # print alignmet stats, insert sizes and depths
@@ -173,8 +173,8 @@ class SamStats:
                 rvs_ins_file.write('\n')
                 # depths
                 depth_file.write(str(aln.depth_stats.bins.start + i * aln.depth_stats.bins.size) + '\t')
-                for j in range(0, len(row) - 1):
-                    depth_file.write(str(row[j]) + '\t')
+                for j in range(0, len(aln.depth_stats.depths[i]) - 1):
+                    depth_file.write(str(aln.depth_stats.depths[i][j]) + '\t')
                 depth_file.write(str(row[-1]) + '\n')
 
             if not self.depth:

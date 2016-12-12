@@ -1,5 +1,15 @@
+# parse plot attributes
+PlotAttr <- function(folder){
+  attr <- read.table(paste0(folder, 'plot_attr.tsv'), header=TRUE, colClasses=c('character', 'numeric', 'numeric'), sep='\t')
+  return(list(region=Region(attr$region),
+              r_bin_size=attr$r_bin_size,
+              r_bin_num=attr$r_bin_num,
+              loci=lapply(unlist(strsplit(attr$loci, ',')), function(x) Region(x)),
+              l_bin_size=attr$l_bin_size,
+              l_bin_num=attr$l_bin_num))
+}
 # store plot parameters
-PlotParams <- function(args) {
+PlotParams <- function(folder, args) {
   return(list(
         depth = ('-d' %in% args),
         orphaned = ('-or' %in% args),
@@ -12,7 +22,8 @@ PlotParams <- function(args) {
         ins = ('-i' %in% args),
         refgene = ('-r' %in% args),
         svAF = ('-af' %in% args),
-        legend = ('-l' %in% args)
+        legend = ('-l' %in% args),
+        Attr = PlotAttr(folder)
   ))
 }
 # split a region string (eg 'chr1:100-200')
@@ -23,26 +34,17 @@ Region <- function(region){
     end=as.numeric(gsub('^.+-', '', region, perl=TRUE))
     ))
 }
-# parse plot attributes
-PlotAttr <- function(folder){
-  attr <- read.table(paste0(folder, '/plot_attr.tsv'), header=TRUE, colClasses=c('character', 'numeric', 'numeric'), sep='\t')
-  return(list(region=Region(attr$region),
-              r_bin_size=attr$r_bin_size,
-              r_bin_num=attr$r_bin_num,
-              loci=lapply(unlist(strsplit(attr$loci, ',')), function(x) Region(x)),
-              l_bin_size=attr$l_bin_size,
-              l_bin_num=attr$l_bin_num))
-}
 # parse insert size files
-Inserts <- function(files){
+Inserts <- function(folder){
   fwd_ins <- list()
   rvs_ins <- list()
-  for (f in files){
+  for (f in list.files(folder)){
     if (grepl('fwd_ins.csv', f)){
+      print('true')
       pos <- sub('.fwd_ins.csv', '', basename(f))
-      fwd_ins[[pos]] <- scan(f, sep='\n', what='character', quiet=TRUE)
+      fwd_ins[[pos]] <- scan(paste0(folder, f), sep='\n', what='character', quiet=TRUE)
       fwd_ins[[pos]] <- lapply(fwd_ins[[pos]], function(x) as.numeric(unlist(strsplit(x, ','))))
-      rvs_ins[[pos]] <- scan(sub('fwd', 'rvs', f), sep='\n', what='character', quiet=TRUE)
+      rvs_ins[[pos]] <- scan(sub('fwd', 'rvs', paste0(folder, f)), sep='\n', what='character', quiet=TRUE)
       rvs_ins[[pos]] <- lapply(rvs_ins[[pos]], function(x) as.numeric(unlist(strsplit(x, ','))))
     }
   }
@@ -51,47 +53,45 @@ Inserts <- function(files){
   return(list(fwd=fwd_ins, rvs=rvs_ins, ylim=ylim))
 }
 # parse depth files
-Depths <- function(files){
+Depths <- function(folder){
   region <- NULL
   loci <- list()
-  for (f in files){
+  for (f in list.files(folder)){
     if (grepl('region_depths.tsv', f)){
-      region <- read.delim(f, header = TRUE,  sep = '\t')
+      region <- read.delim(paste0(folder, f), header = TRUE,  sep = '\t')
     } else if (grepl('.depths.tsv', f)){
       pos <- sub('.depths.tsv', '', basename(f))
-      loci[[pos]] <- read.delim(f, header = TRUE,  sep = '\t')
+      loci[[pos]] <- read.delim(paste0(folder, f), header = TRUE,  sep = '\t')
     }
   }
   return(list(region=region, loci=loci))
 }
 # parse alignment stats files
-AlnStats <- function(files){
+AlnStats <- function(folder){
   aln_stats <- list()
-  for (f in files){
+  for (f in list.files(folder)){
     if (grepl('.aln_stats.tsv', f)){
       pos <- sub('.aln_stats.tsv', '', basename(f))
-      aln_stats[[pos]] <- read.delim(f, header = TRUE,  sep = '\t')
+      aln_stats[[pos]] <- read.delim(paste0(folder, f), header = TRUE,  sep = '\t')
     }
   }
   return(aln_stats)
 }
 # store data for a given sample
 Sample <- function(folder, sample, label = FALSE) {
-  files <- list.files(folder)
+  my_folder = paste0(folder, sample, '/')
   #read in SV calls for this sample
-  svs <- read.delim(paste0(folder, sample, '/svs.tsv'), header = TRUE, sep = '\t')
+  svs <- read.delim(paste0(my_folder, 'svs.tsv'), header = TRUE, sep = '\t')
   #convert to list, separating calls from different vcfs
   svs <- split.data.frame(svs, svs$vcf)
   svTracks <- lapply(svs, function(x) get_tracks(x$start, x$end))
   return(list(
     Name = sample,
-    Depths = Depths(files),
-    Attr = PlotAttr(folder),
+    Depths = Depths(my_folder),
     SVs = svs,
     SVtracks = svTracks,
-    Ins = Inserts(files),
-    Aln_stats = AlnStats(files),
-    Ins_ylim = ins_ylim))
+    Ins = Inserts(my_folder),
+    Aln_stats = AlnStats(my_folder)))
 }
 # container for annotations
 Annotations <- function(folder) {
@@ -113,15 +113,8 @@ Annotations <- function(folder) {
   } else {
     SV_AF = NULL
     AF_tracks = NULL
-  }
-  
-  this <- list(
-    Genes = genes,
-    SV_AF = SV_AF,
-    AF_tracks = AF_tracks
-  )
-  class(this) <- append(class(this), "Annotations")
-  return(this)
+  } 
+  return(list(Genes=genes, SV_AF=SV_AF, AF_tracks=AF_tracks))
 }
 
 # add a border around a given plot area
@@ -612,14 +605,14 @@ get_plot_layout <- function(plot_params, annotations, num_samples, vcfs_per_samp
 }
 
 # main method
-visualise <- function(folder, sample_names, args, outfile, title='') {
+visualise <- function(folder, sample_names, plot_args, outfile, title='') {
+  plot_params <- PlotParams(folder, plot_args)
   num_samples <- length(sample_names)
   samples <-  lapply(sample_names, function(x) Sample(folder, x))
   vcfs_per_sample <- lapply(samples, function(x) sapply(x$SVtracks, function(y) max(y)))
   xlims <- samples[[1]]$Xlims
-  Ins_ylim <- max(sapply(samples, function(x) x$Ins_ylim))
+  ins_ylim <- max(sapply(samples, function(x) x$Ins$ylim))
   annotations <- Annotations(folder)
-  plot_params <- PlotParams(args)
   heights <- get_plot_layout(plot_params, annotations, num_samples, vcfs_per_sample, samples[[1]]$Split)
   pdf(outfile, title='SVPV Graphics Output', width = 8, height = 0.15* sum(heights), bg = 'white')
   # initialise first layout
@@ -635,7 +628,7 @@ visualise <- function(folder, sample_names, args, outfile, title='') {
   separator()
   # plot samples
   for (i in 1:num_samples) {
-    plot_sample(samples[[i]], plot_params, Ins_ylim)
+    plot_sample(samples[[i]], plot_params, ins_ylim)
   }
   # add in heights for SVMAF tracks
   if (plot_params$svAF) {
@@ -654,9 +647,11 @@ visualise <- function(folder, sample_names, args, outfile, title='') {
   graphics.off()
 }
 # read command-line arguments
-args <- commandArgs(trailingOnly = TRUE)
+#args <- commandArgs(trailingOnly = TRUE)
+args <- c('NA12877_S1,NA12878_S1,NA12884_S1', '/home/jacmun/R/SVPV_debug/DEL/chr1_4064686/', '/home/jacmun/R/SVPV_debug/DEL/chr1_4064686/chr1.4064686.DEL.1_kbp.cdfbdc4880.pdf', "DEL at chr1:4064686-4066276", '-d', '-or', '-v', '-ss', '-cl', '-i', '-r', '-af', '-l', '-dm')
 sample_names <- strsplit(as.character(args[1]), ',')[[1]]
 folder <- args[2]
 outfile <- args[3]
 title <- args[4]
-visualise(folder, sample_names, args[5:length(args)], outfile, title)
+plot_args <- args[5:length(args)]
+visualise(folder, sample_names, plot_args, outfile, title)

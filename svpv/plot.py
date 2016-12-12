@@ -34,7 +34,7 @@ class Plot:
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.bkpt_bins,
                                                    depth_bins=self.region_bins)
             else:
-                self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.region_bins)
+                self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])
 
         # show as single region if small enought, otherwise just window around breakpoints
         elif sv.svtype == 'INV':
@@ -188,9 +188,9 @@ class Plot:
             cmd.extend(self.par.plot.get_R_args())
             print(' '.join(cmd) + '\n')
             try:
-                subprocess.call(cmd)
+                subprocess.check_call(cmd)
             except OSError:
-                print('Error: failed to run Rscript. Are you sure it is installed?')
+                print('Rscript failed. Are you sure it is installed?')
                 exit(1)
 
             if display:
@@ -198,7 +198,7 @@ class Plot:
                 cmd.append(out)
                 print(' '.join(cmd) + '\n')
                 try:
-                    subprocess.call(cmd)
+                    subprocess.check_call(cmd)
                 except OSError:
                     print('Error: could not run %s. Are you sure it is installed?' % ' '.join(display))
                     exit(1)
@@ -283,4 +283,4 @@ class Bins:
 
         if first == last:
             last_bp = 0
-        return (first, first_bp), (last,last_bp)
+        return (first, first_bp), (last, last_bp)

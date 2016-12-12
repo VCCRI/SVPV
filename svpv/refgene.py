@@ -23,7 +23,7 @@ class RefgeneManager:
                 self.entries[e.chrom] = [e]
 
     def get_entries_in_range(self, chrom, start, end):
-        ret = []
+        entries = []
         if chrom in self.entries:
             for e in self.entries[chrom]:
                 if e.txStart > end:
@@ -31,8 +31,8 @@ class RefgeneManager:
                 if e.txEnd < start:
                     continue
                 else:
-                    ret.append(e)
-        return ret
+                    entries.append(e)
+        return entries
 
 
 class RefGeneEntry:
