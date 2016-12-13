@@ -131,7 +131,7 @@ class SamStats:
             depth_file = open(os.path.join(dir, 'region_depths.tsv'), 'wt')
             # print depths
             depth_file.write('bin\t' + '\t'.join(DepthStats.depth_cols) + '\n')
-            for i, row in enumerate(self.depth):
+            for i, row in enumerate(self.depth.depths):
                 depth_file.write(str(self.depth.bins.start + i * self.depth.bins.size) + '\t')
                 for j in range(0, len(row) - 1):
                     depth_file.write(str(row[j]) + '\t')
@@ -139,16 +139,14 @@ class SamStats:
             depth_file.close()
 
         for aln in self.align:
-            aln.depth_stats.convert_depths()
             aln_stats_file = open(os.path.join(dir, '{}.{}.aln_stats.tsv'.format(aln.bins.chrom, aln.bins.start)), 'wt')
             fwd_ins_file = open(os.path.join(dir, '{}.{}.fwd_ins.csv'.format(aln.bins.chrom, aln.bins.start)), 'wt')
             rvs_ins_file = open(os.path.join(dir, '{}.{}.rvs_ins.csv'.format(aln.bins.chrom, aln.bins.start)),'wt')
-            depth_file = open(os.path.join(dir, '{}.{}.depths.tsv'.format(aln.bins.chrom, aln.bins.start)), 'wt')
-
-            # print alignmet stats, insert sizes and depths
+            if not self.depth:
+                depth_file = open(os.path.join(dir, '{}.{}.depths.tsv'.format(aln.bins.chrom, aln.bins.start)), 'wt')
+                depth_file.write('bin\t' + '\t'.join(DepthStats.depth_cols) + '\n')
             aln_stats_file.write('bin\t' + '\t'.join(AlignStats.aln_stats_cols) + '\n')
-            depth_file.write('bin\t' + '\t'.join(DepthStats.depth_cols) + '\n')
-
+            # print alignmet stats, insert sizes and depths
             for i, row in enumerate(aln.aln_stats):
                 # aln_stats
                 aln_stats_file.write(str(aln.bins.start + i*aln.bins.size) + '\t')
@@ -172,10 +170,11 @@ class SamStats:
                     rvs_ins_file.write('NA')
                 rvs_ins_file.write('\n')
                 # depths
-                depth_file.write(str(aln.depth_stats.bins.start + i * aln.depth_stats.bins.size) + '\t')
-                for j in range(0, len(aln.depth_stats.depths[i]) - 1):
-                    depth_file.write(str(aln.depth_stats.depths[i][j]) + '\t')
-                depth_file.write(str(row[-1]) + '\n')
+                if not self.depth:
+                    depth_file.write(str(aln.depth_stats.bins.start + i * aln.depth_stats.bins.size) + '\t')
+                    for j in range(0, len(aln.depth_stats.depths[i]) - 1):
+                        depth_file.write(str(aln.depth_stats.depths[i][j]) + '\t')
+                    depth_file.write(str(row[-1]) + '\n')
 
             if not self.depth:
                 depth_file.close()
@@ -196,6 +195,8 @@ class SamStats:
 
             for bins in bkpt_bins_list:
                 sam_stats[-1].align.append(AlignStats(bins))
+                if (len(bkpt_bins_list) == 1):
+                    sam_stats[-1].depth = sam_stats[-1].align[-1].depth_stats
                 p = SAMtools.view(bam, bins.region)
                 line = p.stdout.readline()
                 while line:
@@ -207,6 +208,7 @@ class SamStats:
                     else:
                         sam_stats[-1].align[-1].process(SamEntry(FLAG, POS, MAPQ, CIGAR, RNEXT, TLEN))
                         line = p.stdout.readline()
+                sam_stats[-1].align[-1].depth_stats.convert_depths()
         return sam_stats
 
 
@@ -232,9 +234,9 @@ class DepthStats:
         bed.close()
         depths_gt_1 = SAMtools.bedcov(self.bins.num, self.bins.size, bed_name, bam, min_Q=1)
         depths_gt_T = SAMtools.bedcov(self.bins.num, self.bins.size, bed_name, bam, min_Q=self.mapq_thresh)
-        self.depths[DepthStats.TOTAL] = SAMtools.bedcov(self.bins.num, self.bins.size, bed_name, bam, min_Q=0)
-        self.depths[DepthStats.MAPQ0] = self.depths[DepthStats.TOTAL] - depths_gt_1
-        self.depths[DepthStats.MAPQLTT] = self.depths[DepthStats.TOTAL] - depths_gt_T - self.depths[DepthStats.MAPQ0]
+        self.depths[:, DepthStats.TOTAL] = SAMtools.bedcov(self.bins.num, self.bins.size, bed_name, bam, min_Q=0)
+        self.depths[:, DepthStats.MAPQ0] = self.depths[:, DepthStats.TOTAL] - depths_gt_1
+        self.depths[:, DepthStats.MAPQLTT] = self.depths[:, DepthStats.TOTAL] - depths_gt_T - self.depths[:, DepthStats.MAPQ0]
         os.remove(bed_name)
 
     # convert depths from bp/bin count to depth/bp
@@ -347,7 +349,7 @@ class SAMtools:
 
     @staticmethod
     def view(sam, region, include_flag=None, exclude_flag=
-            (SamEntry.duplicate + SamEntry.fails_QC + SamEntry.read_unmapped), samtools='samtools'):
+            (SamEntry.duplicate + SamEntry.fails_QC + SamEntry.read_unmapped), samtools='samtools', verbose=True):
         cmd = [samtools, 'view']
         if include_flag:
             cmd.append('-f')
@@ -357,7 +359,8 @@ class SAMtools:
             cmd.append(str(exclude_flag))
         cmd.append(sam)
         cmd.append(region)
-        print(' '.join(cmd) + '\n')
+        if verbose:
+            print(' '.join(cmd) + '\n')
         p = subprocess.Popen(cmd, bufsize=1024, stdout=PIPE, universal_newlines=True)
         if p.poll():
             print("Error code %d from command:\n%s\n" % (' '.join(cmd) + '\n'))
@@ -365,9 +368,10 @@ class SAMtools:
         return p
 
     @staticmethod
-    def faidx(fasta, region, samtools='samtools'):
+    def faidx(fasta, region, samtools='samtools', verbose=False):
         cmd = [samtools, 'faidx', fasta, region]
-        print(' '.join(cmd) + '\n')
+        if verbose:
+            print(' '.join(cmd) + '\n')
         p = subprocess.Popen(cmd, bufsize=1024, stdout=PIPE, universal_newlines=True)
         if p.poll():
             print("Error code %d from command:\n%s\n" % (' '.join(cmd) + '\n'))
@@ -375,9 +379,10 @@ class SAMtools:
         return p
 
     @staticmethod
-    def bedcov(num_bins, bin_size, bed, bam, min_Q=30):
+    def bedcov(num_bins, bin_size, bed, bam, min_Q=30, verbose=False):
         cmd = ['samtools', 'bedcov', '-Q', str(min_Q), bed, bam]
-        print(' '.join(cmd) + '\n')
+        if verbose:
+            print(' '.join(cmd) + '\n')
         p = subprocess.Popen(cmd, bufsize=-1, stdout=subprocess.PIPE, universal_newlines=True)
         data = np.zeros((num_bins,))
         bin = 0
@@ -413,7 +418,7 @@ class SAMtools:
         return data
 
     @staticmethod
-    def get_GC(fasta, region):
+    def get_GC(fasta, region, verbose=False):
         GC = 0
         AT = 0
         p = SAMtools.faidx(fasta, region)

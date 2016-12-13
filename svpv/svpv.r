@@ -10,21 +10,35 @@ PlotAttr <- function(folder){
 }
 # store plot parameters
 PlotParams <- function(folder, args) {
-  return(list(
-        depth = ('-d' %in% args),
-        orphaned = ('-or' %in% args),
-        inverted = ('-v' %in% args),
-        samestrand = ('-ss' %in% args),
-        secondary = ('-se' %in% args),
-        supplementary = ('-su' %in% args),
-        diffmol = ('-dm' %in% args),
-        clipped = ('-cl' %in% args),
-        ins = ('-i' %in% args),
-        refgene = ('-r' %in% args),
-        svAF = ('-af' %in% args),
-        legend = ('-l' %in% args),
-        Attr = PlotAttr(folder)
-  ))
+  tracks <- list(
+    depth = ('-d' %in% args),
+    orphaned = ('-or' %in% args),
+    inverted = ('-v' %in% args),
+    samestrand = ('-ss' %in% args),
+    secondary = ('-se' %in% args),
+    supplementary = ('-su' %in% args),
+    diffmol = ('-dm' %in% args),
+    clipped = ('-cl' %in% args),
+    ins = ('-i' %in% args),
+    refgene = ('-r' %in% args),
+    svAF = ('-af' %in% args),
+    legend = ('-l' %in% args)
+  )
+  attr <- PlotAttr(folder)
+  if (!is.na(attr$r_bin_size)){
+      if (is.na(attr$l_bin_size)) {
+        type = 'contiguous' 
+      } else { 
+        type = 'zoom'
+      }
+  } else {
+    type = 'split'
+  }
+  if (is.na(attr$l_bin_num)) { num_loci = 0 } else { num_loci = length(attr$loci) }
+  return(list(tracks = tracks,
+              type = type,
+              num_loci = num_loci,
+              Attr = attr))
 }
 # split a region string (eg 'chr1:100-200')
 Region <- function(region){
@@ -40,7 +54,6 @@ Inserts <- function(folder){
   rvs_ins <- list()
   for (f in list.files(folder)){
     if (grepl('fwd_ins.csv', f)){
-      print('true')
       pos <- sub('.fwd_ins.csv', '', basename(f))
       fwd_ins[[pos]] <- scan(paste0(folder, f), sep='\n', what='character', quiet=TRUE)
       fwd_ins[[pos]] <- lapply(fwd_ins[[pos]], function(x) as.numeric(unlist(strsplit(x, ','))))
@@ -48,7 +61,6 @@ Inserts <- function(folder){
       rvs_ins[[pos]] <- lapply(rvs_ins[[pos]], function(x) as.numeric(unlist(strsplit(x, ','))))
     }
   }
-  # this probably wont work
   ylim <- estimate_upper_bound(c(unlist(fwd_ins, use.names=FALSE), unlist(rvs_ins, use.names=FALSE)))
   return(list(fwd=fwd_ins, rvs=rvs_ins, ylim=ylim))
 }
@@ -116,12 +128,10 @@ Annotations <- function(folder) {
   } 
   return(list(Genes=genes, SV_AF=SV_AF, AF_tracks=AF_tracks))
 }
-
 # add a border around a given plot area
 add_border <- function(xlims, ylims, lwd=0.5) {
   rect(xlims[1], ylims[1], xlims[2], ylims[2], lwd=lwd)
 }
-
 # horizontal line separator between samples
 separator <- function() {
   empty_plot(c(0, 1))
@@ -129,12 +139,10 @@ separator <- function() {
   abline(h=0.5, lwd=4, col='gray25')
   par(xpd=FALSE)
 }
-
 # create an empty plot
 empty_plot <- function(xlim,ylim=c(0, 1),type='n',bty='n', xaxt='n', yaxt='n', ylab='', xlab='') {
     plot(1, type=type, ylim=ylim, xlim=xlim, bty=bty, xaxt=xaxt, yaxt=yaxt, ylab=ylab, xlab=xlab)
 }
-
 # add axis to a plot
 add_position_axis <- function(xlims, side) {
   units <- get_units(xlims[2] - xlims[1])
@@ -143,7 +151,6 @@ add_position_axis <- function(xlims, side) {
   )
   axis(side=side, line=-3)
 }
-
 # plot read depth and mapping quality
 plot_depth <- function(depth, xlims) {
   par(las=1)
@@ -160,7 +167,6 @@ plot_depth <- function(depth, xlims) {
   rect(depth$bin, (depth$total - depth$mapQ0), (depth$bin + bin_size), depth$total - (depth$mapQ0 + depth$mapQltT), col='khaki1')
   axis(2, tick=TRUE, labels=TRUE, line=-1)
 }
-
 # add the legend
 add_legend <- function() {
   # create a plot with room for four legends: depth, inserts, mapping stats, svtype/freq
@@ -178,18 +184,14 @@ add_legend <- function() {
   # depth legend
   rect(c((1 / 6 - 0.1), (3 / 6 - 0.1), (5 / 6 - 0.1)), bottom, c((1 / 6 + 0.1), (3 / 6 + 0.1), (5 / 6 + 0.1)), top,  col=c('#74C476', 'khaki1', 'gray95'))
   text( c((1 / 6), (3 / 6), (5 / 6)), c(top + 0.1), pos=3, labels=c(">= 30", "< 30", "= 0") )
-  
   # inferred insert size legend
-  
   text(1.5, top + 0.25, labels=c("Proportion in position x\nwith mapping distance y"))
   rect(1.15 + 0.7 / 10 * (0:9), bottom, 1.15 + 0.7 / 10 * (1:10), top, col=insert_size_pallete(10)[(1:10)])
   text(c(1.18, 1.82), bottom - 0.08, as.character(c(0, 1)))
-  
   # Mapping stats legend 
   text(2.5, top + 0.1, pos=3, labels=c("proportion of reads in position x"))
   rect(2.15 + 0.7 / 10 * (0:9), bottom, 2.15 + 0.7 / 10 * (1:10), top, col=aln_stats_pallete(10)[(1:10)])
   text(c(2.18, 2.82), bottom - 0.08, as.character(c(0, 1)))
-  
   # SV AF legend
   sv_types <- c("DEL", "DUP", "CNV", "INV")
   height = 0.13
@@ -282,20 +284,15 @@ plot_insert_sizes <- function(fwd_ins, rvs_ins, ylim, split, num_y_bins=10) {
   }
   fwd_bins[, (num_y_bins + 1)]=sapply(fwd_ins[,2], function(x) sum(ylim <= x))
   rvs_bins[, (num_y_bins + 1)]=sapply(rvs_ins[,2], function(x) sum(ylim <= x))
-  
   # convert to proportions
   fwd_bins=fwd_bins / rowSums(fwd_bins)
-  # fwd_bins[is.nan(fwd_bins)] <- 0
   rvs_bins=rvs_bins / rowSums(rvs_bins)
-  # rvs_bins[is.nan(rvs_bins)] <- 0
-  
   # organise sensible units for ticks on plot
   units <- get_units(ylim / 2)
   ylim <- ylim / units$val
   mid <- round(ylim / 2)
   interval <- round(mid * 2 / 3)
   ticks_at <- c((mid - interval), mid, (mid + interval))
-
   # plot binned foward inserts
   par(las=1)
   plot_binned_inserts(fwd_bins, num_y_bins, split)
@@ -303,7 +300,6 @@ plot_insert_sizes <- function(fwd_ins, rvs_ins, ylim, split, num_y_bins=10) {
   title(ylab=paste0('forward\nmapping\ndistance\n (', units$sym, ')'), line=1.5)
   par(xpd=NA)
   text(0, num_y_bins + 0.5, labels =">", cex=0.85, pos=2)
-  
   # plot binned reverse inserts
   plot_binned_inserts(rvs_bins, num_y_bins, split)
   axis( 2, at=10 * ticks_at / ylim,  labels=as.character(ticks_at), line=-1)
@@ -343,17 +339,16 @@ plot_svs <- function(svs, xlims, tracks, AF=TRUE) {
         text(  0.5 * (max(xlims[1], svs$start[i]) + min(xlims[2], svs$end[i])), ((tracks[i] - 0.5) * scale), labels = svs$gt[i])
       }
     } else {
-      rect(start, bottom + spacer, end, top - spacer, col=get_sv_col(svs$svtype[i], as.numeric(svs$MAF[i])), border=get_sv_col(svs$svtype[i], 1), lwd=2)
+      rect(start, bottom + spacer, end, top - spacer, col=get_sv_col(svs$svtype[i], as.numeric(svs$AF[i])), border=get_sv_col(svs$svtype[i], 1), lwd=2)
       if (x_prop > 1/5){
-        text(0.5 * (start + end), 0.5 * (top + bottom), labels = paste0(svs$svtype[i], ' : AF = ', as.character(round(as.numeric(svs$MAF[i]), digits = 3)), ' : ', as.character(round(len/units$val, digits=2)), " ", units$sym))
+        text(0.5 * (start + end), 0.5 * (top + bottom), labels = paste0(svs$svtype[i], ' : AF = ', as.character(round(as.numeric(svs$AF[i]), digits = 3)), ' : ', as.character(round(len/units$val, digits=2)), " ", units$sym))
       } else if (x_prop > 1/10){
-        text(0.5 * (start + end), 0.5 * (top + bottom), labels = paste0('AF = ', as.character(round(as.numeric(svs$MAF[i]), digits = 3))))
+        text(0.5 * (start + end), 0.5 * (top + bottom), labels = paste0('AF = ', as.character(round(as.numeric(svs$AF[i]), digits = 3))))
       }
     }
   }
   par(font = 1)
 }
-
 # for getting sv col based on genotype
 gt_to_intensity <- function(gt){
   if (grepl("0/1", gt)){
@@ -383,9 +378,8 @@ get_sv_col <- function(type, intensity) {
     return(colorRampPalette(c("#FFFFFF", "#F0F0F0", "#D9D9D9", "#BDBDBD", "#969696", "#737373", "#525252", "#252525"))(100)[20 + floor(80 * intensity)])
   }
 }
-
 # plot specified tracks for a given sample
-plot_sample <- function(sample, plot_params, ins_ylim) {
+plot_sample <- function(sample, params, ins_ylim) {
   #plot sample title
   empty_plot(sample$Xlims)
   par(font = 2)
@@ -397,35 +391,35 @@ plot_sample <- function(sample, plot_params, ins_ylim) {
     plot_svs(sample$SVs[[i]], sample$Xlims, sample$SVtracks[[i]], AF=FALSE)
   }
   # plot sample depth
-  if (plot_params$depth) { plot_depth(sample$Depths, sample$Xlims)}
+  if (params$tracks$depth) { plot_depth(sample$Depths, sample$Xlims)}
   # plot zoom details
   if (sample$Split){
     add_zoom_detail(sample$Xlims, sample$Aln_stats$bin[1], sample$Aln_stats$bin[sample$Split-1], sample$Aln_stats$bin[sample$Split], sample$Aln_stats$bin[length(sample$Aln_stats$bin)], length(sample$Aln_stats$bin))
   }
   # plot sample insert sizes
-  if (plot_params$ins) {
+  if (params$tracks$ins) {
     plot_insert_sizes(sample$Fwd_ins, sample$Rvs_ins, ins_ylim, sample$Split)
   }
   # plot remaining tracks
-  if (plot_params$clipped) {
+  if (params$tracks$clipped) {
     plot_aln_stats( sample$Aln_stats$reads, sample$Aln_stats$clipped, 'clipped', sample$Split)
   }
-  if (plot_params$secondary) {
+  if (params$tracks$secondary) {
     plot_aln_stats( sample$Aln_stats$reads, sample$Aln_stats$secondary, 'secondary', sample$Split)
   }
-  if (plot_params$supplementary) {
+  if (params$tracks$supplementary) {
     plot_aln_stats( sample$Aln_stats$reads, sample$Aln_stats$supplementary, 'supplementary', sample$Split)
   }
-  if (plot_params$diffmol) {
+  if (params$tracks$diffmol) {
     plot_aln_stats( sample$Aln_stats$reads, sample$Aln_stats$supplementary, 'diffmol', sample$Split)
   }
-  if (plot_params$orphaned) {
+  if (params$tracks$orphaned) {
     plot_aln_stats( sample$Aln_stats$reads, sample$Aln_stats$orphaned, 'orphaned', sample$Split)
   }
-  if (plot_params$inverted) {
+  if (params$tracks$inverted) {
     plot_aln_stats( sample$Aln_stats$reads, sample$Aln_stats$inverted, 'inverted', sample$Split)
   }
-  if (plot_params$samestrand) {
+  if (params$tracks$samestrand) {
     plot_aln_stats( sample$Aln_stats$reads, sample$Aln_stats$samestrand, 'samestrand', sample$Split)
   }
   # plot zoom details
@@ -435,7 +429,7 @@ plot_sample <- function(sample, plot_params, ins_ylim) {
   # add separator
   separator()
 }
-
+# add annotations of details of the plot
 plot_details <- function(bin_size, num_bins) {
   mtext( paste("Bin size: ", as.character(bin_size), "    Num bins: ", as.character(num_bins), "    Date: ", as.character(Sys.Date()) ), side = 1, line = 0, adj = 0, cex = 0.65 )
 }
@@ -463,11 +457,9 @@ add_zoom_detail <- function(xlims, start_1, end_1, start_2, end_2, num_bins, col
     segments(c(zoom_start_1, zoom_end_1, zoom_start_2, zoom_end_2), c(0.3), c(zoom_start_1, zoom_end_1, zoom_start_2, zoom_end_2), c(-1), col=col, lwd=2)
   }
 }
-
 #returns an assignment to tracks for a set of regions such that there are no overlaps
 get_tracks <- function(starts, ends) {
-  # assume that starts and ends are of same length
-  # assume also that they are sorted by lowest start first
+  # assume that starts and ends are of same length and are sorted by lowest start first
   tracks <- vector("integer", length = length(starts))
   tracks[1] = 1
   if (length(starts) >= 2) {
@@ -492,7 +484,7 @@ get_tracks <- function(starts, ends) {
   }
   return(tracks)
 }
-
+# add refgene tracks to the plot
 plot_refgenes <- function(refgenes, xlims) {
   empty_plot(xlims)
   plot_range <- xlims[2] - xlims[1]
@@ -547,9 +539,8 @@ plot_refgenes <- function(refgenes, xlims) {
     par(font=1)
     }
   }
-
-get_plot_layout <- function(plot_params, annotations, num_samples, vcfs_per_sample, split, max=200) {
-    # note: order of plots to be as implied here
+# returns the appropriate matrix and heights for the plot layout
+get_plot_layout <- function(params, annotations, num_samples, vcfs_per_sample, max=200) {
     # top x-axis
     heights <- c(3)
     # title
@@ -564,31 +555,31 @@ get_plot_layout <- function(plot_params, annotations, num_samples, vcfs_per_samp
         heights <- c(heights, 1.5*vcfs_per_sample[[i]][j])
       }
       # depth
-      if (plot_params$depth) { heights <- c(heights, 7) }
+      if (params$tracks$depth) { heights <- c(heights, 7) }
       # breakpoint zoom illustration
-      if (split){ heights <- c(heights, 2) }
+      if (grepl('zoom', params$type)){ heights <- c(heights, 2) }
       # add tracks according to plot params
-      if (plot_params$ins) { heights <- c(heights, 4, 4)  }
-      if (plot_params$clipped) {  heights <- c(heights, 1) }
-      if (plot_params$secondary) { heights <- c(heights, 1) }
-      if (plot_params$supplementary) { heights <- c(heights, 1) }
-      if (plot_params$diffmol) { heights <- c(heights, 1) }
-      if (plot_params$orphaned) { heights <- c(heights, 1) }
-      if (plot_params$inverted) { heights <- c(heights, 1) }
-      if (plot_params$samestrand) { heights <- c(heights, 1) }
+      if (params$tracks$ins) { heights <- c(heights, 4, 4)  }
+      if (params$tracks$clipped) {  heights <- c(heights, 1) }
+      if (params$tracks$secondary) { heights <- c(heights, 1) }
+      if (params$tracks$supplementary) { heights <- c(heights, 1) }
+      if (params$tracks$diffmol) { heights <- c(heights, 1) }
+      if (params$tracks$orphaned) { heights <- c(heights, 1) }
+      if (params$tracks$inverted) { heights <- c(heights, 1) }
+      if (params$tracks$samestrand) { heights <- c(heights, 1) }
       # breakpoint zoom axes
-      if (split){ heights <- c(heights, 2) }
+      if (grepl('zoom', params$type)){ heights <- c(heights, 2) }
       # separator
       heights <- c(heights, 1)
     }
     # add in heights for SV_AF tracks
-    if (plot_params$svAF) {
+    if (params$tracks$svAF) {
       for (i in 1:length(annotations$SV_AF)) {
         heights <- c(heights, 1.5*max(annotations$AF_tracks[[i]]))
       }
     }
     # add in heights for refGene annotation tracks
-    if (plot_params$refgene) {
+    if (params$tracks$refgene) {
       if (!is.null(annotations$Genes)) {
         heights <- c(heights, 1*nrow(annotations$Genes))
       } else {
@@ -598,26 +589,31 @@ get_plot_layout <- function(plot_params, annotations, num_samples, vcfs_per_samp
     # add in bottom x-axis
     heights <- c(heights, 3)
     # add room for legend
-    if (plot_params$legend) {
+    if (params$tracks$legend) {
       heights <- c(heights, 6)
     }
-    return(heights)
+    if (params$type != 'split'){
+      mat <- matrix(1:(2*length(heights)), length(heights), 2, byrow = TRUE)
+      widths <- c(1, 5)
+    } else {
+      mat <- matrix(1:(3*length(heights)), length(heights), 3, byrow = TRUE)
+      widths <- c(1, 2.5, 2.5)
+    }
+    return(list(mat=mat, heights=heights, widths=widths))
 }
-
 # main method
 visualise <- function(folder, sample_names, plot_args, outfile, title='') {
-  plot_params <- PlotParams(folder, plot_args)
+  params <- PlotParams(folder, plot_args)
   num_samples <- length(sample_names)
   samples <-  lapply(sample_names, function(x) Sample(folder, x))
-  vcfs_per_sample <- lapply(samples, function(x) sapply(x$SVtracks, function(y) max(y)))
-  xlims <- samples[[1]]$Xlims
+  vcfs_per_sample <- sapply(samples, function(x) sapply(x$SVtracks, function(y) max(y)))
   ins_ylim <- max(sapply(samples, function(x) x$Ins$ylim))
   annotations <- Annotations(folder)
-  heights <- get_plot_layout(plot_params, annotations, num_samples, vcfs_per_sample, samples[[1]]$Split)
-  pdf(outfile, title='SVPV Graphics Output', width = 8, height = 0.15* sum(heights), bg = 'white')
+  lay <- get_plot_layout(params, annotations, num_samples, vcfs_per_sample)
+  pdf(outfile, title='SVPV Graphics Output', width = 8, height = 0.15* sum(lay$heights), bg = 'white')
   # initialise first layout
-  layout(matrix(1:length(heights), length(heights), 1, byrow = TRUE), heights=heights)
-  par(mar = c(0.1, 6, 0.1, 2), oma = c(1, 0.1, 0.1, 0.1))
+  layout(lay$mat, heights=lay$heights, widths=lay$widths)
+  par(mai = c(0.05, 0.05, 0.05, 0.05), omi = c(0.05, 0.05, 0.05, 0.05))
   # plot top x-axis
   add_position_axis(xlims, 3)
   # plot title
@@ -628,20 +624,20 @@ visualise <- function(folder, sample_names, plot_args, outfile, title='') {
   separator()
   # plot samples
   for (i in 1:num_samples) {
-    plot_sample(samples[[i]], plot_params, ins_ylim)
+    plot_sample(samples[[i]], params, ins_ylim)
   }
-  # add in heights for SVMAF tracks
-  if (plot_params$svAF) {
+  # add in heights for SVAF tracks
+  if (params$tracks$svAF) {
     for (i in 1:length(annotations$SV_AF)) {
       plot_svs(annotations$SV_AF[[i]], xlims, annotations$AF_tracks[[i]])
     }
   }
   # add in heights for refGene annotation tracks
-  if (plot_params$refgene) {  plot_refgenes(annotations$Genes, xlims) }
+  if (params$tracks$refgene) {  plot_refgenes(annotations$Genes, xlims) }
   # plot bottom x-axis
   add_position_axis(xlims, 1)
   # add legend
-  if (plot_params$legend) { add_legend() }
+  if (params$tracks$legend) { add_legend() }
   # add details
   plot_details(samples[[1]]$Bin_size, samples[[1]]$Num_bins)
   graphics.off()

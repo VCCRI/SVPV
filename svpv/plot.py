@@ -28,7 +28,7 @@ class Plot:
             start = sv.pos - par.run.expansion * (sv.end - sv.pos + 1)
             end = sv.end + par.run.expansion * (sv.end - sv.pos + 1)
             self.region_bins = Bins(sv.chrom, start, end)
-            if self.region_bins.size // float(par.run.is_len) > 0.25:
+            if self.region_bins.size / par.run.is_len > 0.25:
                 self.bkpt_bins = (Bins(sv.chrom, sv.pos - int(1.5 * par.run.is_len), sv.pos + int(1.5 * par.run.is_len)),
                              Bins(sv.chrom, sv.end - int(1.5 * par.run.is_len), sv.end + int(1.5 * par.run.is_len)))
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.bkpt_bins,
@@ -41,7 +41,7 @@ class Plot:
             start = sv.pos - par.run.expansion * (sv.end - sv.pos + 1)
             end = sv.end + par.run.expansion * (sv.end - sv.pos + 1)
             self.region_bins = Bins(sv.chrom, start, end)
-            if self.region_bins.size // float(par.run.is_len) > 0.25:
+            if self.region_bins.size / par.run.is_len > 0.25:
                 self.bkpt_bins = (
                 Bins(sv.chrom, sv.pos - int(1.5 * par.run.is_len), sv.pos + int(1.5 * par.run.is_len)),
                 Bins(sv.chrom, sv.end - int(1.5 * par.run.is_len), sv.end + int(1.5 * par.run.is_len)))
