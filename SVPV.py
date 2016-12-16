@@ -42,7 +42,7 @@ def main(argv=sys.argv):
                 plot.plot_figure(group=par.plot.grouping)
 
 usage = 'Usage example:\n' \
-        'SVPV.py -vcf input_svs.vcf -samples sample1,sample2 -aln alignment1.bam,alignment2.sam -o /out/directory/ \n\n' \
+        'SVPV.py -vcf input_svs.vcf -samples sample1,sample2 -aln alignment1.bam,alignment2.sam -o /out/directory/\n\n'\
         'Run args:\n' \
         '[required]\n' \
         '-vcf\t\tPrimary structural variant prediction vcf/bcf file.\n' \

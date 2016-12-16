@@ -24,7 +24,7 @@ class Plot:
         self.bkpt_bins = None
 
         # show depth over whole region but zoom in on breakpoints if necessary
-        if sv.svtype in ('DEL', 'DUP', 'CNV', 'INV'):
+        if sv.svtype in ('DEL', 'DUP', 'CNV'):
             start = sv.pos - par.run.expansion * (sv.end - sv.pos + 1)
             end = sv.end + par.run.expansion * (sv.end - sv.pos + 1)
             self.region_bins = Bins(sv.chrom, start, end)

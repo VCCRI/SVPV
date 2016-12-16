@@ -42,10 +42,13 @@ PlotParams <- function(folder, args) {
 }
 # split a region string (eg 'chr1:100-200')
 Region <- function(region){
+  start <- as.numeric(gsub('^.+:', '', gsub('-.+$', '', region, perl=TRUE), perl=TRUE))
+  end <- as.numeric(gsub('^.+-', '', region, perl=TRUE))
   return(list(
     chr=gsub(':.+$', '', region, perl=TRUE),
-    start=as.numeric(gsub('^.+:', '', gsub('-.+$', '', region, perl=TRUE), perl=TRUE)),
-    end=as.numeric(gsub('^.+-', '', region, perl=TRUE))
+    start=start,
+    end=end,
+    xlims = c(start, end)
     ))
 }
 # parse insert size files
@@ -61,7 +64,7 @@ Inserts <- function(folder){
       rvs_ins[[pos]] <- lapply(rvs_ins[[pos]], function(x) as.numeric(unlist(strsplit(x, ','))))
     }
   }
-  ylim <- estimate_upper_bound(c(unlist(fwd_ins, use.names=FALSE), unlist(rvs_ins, use.names=FALSE)))
+  ylim <- estimate_ylim(c(unlist(fwd_ins, use.names=FALSE), unlist(rvs_ins, use.names=FALSE)))
   return(list(fwd=fwd_ins, rvs=rvs_ins, ylim=ylim))
 }
 # parse depth files
@@ -89,21 +92,30 @@ AlnStats <- function(folder){
   }
   return(aln_stats)
 }
+# parse SV info
+VCFs <- function(file){
+  if (file.exists(file)) {
+    vcfs <- read.delim(file, header = TRUE, sep = '\t')
+    vcfs <- split.data.frame(vcfs, vcfs$vcf)
+    for (n in names(vcfs)){
+      tracks <- get_tracks(vcfs[[n]]$start, vcfs[[n]]$end, vcfs[[n]]$chrom)
+      vcfs[[n]] <- list(calls=vcfs[[n]][2:ncol(vcfs[[n]])],
+                     tracks = tracks,
+                     n_tracks = max(tracks),
+                     name = n)
+    }
+  } else {vcfs = NA}
+  return(vcfs)
+}
 # store data for a given sample
 Sample <- function(folder, sample, label = FALSE) {
   my_folder = paste0(folder, sample, '/')
-  #read in SV calls for this sample
-  svs <- read.delim(paste0(my_folder, 'svs.tsv'), header = TRUE, sep = '\t')
-  #convert to list, separating calls from different vcfs
-  svs <- split.data.frame(svs, svs$vcf)
-  svTracks <- lapply(svs, function(x) get_tracks(x$start, x$end))
   return(list(
     Name = sample,
     Depths = Depths(my_folder),
-    SVs = svs,
-    SVtracks = svTracks,
+    vcfs = VCFs(paste0(my_folder, 'svs.tsv')),
     Ins = Inserts(my_folder),
-    Aln_stats = AlnStats(my_folder)))
+    aln_stats = AlnStats(my_folder)))
 }
 # container for annotations
 Annotations <- function(folder) {
@@ -114,19 +126,11 @@ Annotations <- function(folder) {
   } else {
     genes = NULL
   }
-  #check if SV_AF file exists, if so read
-  SV_AF_file = paste0(folder, 'SV_AF.tsv')
-  if (file.exists(SV_AF_file)) {
-    SV_AF <- read.delim(SV_AF_file, header=TRUE, sep='\t')
-    SV_AF <- split.data.frame(SV_AF, SV_AF$vcf)
-    AF_tracks <-
-      lapply(SV_AF, function(x)
-        get_tracks(x$start, x$end))
-  } else {
-    SV_AF = NULL
-    AF_tracks = NULL
-  } 
-  return(list(Genes=genes, SV_AF=SV_AF, AF_tracks=AF_tracks))
+  return(list(Genes=genes, vcfs=VCFs(paste0(folder, 'SV_AF.tsv'))))
+}
+# add main plot title
+add_title <- function(title, cex=1.25, font=2){
+  empty_plot(c(0,1)); par(font = font); text(0.5, 0.5, title, cex =cex); par(font = 1)
 }
 # add a border around a given plot area
 add_border <- function(xlims, ylims, lwd=0.5) {
@@ -134,39 +138,57 @@ add_border <- function(xlims, ylims, lwd=0.5) {
 }
 # horizontal line separator between samples
 separator <- function() {
-  empty_plot(c(0, 1))
-  par(xpd=NA)
-  abline(h=0.5, lwd=4, col='gray25')
-  par(xpd=FALSE)
+  empty_plot(c(0, 1)); par(xpd=NA); abline(h=0.5, lwd=2, col='gray25'); par(xpd=FALSE)
 }
 # create an empty plot
 empty_plot <- function(xlim,ylim=c(0, 1),type='n',bty='n', xaxt='n', yaxt='n', ylab='', xlab='') {
     plot(1, type=type, ylim=ylim, xlim=xlim, bty=bty, xaxt=xaxt, yaxt=yaxt, ylab=ylab, xlab=xlab)
 }
 # add axis to a plot
-add_position_axis <- function(xlims, side) {
-  units <- get_units(xlims[2] - xlims[1])
-  empty_plot(xlims / units$val)
-  mtext( paste0('Position (', units$sym, ')'), side=side, line=-1, cex=0.85
-  )
-  axis(side=side, line=-3)
+add_position_axis <- function(params, side) {
+  if (params$type == 'split'){
+    for (i in 1:2){
+      units <- get_units(params$Attr$loci[[i]]$end - params$Attr$loci[[i]]$start + 1)
+      empty_plot(c(params$Attr$loci[[i]]$start, params$Attr$loci[[i]]$end) / units$val)
+      mtext(paste0(params$Attr$loci[[i]]$chr, ' pos (', units$sym, ')'), side=side, line=-1, cex=0.85)
+      axis(side=side, line=-3)
+    }
+  } else {
+    units <- get_units(params$Attr$region$end - params$Attr$region$start + 1)
+    empty_plot(c(params$Attr$region$start, params$Attr$region$end) / units$val)
+    mtext( paste0(params$Attr$region$chr, ' pos (', units$sym, ')'), side=side, line=-1, cex=0.85)
+    axis(side=side, line=-3)
+  }
 }
 # plot read depth and mapping quality
-plot_depth <- function(depth, xlims) {
+plot_depth <- function(params, depths) {
   par(las=1)
-  bin_size=depth$bin[2] - depth$bin[1]
-  ylims = c(0, 1.2 * max(depth$total - depth$mapQ0 - depth$mapQltT, na.rm=TRUE))
-  empty_plot(xlims, ylim=ylims)
-  title(ylab='Depth\n(reads/ bp)', line=2)
-  add_border(xlims, ylims)
-  # add depth$total depth
+  if (params$type != 'split'){
+    ylims = c(0, 1.2 * max(depths$region$total - depths$region$mapQ0 - depths$region$mapQltT, na.rm=TRUE))
+    empty_plot(params$Attr$region$xlims, ylim=ylims)
+    add_border(params$Attr$region$xlims, ylims)
+    depth_plotter(depths$region, params$Attr$r_bin_size)
+    title(ylab='Depth\n(reads/ bp)', line=2)
+    axis(2, tick=TRUE, labels=TRUE, line=0.5)
+  } else {
+    ylims = c(0, 1.2 * max(sapply(depths$loci, function(x) max(x$total - x$mapQ0 - x$mapQltT, na.rm=TRUE))))
+    for (i in 1:2){
+      empty_plot(params$Attr$loci[[i]]$xlims, ylim=ylims)
+      add_border(params$Attr$loci[[i]]$xlims, ylims)
+      depth_plotter(depths$loci[[i]], params$Attr$l_bin_size)
+      if (i == 1){ title(ylab='Depth\n(reads/ bp)', line=2); axis(2, tick=TRUE, labels=TRUE, line=0.5) }
+    }
+  }
+}
+
+depth_plotter <- function(depth, bin_size){
   rect(depth$bin, c(0), (depth$bin + bin_size), depth$total, col='#74C476')
   # add depth$mapQ0 to depth
   rect(depth$bin, depth$total, (depth$bin + bin_size), (depth$total - depth$mapQ0), col='white')
   # add depth$mapQltT to depth
   rect(depth$bin, (depth$total - depth$mapQ0), (depth$bin + bin_size), depth$total - (depth$mapQ0 + depth$mapQltT), col='khaki1')
-  axis(2, tick=TRUE, labels=TRUE, line=-1)
 }
+
 # add the legend
 add_legend <- function() {
   # create a plot with room for four legends: depth, inserts, mapping stats, svtype/freq
@@ -204,12 +226,37 @@ add_legend <- function() {
   par(family='sans', font=1)
   text(c(3.23, 3.87), bottom - 0.08, as.character(c(0, 1)))
 }
-
 aln_stats_pallete <- function(n){
   return(colorRampPalette(c("gray95", "#FDAE6B", "#FD8D3C", "#F16913", "#D94801", "#A63603", "#7F2704"))(n))
 }
+insert_size_pallete <- function(n){
+  return(colorRampPalette(c("gray95", "#C6DBEF", "#9ECAE1", "#6BAED6", "#4292C6", "#2171B5", "#08519C", "#08306B"))(n))
+}
+plot_aln_stats <- function(params, aln_stats){
+  if (params$tracks$clipped){ 
+    aln_stats_plotter( aln_stats$reads, aln_stats$clipped, 'clipped') 
+    }
+  if (params$tracks$secondary){ 
+    aln_stats_plotter( aln_stats$reads, aln_stats$secondary, 'secondary') 
+    }
+  if (params$tracks$supplementary){ 
+    aln_stats_plotter( aln_stats$reads, aln_stats$supplementary, 'supplementary') 
+    }
+  if (params$tracks$diffmol){ 
+    aln_stats_plotter( aln_stats$reads, aln_stats$supplementary, 'diffmol') 
+    }
+  if (params$tracks$orphaned){ 
+    aln_stats_plotter( aln_stats$reads, aln_stats$orphaned, 'orphaned') 
+    }
+  if (params$tracks$inverted){ 
+    aln_stats_plotter( aln_stats$reads, aln_stats$inverted, 'inverted') 
+    }
+  if (params$tracks$samestrand){ 
+    aln_stats_plotter( aln_stats$reads, aln_stats$samestrand, 'samestrand') 
+    }
+}
 # plot alignment stats
-plot_aln_stats <- function(total, numerator, label, split, spacer=2) {
+aln_stats_plotter <- function(total, numerator, label, split, spacer=2) {
     if (split) {end=length(total)+4*spacer} else { end=length(total)}
     empty_plot(c(0, end))
     par(las=1)
@@ -225,7 +272,6 @@ plot_aln_stats <- function(total, numerator, label, split, spacer=2) {
       add_border(c(0, end), c(0, 1))
     }
 }
-
 # returns a list of the form (val=, sym=)
 get_units <- function(num_bp) {
   if (num_bp < 1000) {
@@ -238,17 +284,11 @@ get_units <- function(num_bp) {
     return(list(val=1000000000, sym='Gbp'))
   }
 }
-
-# return the lowest insert size in the highest top 15%
-# simple heuristic for avoiding outliers (assumes outliers are less than 15% abundant, and true inserts are at least 15% abundant)
-estimate_upper_bound <- function(ins) {
-  return(1.1 * sort(ins)[floor(length(ins) * 0.85)])
+# return the 1.1 * lowest insert size in the highest top 15% - heuristic for avoiding outliers
+estimate_ylim <- function(ins) {
+  sorted <- sort(ins)
+  return(1.1 * sorted[floor(length(sorted) * 0.85)])
 }
-
-insert_size_pallete <- function(n){
-  return(colorRampPalette(c("gray95", "#C6DBEF", "#9ECAE1", "#6BAED6", "#4292C6", "#2171B5", "#08519C", "#08306B"))(n))
-}
-
 # plots the inserts in specifiend interval
 plot_binned_inserts <- function(binned_inserts, num_y_bins, split, spacer=2){
   if (split) {end=nrow(binned_inserts) + 4*spacer} else {end=nrow(binned_inserts)}
@@ -271,7 +311,8 @@ plot_binned_inserts <- function(binned_inserts, num_y_bins, split, spacer=2){
   }
 }
 
-plot_insert_sizes <- function(fwd_ins, rvs_ins, ylim, split, num_y_bins=10) {
+plot_insert_sizes <- function(params, ins, ins_ylim){
+  # (fwd_ins, rvs_ins, ylim, split, num_y_bins=10) 
   # divide into 10 bins spaced equally between 0 and ylim
   ybin_size <- ylim / num_y_bins
   # create an extra bin to store anythin larger than ylim
@@ -308,14 +349,8 @@ plot_insert_sizes <- function(fwd_ins, rvs_ins, ylim, split, num_y_bins=10) {
   par(xpd=FALSE)
 }
 # plot structural variants
-plot_svs <- function(svs, xlims, tracks, AF=TRUE) {
-  empty_plot(xlims)
-  add_border(xlims,c(0,1))
-  mtext(svs$vcf, side=2, line=-1, cex=0.8)
-  if (is.null(svs)) {
-    text(0.5 * (xlims[1] + xlims[2]), 0.5, labels="None")
-  }
-  # get mapping of svs to tracks to ensure no overlap
+#plot_svs(params, sample$svs, AF=FALSE)
+sv_plotter <- function(svs, tracks, xlims, AF=TRUE){
   scale=1 / max(tracks)
   par(las=1)
   par(font=2)
@@ -330,7 +365,6 @@ plot_svs <- function(svs, xlims, tracks, AF=TRUE) {
     # label the sv, if it is of sufficient length to not overlap bounds
     len <- svs$end[i] - svs$start[i] + 1
     units <- get_units(len)
-
     if (!AF){
       rect(start, bottom + spacer, end, top - spacer, col=get_sv_col(svs$svtype[i], 0.8*(0.5*grepl('1', svs$gt[i]) + 0.5*grepl('1/1', svs$gt[i]))), border=get_sv_col(svs$svtype[i], 1), lwd=2)
       if (x_prop > 1/5){
@@ -348,6 +382,28 @@ plot_svs <- function(svs, xlims, tracks, AF=TRUE) {
     }
   }
   par(font = 1)
+}
+# coordinate sv plotting
+plot_svs <- function(params, vcf, AF=TRUE) {
+  if (params$type != 'split'){
+    empty_plot(params$Attr$region$xlims)
+    add_border(params$Attr$region$xlims ,c(0,1))
+    mtext(vcf$name, side=2, line=0, cex=0.8)
+    # text(0.5 * (params$Attr$region$xlims[1] + params$Attr$region$xlims[2]), 0.5, labels="None")
+    sv_plotter(vcf$calls, vcf$tracks, params$Attr$region$xlims, AF=AF)
+  } else {
+    for (i in 1:2){
+      empty_plot(params$Attr$loci[[i]]$xlims)
+      add_border(params$Attr$loci[[i]]$xlims, c(0,1))
+      if (i == 1) mtext(vcf$name, side=2, line=0, cex=0.8)
+      idxs = which(vcf$calls$chrom == params$Attr$loci[[i]]$chr)
+      if (!length(idxs)) {
+        text(0.5 * (params$Attr$loci[[i]]$xlims[1] + params$Attr$loci[[i]]$xlims[2]), 0.5, labels="None")
+      } else {
+        sv_plotter(vcf$calls[idxs,], vcf$tracks[idxs], params$Attr$loci[[i]]$xlims, AF=AF)
+      }
+    }
+  }
 }
 # for getting sv col based on genotype
 gt_to_intensity <- function(gt){
@@ -380,52 +436,21 @@ get_sv_col <- function(type, intensity) {
 }
 # plot specified tracks for a given sample
 plot_sample <- function(sample, params, ins_ylim) {
-  #plot sample title
-  empty_plot(sample$Xlims)
-  par(font = 2)
-  text(sample$Xlims[1], 0.5, paste("Sample:", sample$Name), cex = 1, pos = 4)
-  par(font = 1)
+  add_title(paste("Sample:", sample$Name), cex=1) # plot sample title
   #plot sample SVs
-  par(las=1)
-  for (i in 1:length(sample$SVs)) {
-    plot_svs(sample$SVs[[i]], sample$Xlims, sample$SVtracks[[i]], AF=FALSE)
+  for (vcf in sample$vcfs) {
+    plot_svs(params, vcf, AF=FALSE)
   }
   # plot sample depth
-  if (params$tracks$depth) { plot_depth(sample$Depths, sample$Xlims)}
+  if (params$tracks$depth) { plot_depth(params, sample$Depths) }
   # plot zoom details
-  if (sample$Split){
-    add_zoom_detail(sample$Xlims, sample$Aln_stats$bin[1], sample$Aln_stats$bin[sample$Split-1], sample$Aln_stats$bin[sample$Split], sample$Aln_stats$bin[length(sample$Aln_stats$bin)], length(sample$Aln_stats$bin))
-  }
+  if (params$type == 'zoom'){ add_zoom_detail(params) }
   # plot sample insert sizes
-  if (params$tracks$ins) {
-    plot_insert_sizes(sample$Fwd_ins, sample$Rvs_ins, ins_ylim, sample$Split)
-  }
-  # plot remaining tracks
-  if (params$tracks$clipped) {
-    plot_aln_stats( sample$Aln_stats$reads, sample$Aln_stats$clipped, 'clipped', sample$Split)
-  }
-  if (params$tracks$secondary) {
-    plot_aln_stats( sample$Aln_stats$reads, sample$Aln_stats$secondary, 'secondary', sample$Split)
-  }
-  if (params$tracks$supplementary) {
-    plot_aln_stats( sample$Aln_stats$reads, sample$Aln_stats$supplementary, 'supplementary', sample$Split)
-  }
-  if (params$tracks$diffmol) {
-    plot_aln_stats( sample$Aln_stats$reads, sample$Aln_stats$supplementary, 'diffmol', sample$Split)
-  }
-  if (params$tracks$orphaned) {
-    plot_aln_stats( sample$Aln_stats$reads, sample$Aln_stats$orphaned, 'orphaned', sample$Split)
-  }
-  if (params$tracks$inverted) {
-    plot_aln_stats( sample$Aln_stats$reads, sample$Aln_stats$inverted, 'inverted', sample$Split)
-  }
-  if (params$tracks$samestrand) {
-    plot_aln_stats( sample$Aln_stats$reads, sample$Aln_stats$samestrand, 'samestrand', sample$Split)
-  }
+  if (params$tracks$ins){ plot_insert_sizes(params, sample$Ins, ins_ylim) }
+  # plot aln stats
+  plot_aln_stats(params, sample$aln_stats)
   # plot zoom details
-  if (sample$Split){
-    add_zoom_detail(sample$Xlims, sample$Aln_stats$bin[1], sample$Aln_stats$bin[sample$Split-1], sample$Aln_stats$bin[sample$Split], sample$Aln_stats$bin[length(sample$Aln_stats$bin)], length(sample$Aln_stats$bin), axes=TRUE)
-  }
+  if (params$type == 'zoom'){ add_zoom_detail(params,axes=TRUE) }
   # add separator
   separator()
 }
@@ -434,7 +459,14 @@ plot_details <- function(bin_size, num_bins) {
   mtext( paste("Bin size: ", as.character(bin_size), "    Num bins: ", as.character(num_bins), "    Date: ", as.character(Sys.Date()) ), side = 1, line = 0, adj = 0, cex = 0.65 )
 }
 # graphical representation of linear transformation between depth plot and zoomed in inserts size and aln stats plots
-add_zoom_detail <- function(xlims, start_1, end_1, start_2, end_2, num_bins, col='black', spacer=2, axes = FALSE){
+add_zoom_detail <- function(params, col='black', spacer=2, axes = FALSE){
+  #(xlims, start_1, end_1, start_2, end_2, num_bins, col='black', spacer=2, axes = FALSE)
+  xlims <- params$Attr$region$xlims
+  start_1 <- params$Attr$loci[[1]]$start
+  start_2 <- params$Attr$loci[[2]]$start
+  end_1 <- params$Attr$loci[[1]]$end
+  end_2 <- params$Attr$loci[[2]]$end
+  num_bins <- params$Attr$l_bin_num
   range = xlims[2] - xlims[1]
   zoom_start_1 = xlims[1] + (spacer/(num_bins+4*spacer))*range
   zoom_end_1 = xlims[1] + ((spacer + 0.5*num_bins)/(num_bins+4*spacer))*range
@@ -458,7 +490,7 @@ add_zoom_detail <- function(xlims, start_1, end_1, start_2, end_2, num_bins, col
   }
 }
 #returns an assignment to tracks for a set of regions such that there are no overlaps
-get_tracks <- function(starts, ends) {
+get_tracks <- function(starts, ends, chroms) {
   # assume that starts and ends are of same length and are sorted by lowest start first
   tracks <- vector("integer", length = length(starts))
   tracks[1] = 1
@@ -469,7 +501,7 @@ get_tracks <- function(starts, ends) {
         if (j %in% tracks) {
           check = which(tracks %in% j)
           for (k in 1:length(check)) {
-            if (starts[i] <= ends[check[k]]) {
+            if ((starts[i] <= ends[check[k]]) & (chroms[i] == chroms[check[k]])) {
               overlap = TRUE
               break
             }
@@ -541,86 +573,77 @@ plot_refgenes <- function(refgenes, xlims) {
   }
 # returns the appropriate matrix and heights for the plot layout
 get_plot_layout <- function(params, annotations, num_samples, vcfs_per_sample, max=200) {
-    # top x-axis
-    heights <- c(3)
-    # title
-    heights <- c(heights,1)
+  if (params$type != 'split') n_col = 1 else n_col = 2
+  # generate vectors heights h, plot number p_n for layout
+  # top x-axis
+  h <- c(4); p_n <- 1:n_col; idx <- n_col
+  # title
+  h <- c(h,1); p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col
+  # separator
+  h <- c(h, 1); p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col
+  for (i in 1:num_samples){
+    # sample title
+    h <- c(h, 1.5); p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col
+    # add in SV plots
+    for (j in 1:length(vcfs_per_sample[[i]])){
+      h <- c(h, 1.5*vcfs_per_sample[[i]][j]); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col
+    }
+    # depth
+    if (params$tracks$depth) { h <- c(h, 7); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col }
+    # breakpoint zoom illustration
+    if (params$type == 'zoom'){ h <- c(h, 2); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col }
+    # add tracks according to plot params
+    if (params$tracks$ins) { h <- c(h, 4, 4); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+2*n_col)); idx=idx+2*n_col  }
+    if (params$tracks$clipped) {  h <- c(h, 1); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col }
+    if (params$tracks$secondary) { h <- c(h, 1); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col }
+    if (params$tracks$supplementary) { h <- c(h, 1); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col }
+    if (params$tracks$diffmol) { h <- c(h, 1); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col }
+    if (params$tracks$orphaned) { h <- c(h, 1); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col }
+    if (params$tracks$inverted) { h <- c(h, 1); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col }
+    if (params$tracks$samestrand) { h <- c(h, 1); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col }
+    # breakpoint zoom axes
+    if (params$type == 'zoom'){ h <- c(h, 2); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col }
     # separator
-    heights <- c(heights, 1)
-    for (i in 1:num_samples){
-      # sample title
-      heights <- c(heights, 1.5)
-      # add in vcf plots
-      for (j in 1:length(vcfs_per_sample[[i]])){
-        heights <- c(heights, 1.5*vcfs_per_sample[[i]][j])
-      }
-      # depth
-      if (params$tracks$depth) { heights <- c(heights, 7) }
-      # breakpoint zoom illustration
-      if (grepl('zoom', params$type)){ heights <- c(heights, 2) }
-      # add tracks according to plot params
-      if (params$tracks$ins) { heights <- c(heights, 4, 4)  }
-      if (params$tracks$clipped) {  heights <- c(heights, 1) }
-      if (params$tracks$secondary) { heights <- c(heights, 1) }
-      if (params$tracks$supplementary) { heights <- c(heights, 1) }
-      if (params$tracks$diffmol) { heights <- c(heights, 1) }
-      if (params$tracks$orphaned) { heights <- c(heights, 1) }
-      if (params$tracks$inverted) { heights <- c(heights, 1) }
-      if (params$tracks$samestrand) { heights <- c(heights, 1) }
-      # breakpoint zoom axes
-      if (grepl('zoom', params$type)){ heights <- c(heights, 2) }
-      # separator
-      heights <- c(heights, 1)
+    h <- c(h, 1); p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col
+  }
+  # add in h for SV_AF tracks
+  if (params$tracks$svAF) {
+    for (vcf in annotations$vcfs) {
+      h <- c(h, 1.5*vcf$n_tracks); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col
     }
-    # add in heights for SV_AF tracks
-    if (params$tracks$svAF) {
-      for (i in 1:length(annotations$SV_AF)) {
-        heights <- c(heights, 1.5*max(annotations$AF_tracks[[i]]))
-      }
-    }
-    # add in heights for refGene annotation tracks
-    if (params$tracks$refgene) {
-      if (!is.null(annotations$Genes)) {
-        heights <- c(heights, 1*nrow(annotations$Genes))
-      } else {
-        heights <- c(heights, 1)
-      }
-    }
-    # add in bottom x-axis
-    heights <- c(heights, 3)
-    # add room for legend
-    if (params$tracks$legend) {
-      heights <- c(heights, 6)
-    }
-    if (params$type != 'split'){
-      mat <- matrix(1:(2*length(heights)), length(heights), 2, byrow = TRUE)
-      widths <- c(1, 5)
+  }
+  # add in h for refGene annotation tracks
+  if (params$tracks$refgene) {
+    if (length(annotations$Genes$chrom) > 1) {
+      h <- c(h, 1*nrow(annotations$Genes)); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col
     } else {
-      mat <- matrix(1:(3*length(heights)), length(heights), 3, byrow = TRUE)
-      widths <- c(1, 2.5, 2.5)
+      h <- c(h, 1); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col
     }
-    return(list(mat=mat, heights=heights, widths=widths))
+  }
+  # add in bottom x-axis
+  h <- c(h, 4); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col
+  # add room for legend
+  if (params$tracks$legend) {
+    h <- c(h, 6); p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col
+  }
+  mat <- cbind((p_n[idx]+1):(p_n[idx]+length(h)), matrix(p_n, length(h), n_col, byrow = TRUE))
+  widths <- c(1, rep(8/n_col, times=n_col))
+  return(list(mat=mat, heights=h, widths=widths))
 }
 # main method
 visualise <- function(folder, sample_names, plot_args, outfile, title='') {
   params <- PlotParams(folder, plot_args)
   num_samples <- length(sample_names)
   samples <-  lapply(sample_names, function(x) Sample(folder, x))
-  vcfs_per_sample <- sapply(samples, function(x) sapply(x$SVtracks, function(y) max(y)))
+  vcfs_per_sample <- lapply(samples, function(x) sapply(x$vcfs, function(y) y$n_tracks))
   ins_ylim <- max(sapply(samples, function(x) x$Ins$ylim))
   annotations <- Annotations(folder)
-  lay <- get_plot_layout(params, annotations, num_samples, vcfs_per_sample)
-  pdf(outfile, title='SVPV Graphics Output', width = 8, height = 0.15* sum(lay$heights), bg = 'white')
-  # initialise first layout
-  layout(lay$mat, heights=lay$heights, widths=lay$widths)
-  par(mai = c(0.05, 0.05, 0.05, 0.05), omi = c(0.05, 0.05, 0.05, 0.05))
-  # plot top x-axis
-  add_position_axis(xlims, 3)
-  # plot title
-  empty_plot(c(0,1))
-  par(font = 2)
-  text(0.5, 0.5, title, cex = 1.25)
-  par(font = 1)
+  lay_out <- get_plot_layout(params, annotations, num_samples, vcfs_per_sample)
+  # pdf(outfile, title='SVPV Graphics Output', width = 8, height = 0.15* sum(lay$heights), bg = 'white')
+  layout(lay_out$mat, heights=lay_out$heights, widths=lay_out$widths)
+  par(mai = c(0.01, 0.01, 0.01, 0.01), omi = c(0,0,0,0))
+  add_position_axis(params, 3) # top x axis
+  add_title(title)
   separator()
   # plot samples
   for (i in 1:num_samples) {
@@ -644,7 +667,7 @@ visualise <- function(folder, sample_names, plot_args, outfile, title='') {
 }
 # read command-line arguments
 #args <- commandArgs(trailingOnly = TRUE)
-args <- c('NA12877_S1,NA12878_S1,NA12884_S1', '/home/jacmun/R/SVPV_debug/DEL/chr1_4064686/', '/home/jacmun/R/SVPV_debug/DEL/chr1_4064686/chr1.4064686.DEL.1_kbp.cdfbdc4880.pdf', "DEL at chr1:4064686-4066276", '-d', '-or', '-v', '-ss', '-cl', '-i', '-r', '-af', '-l', '-dm')
+args <- c('NA12877_S1,NA12878_S1,NA12884_S1', '/home/jacmun/R/SVPV_debug/INV/chr1_247127925/', '/home/jacmun/R/SVPV_debug/INV/chr1_247127925/cdfbdc4880.pdf', "DEL at chr1:4064686-4066276", '-d', '-or', '-v', '-ss', '-cl', '-i', '-r', '-af', '-l', '-dm')
 sample_names <- strsplit(as.character(args[1]), ',')[[1]]
 folder <- args[2]
 outfile <- args[3]
