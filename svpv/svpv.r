@@ -289,64 +289,42 @@ estimate_ylim <- function(ins) {
   sorted <- sort(ins)
   return(1.1 * sorted[floor(length(sorted) * 0.85)])
 }
-# plots the inserts in specifiend interval
-plot_binned_inserts <- function(binned_inserts, num_y_bins, split, spacer=2){
-  if (split) {end=nrow(binned_inserts) + 4*spacer} else {end=nrow(binned_inserts)}
-  empty_plot(c(0,end), ylab='' ,ylim=c(0, num_y_bins + 1))
-  if (split){
-    for (i in 1:(num_y_bins + 1)) {
-      rect(spacer:(spacer+split-2), i - 1, (spacer+1):(spacer+split-1), i, col=insert_size_pallete(25)[24 * binned_inserts[1:(split-1), i] + 1],  border=NA)
-      rect((3*spacer+split-1):(3*spacer+nrow(binned_inserts)-1), i - 1, (3*spacer+split):(3*spacer+nrow(binned_inserts)), i, col=insert_size_pallete(25)[24 * binned_inserts[(split:nrow(binned_inserts)), i] + 1],  border=NA)
-      add_border(c(spacer, spacer+split-1), c(0, num_y_bins))
-      add_border(c(spacer, spacer+split-1), c(num_y_bins, num_y_bins + 1))
-      add_border(c(3*spacer+split-1, 3*spacer+nrow(binned_inserts)), c(0, num_y_bins))
-      add_border(c(3*spacer+split-1, 3*spacer+nrow(binned_inserts)), c(num_y_bins, num_y_bins + 1))
-    }
-  } else {
-    for (i in 1:(num_y_bins + 1)) {
-      rect((1:nrow(binned_inserts))-1, i - 1, (1:nrow(binned_inserts)), i, col=insert_size_pallete(25)[24 * binned_inserts[(1:nrow(binned_inserts)), i] + 1],  border=NA)
-      add_border(c(0, end), c(0, num_y_bins))
-      add_border(c(0, end), c(num_y_bins, num_y_bins + 1))
-    }
-  }
+plot_insert_sizes <- function(params, ins, ylim, num_y_bins=10){
+  # organise sensible units for ticks on plot
+  bin_plot_inserts(ins$fwd[[1]], ins$ylim, add_axis=TRUE, ylab='forward\nmapping\ndistance\n')
+  if (params$type != 'contiguous'){ bin_plot_inserts(ins$fwd[[2]], ins$ylim) }
+  bin_plot_inserts(ins$rvs[[1]], ins$ylim, add_axis=TRUE, ylab='reverse\nmapping\ndistance\n')
+  if (params$type != 'contiguous'){ bin_plot_inserts(ins$rvs[[2]], ins$ylim) }
 }
-
-plot_insert_sizes <- function(params, ins, ins_ylim){
-  # (fwd_ins, rvs_ins, ylim, split, num_y_bins=10) 
-  # divide into 10 bins spaced equally between 0 and ylim
+# bin inserts by size and create plots
+bin_plot_inserts <- function(ins, ylim, num_y_bins=10, add_axis=FALSE, ylab=''){
+  # bin inserts
   ybin_size <- ylim / num_y_bins
-  # create an extra bin to store anythin larger than ylim
-  fwd_bins <- matrix(nrow=nrow(fwd_ins), ncol=(num_y_bins + 1))
-  rvs_bins <- matrix(nrow=nrow(rvs_ins), ncol=(num_y_bins + 1))
+  # create an extra bin to store anything larger than ylim
+  bins <- matrix(nrow=length(ins), ncol=(num_y_bins + 1))
   # get counts for each bin
   for (i in 1:num_y_bins) {
-    fwd_bins[, i]=sapply(fwd_ins[,2], function(x) sum((((i - 1) * ybin_size)  <= x) & (x < ((i) * ybin_size))))
-    rvs_bins[, i]=sapply(rvs_ins[,2], function(x) sum((((i - 1) * ybin_size)  <= x) & (x < ((i) * ybin_size))))
+    bins[, i]=sapply(ins, function(x) sum((((i - 1) * ybin_size)  <= x) & (x < ((i) * ybin_size))))
   }
-  fwd_bins[, (num_y_bins + 1)]=sapply(fwd_ins[,2], function(x) sum(ylim <= x))
-  rvs_bins[, (num_y_bins + 1)]=sapply(rvs_ins[,2], function(x) sum(ylim <= x))
-  # convert to proportions
-  fwd_bins=fwd_bins / rowSums(fwd_bins)
-  rvs_bins=rvs_bins / rowSums(rvs_bins)
-  # organise sensible units for ticks on plot
-  units <- get_units(ylim / 2)
-  ylim <- ylim / units$val
-  mid <- round(ylim / 2)
-  interval <- round(mid * 2 / 3)
-  ticks_at <- c((mid - interval), mid, (mid + interval))
-  # plot binned foward inserts
-  par(las=1)
-  plot_binned_inserts(fwd_bins, num_y_bins, split)
-  axis(2, at=10 * ticks_at / ylim,  labels=as.character(ticks_at),  line=-1)
-  title(ylab=paste0('forward\nmapping\ndistance\n (', units$sym, ')'), line=1.5)
-  par(xpd=NA)
-  text(0, num_y_bins + 0.5, labels =">", cex=0.85, pos=2)
-  # plot binned reverse inserts
-  plot_binned_inserts(rvs_bins, num_y_bins, split)
-  axis( 2, at=10 * ticks_at / ylim,  labels=as.character(ticks_at), line=-1)
-  title(ylab=paste0('reverse\nmapping\ndistance\n (', units$sym, ')'), line=1.5)
-  text(0, num_y_bins + 0.5, labels =">", cex=0.85, pos=2)
-  par(xpd=FALSE)
+  bins[, (num_y_bins + 1)]=sapply(ins, function(x) sum(ylim <= x))
+  bins=bins / rowSums(bins) # convert to proportions
+  # plot binned inserts
+  empty_plot(c(0,nrow(bins)), ylab='' ,ylim=c(0, num_y_bins + 1))
+  for (i in 1:(num_y_bins + 1)) {
+    rect((1:nrow(bins))-1, i - 1, (1:nrow(bins)), i, col=insert_size_pallete(25)[24 * bins[(1:nrow(bins)), i] + 1],  border=NA)
+  }
+  add_border(c(0, nrow(bins)), c(0, num_y_bins))
+  add_border(c(0, nrow(bins)), c(num_y_bins, num_y_bins+1))
+  if (add_axis){
+    units <- get_units(ylim / 2)
+    ylim <- ylim / units$val
+    mid <- round(ylim / 2)
+    interval <- round(mid * 2 / 3)
+    ticks_at <- c((mid - interval), mid, (mid + interval))
+    text(0, num_y_bins + 0.5, labels =">", cex=0.85, pos=2)
+    axis(2, at=10 * ticks_at / ylim,  labels=as.character(ticks_at),  line=-1)
+    title(ylab=paste0(ylab,'(', units$sym, ')'), line=1.5)
+  }
 }
 # plot structural variants
 #plot_svs(params, sample$svs, AF=FALSE)
@@ -388,6 +366,7 @@ plot_svs <- function(params, vcf, AF=TRUE) {
   if (params$type != 'split'){
     empty_plot(params$Attr$region$xlims)
     add_border(params$Attr$region$xlims ,c(0,1))
+    par(las=1)
     mtext(vcf$name, side=2, line=0, cex=0.8)
     # text(0.5 * (params$Attr$region$xlims[1] + params$Attr$region$xlims[2]), 0.5, labels="None")
     sv_plotter(vcf$calls, vcf$tracks, params$Attr$region$xlims, AF=AF)
@@ -639,9 +618,9 @@ visualise <- function(folder, sample_names, plot_args, outfile, title='') {
   ins_ylim <- max(sapply(samples, function(x) x$Ins$ylim))
   annotations <- Annotations(folder)
   lay_out <- get_plot_layout(params, annotations, num_samples, vcfs_per_sample)
-  # pdf(outfile, title='SVPV Graphics Output', width = 8, height = 0.15* sum(lay$heights), bg = 'white')
+  pdf(outfile, title='SVPV Graphics Output', width = 8, height = 0.15* sum(lay_out$heights), bg = 'white')
   layout(lay_out$mat, heights=lay_out$heights, widths=lay_out$widths)
-  par(mai = c(0.01, 0.01, 0.01, 0.01), omi = c(0,0,0,0))
+  par(mar = c(0, 0, 0, 0), oma = c(0.5,0,0.5,0.5))
   add_position_axis(params, 3) # top x axis
   add_title(title)
   separator()
