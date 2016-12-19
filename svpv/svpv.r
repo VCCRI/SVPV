@@ -146,6 +146,7 @@ empty_plot <- function(xlim,ylim=c(0, 1),type='n',bty='n', xaxt='n', yaxt='n', y
 }
 # add axis to a plot
 add_position_axis <- function(params, side) {
+  par(las=1)
   if (params$type == 'split'){
     for (i in 1:2){
       units <- get_units(params$Attr$loci[[i]]$end - params$Attr$loci[[i]]$start + 1)
@@ -227,50 +228,52 @@ add_legend <- function() {
   text(c(3.23, 3.87), bottom - 0.08, as.character(c(0, 1)))
 }
 aln_stats_pallete <- function(n){
-  return(colorRampPalette(c("gray95", "#FDAE6B", "#FD8D3C", "#F16913", "#D94801", "#A63603", "#7F2704"))(n))
+  return(colorRampPalette(c("gray95", "#FDD49E", "#FDBB84", "#FC8D59", "#EF6548", "#D7301F", "#B30000", "#7F0000"))(n))
 }
 insert_size_pallete <- function(n){
   return(colorRampPalette(c("gray95", "#C6DBEF", "#9ECAE1", "#6BAED6", "#4292C6", "#2171B5", "#08519C", "#08306B"))(n))
 }
-plot_aln_stats <- function(params, aln_stats){
+
+plot_all_aln_stats <- function(params, aln_stats){
+  reads <- lapply(aln_stats, function(x) x$reads) 
   if (params$tracks$clipped){ 
-    aln_stats_plotter( aln_stats$reads, aln_stats$clipped, 'clipped') 
+    plot_aln_stats(params, reads, lapply(aln_stats, function(x) x$clipped), label='clipped') 
     }
   if (params$tracks$secondary){ 
-    aln_stats_plotter( aln_stats$reads, aln_stats$secondary, 'secondary') 
+    plot_aln_stats(params, reads, lapply(aln_stats, function(x) x$secondary), label='secondary') 
     }
   if (params$tracks$supplementary){ 
-    aln_stats_plotter( aln_stats$reads, aln_stats$supplementary, 'supplementary') 
+    plot_aln_stats(params, reads, lapply(aln_stats, function(x) x$supplementary), label='supplementary') 
     }
   if (params$tracks$diffmol){ 
-    aln_stats_plotter( aln_stats$reads, aln_stats$supplementary, 'diffmol') 
+    plot_aln_stats(params, reads, lapply(aln_stats, function(x) x$diffmol), label='diffmol') 
     }
   if (params$tracks$orphaned){ 
-    aln_stats_plotter( aln_stats$reads, aln_stats$orphaned, 'orphaned') 
+    plot_aln_stats(params, reads, lapply(aln_stats, function(x) x$orphaned), label='orphaned') 
     }
   if (params$tracks$inverted){ 
-    aln_stats_plotter( aln_stats$reads, aln_stats$inverted, 'inverted') 
+    plot_aln_stats(params, reads, lapply(aln_stats, function(x) x$inverted), label='inverted') 
     }
   if (params$tracks$samestrand){ 
-    aln_stats_plotter( aln_stats$reads, aln_stats$samestrand, 'samestrand') 
+    plot_aln_stats(params, reads, lapply(aln_stats, function(x) x$samestrand), label='samestrand') 
     }
 }
+plot_aln_stats <- function(params, total, numerator, label=FALSE){
+  if (params$type == 'contiguous'){
+    aln_stats_plotter(total[[1]], numerator[[1]], label=label)
+  } else {
+    aln_stats_plotter(total[[1]], numerator[[1]], label=label)
+    aln_stats_plotter(total[[2]], numerator[[2]]) 
+  }
+}
 # plot alignment stats
-aln_stats_plotter <- function(total, numerator, label, split, spacer=2) {
-    if (split) {end=length(total)+4*spacer} else { end=length(total)}
-    empty_plot(c(0, end))
-    par(las=1)
-    mtext(label, side=2, line=-1,  cex=0.75)
-    #brewer YlGnBu pallete
-    if (split){
-      rect(spacer:(spacer+split-2), c(0), (spacer+1):(spacer+split-1), c(1), col=aln_stats_pallete(20)[(19 * numerator[1:(split-1)] / total[1:(split-1)]) + 1], border =NA)
-      add_border(c(spacer, spacer+split-1), c(0, 1))
-      rect((3*spacer+split-1):(3*spacer+length(total)-1), c(0), (3*spacer+split):(3*spacer+length(total)), c(1), col=aln_stats_pallete(20)[(19 * numerator[split:length(total)] / total[split:length(total)]) + 1], border =NA)
-      add_border(c(3*spacer+split-1, 3*spacer+length(total)), c(0, 1))
-    } else {
-      rect(0:(end-1), c(0), 1:end, c(1), col=aln_stats_pallete(20)[(19 * numerator[1:end] / total[1:end]) + 1], border =NA)
-      add_border(c(0, end), c(0, 1))
-    }
+aln_stats_plotter <- function(total, numerator, label=FALSE) {
+  end <- length(total)
+  empty_plot(c(0, end))
+  par(las=2)
+  if (label != FALSE) { mtext(label, side=2, line=0,  cex=0.75) }
+  rect(0:(end-1), c(0), 1:end, c(1), col=aln_stats_pallete(20)[(19 * numerator[1:end] / total[1:end]) + 1], border = NA)
+  add_border(c(0, end), c(0, 1))
 }
 # returns a list of the form (val=, sym=)
 get_units <- function(num_bp) {
@@ -322,7 +325,7 @@ bin_plot_inserts <- function(ins, ylim, num_y_bins=10, add_axis=FALSE, ylab=''){
     interval <- round(mid * 2 / 3)
     ticks_at <- c((mid - interval), mid, (mid + interval))
     text(0, num_y_bins + 0.5, labels =">", cex=0.85, pos=2)
-    axis(2, at=10 * ticks_at / ylim,  labels=as.character(ticks_at),  line=-1)
+    axis(2, at=10 * ticks_at / ylim,  labels=as.character(ticks_at),  line=0.5)
     title(ylab=paste0(ylab,'(', units$sym, ')'), line=1.5)
   }
 }
@@ -343,22 +346,27 @@ sv_plotter <- function(svs, tracks, xlims, AF=TRUE){
     # label the sv, if it is of sufficient length to not overlap bounds
     len <- svs$end[i] - svs$start[i] + 1
     units <- get_units(len)
-    if (!AF){
-      rect(start, bottom + spacer, end, top - spacer, col=get_sv_col(svs$svtype[i], 0.8*(0.5*grepl('1', svs$gt[i]) + 0.5*grepl('1/1', svs$gt[i]))), border=get_sv_col(svs$svtype[i], 1), lwd=2)
-      if (x_prop > 1/5){
-        text(  0.5 * (max(xlims[1], svs$start[i]) + min(xlims[2], svs$end[i])), ((tracks[i] - 0.5) * scale), labels = paste(svs$svtype[i], ':', svs$gt[i], ':', as.character(round(len/units$val, digits=2)), " ", units$sym))
-      } else {
-        text(  0.5 * (max(xlims[1], svs$start[i]) + min(xlims[2], svs$end[i])), ((tracks[i] - 0.5) * scale), labels = svs$gt[i])
-      }
-    } else {
-      rect(start, bottom + spacer, end, top - spacer, col=get_sv_col(svs$svtype[i], as.numeric(svs$AF[i])), border=get_sv_col(svs$svtype[i], 1), lwd=2)
+    
+    if (AF) { 
+      col = col=get_sv_col(svs$svtype[i], as.numeric(svs$MAF[i])) 
+    } else { 
+      col=get_sv_col(svs$svtype[i], 0.8*(0.5*grepl('1', svs$gt[i]) + 0.5*grepl('1/1', svs$gt[i])))
+    }
+    rect(start, bottom + spacer, end, top - spacer, col=col, border=get_sv_col(svs$svtype[i], 1), lwd=2)
+    if (AF){
       if (x_prop > 1/5){
         text(0.5 * (start + end), 0.5 * (top + bottom), labels = paste0(svs$svtype[i], ' : AF = ', as.character(round(as.numeric(svs$AF[i]), digits = 3)), ' : ', as.character(round(len/units$val, digits=2)), " ", units$sym))
       } else if (x_prop > 1/10){
         text(0.5 * (start + end), 0.5 * (top + bottom), labels = paste0('AF = ', as.character(round(as.numeric(svs$AF[i]), digits = 3))))
       }
-    }
+    } else {
+      if (x_prop > 1/5){
+        text(  0.5 * (max(xlims[1], svs$start[i]) + min(xlims[2], svs$end[i])), ((tracks[i] - 0.5) * scale), labels = paste(svs$svtype[i], ':', svs$gt[i], ':', as.character(round(len/units$val, digits=2)), " ", units$sym))
+      } else {
+        text(  0.5 * (max(xlims[1], svs$start[i]) + min(xlims[2], svs$end[i])), ((tracks[i] - 0.5) * scale), labels = svs$gt[i])
+      }
   }
+}
   par(font = 1)
 }
 # coordinate sv plotting
@@ -366,7 +374,7 @@ plot_svs <- function(params, vcf, AF=TRUE) {
   if (params$type != 'split'){
     empty_plot(params$Attr$region$xlims)
     add_border(params$Attr$region$xlims ,c(0,1))
-    par(las=1)
+    par(las=2)
     mtext(vcf$name, side=2, line=0, cex=0.8)
     # text(0.5 * (params$Attr$region$xlims[1] + params$Attr$region$xlims[2]), 0.5, labels="None")
     sv_plotter(vcf$calls, vcf$tracks, params$Attr$region$xlims, AF=AF)
@@ -427,7 +435,7 @@ plot_sample <- function(sample, params, ins_ylim) {
   # plot sample insert sizes
   if (params$tracks$ins){ plot_insert_sizes(params, sample$Ins, ins_ylim) }
   # plot aln stats
-  plot_aln_stats(params, sample$aln_stats)
+  plot_all_aln_stats(params, sample$aln_stats)
   # plot zoom details
   if (params$type == 'zoom'){ add_zoom_detail(params,axes=TRUE) }
   # add separator
@@ -496,7 +504,15 @@ get_tracks <- function(starts, ends, chroms) {
   return(tracks)
 }
 # add refgene tracks to the plot
-plot_refgenes <- function(refgenes, xlims) {
+plot_refgenes <- function(params, refgenes,) {
+  
+  if (params$type != 'split'){
+    xlims <- params$Attr$region$xlims
+  }
+  else {
+    xlims <- params$Attr$loci[[1]]$xlims
+    xlims <- params$Attr$loci[[2]]$xlims
+  }
   empty_plot(xlims)
   plot_range <- xlims[2] - xlims[1]
   # if no refgene annotation in region don't plot it
@@ -557,7 +573,7 @@ get_plot_layout <- function(params, annotations, num_samples, vcfs_per_sample, m
   # top x-axis
   h <- c(4); p_n <- 1:n_col; idx <- n_col
   # title
-  h <- c(h,1); p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col
+  h <- c(h,2); p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col
   # separator
   h <- c(h, 1); p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col
   for (i in 1:num_samples){
@@ -606,7 +622,7 @@ get_plot_layout <- function(params, annotations, num_samples, vcfs_per_sample, m
     h <- c(h, 6); p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col
   }
   mat <- cbind((p_n[idx]+1):(p_n[idx]+length(h)), matrix(p_n, length(h), n_col, byrow = TRUE))
-  widths <- c(1, rep(8/n_col, times=n_col))
+  widths <- c(1, rep(9/n_col, times=n_col))
   return(list(mat=mat, heights=h, widths=widths))
 }
 # main method
@@ -618,7 +634,7 @@ visualise <- function(folder, sample_names, plot_args, outfile, title='') {
   ins_ylim <- max(sapply(samples, function(x) x$Ins$ylim))
   annotations <- Annotations(folder)
   lay_out <- get_plot_layout(params, annotations, num_samples, vcfs_per_sample)
-  pdf(outfile, title='SVPV Graphics Output', width = 8, height = 0.15* sum(lay_out$heights), bg = 'white')
+  #pdf(outfile, title='SVPV Graphics Output', width = 8, height = 0.15* sum(lay_out$heights), bg = 'white')
   layout(lay_out$mat, heights=lay_out$heights, widths=lay_out$widths)
   par(mar = c(0, 0, 0, 0), oma = c(0.5,0,0.5,0.5))
   add_position_axis(params, 3) # top x axis
@@ -630,12 +646,12 @@ visualise <- function(folder, sample_names, plot_args, outfile, title='') {
   }
   # add in heights for SVAF tracks
   if (params$tracks$svAF) {
-    for (i in 1:length(annotations$SV_AF)) {
-      plot_svs(annotations$SV_AF[[i]], xlims, annotations$AF_tracks[[i]])
+    for (i in 1:length(annotations$vcfs)) {
+      plot_svs(params, annotations$vcfs[[i]])
     }
   }
   # add in heights for refGene annotation tracks
-  if (params$tracks$refgene) {  plot_refgenes(annotations$Genes, xlims) }
+  if (params$tracks$refgene) {  plot_refgenes(params, annotations$Genes) }
   # plot bottom x-axis
   add_position_axis(xlims, 1)
   # add legend
