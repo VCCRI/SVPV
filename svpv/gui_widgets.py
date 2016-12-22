@@ -143,28 +143,22 @@ class Filters(tk.LabelFrame):
         self.type_filter.reset()
 
 class SvTypeFilter(tk.LabelFrame):
-    types = ('ALL', 'DEL', 'DUP', 'CNV', 'INV', 'INS', 'BND', 'TRA')
-
+    types = (None, 'DEL', 'DUP', 'CNV', 'INV', 'INS', 'BND', 'TRA')
     def __init__(self, parent):
         tk.LabelFrame.__init__(self, parent)
         self.type_var = tk.IntVar(value=0)
-        self.all_on_rb = tk.Radiobutton(self, text='All', justify=tk.LEFT, variable=self.type_var, value=0)
-        self.del_on_rb = tk.Radiobutton(self, text='DEL', justify=tk.LEFT, variable=self.type_var, value=1)
-        self.dup_on_rb = tk.Radiobutton(self, text='DUP', justify=tk.LEFT, variable=self.type_var, value=2)
-        self.cnv_on_rb = tk.Radiobutton(self, text='CNV', justify=tk.LEFT, variable=self.type_var, value=3)
-        self.inv_on_rb = tk.Radiobutton(self, text='INV', justify=tk.LEFT, variable=self.type_var, value=4)
-        self.ins_on_rb = tk.Radiobutton(self, text='INS', justify=tk.LEFT, variable=self.type_var, value=5)
-        self.bnd_on_rb = tk.Radiobutton(self, text='BND', justify=tk.LEFT, variable=self.type_var, value=6)
-        self.tra_on_rb = tk.Radiobutton(self, text='TRA', justify=tk.LEFT, variable=self.type_var, value=7)
-
-        self.all_on_rb.grid(row=0, column=0, sticky=tk.W)
-        self.del_on_rb.grid(row=1, column=0, sticky=tk.W)
-        self.dup_on_rb.grid(row=2, column=0, sticky=tk.W)
-        self.cnv_on_rb.grid(row=3, column=0, sticky=tk.W)
-        self.inv_on_rb.grid(row=0, column=1, sticky=tk.W)
-        self.ins_on_rb.grid(row=1, column=1, sticky=tk.W)
-        self.bnd_on_rb.grid(row=2, column=1, sticky=tk.W)
-        self.tra_on_rb.grid(row=3, column=1, sticky=tk.W)
+        self.radio_buttons = [tk.Radiobutton(self, text='All', justify=tk.LEFT, variable=self.type_var, value=0)]
+        self.radio_buttons[-1].grid(row=0, column=0, sticky=tk.W)
+        r=1
+        c=0
+        for i in range(1, len(SvTypeFilter.types)):
+            self.radio_buttons.append(tk.Radiobutton(self, text=SvTypeFilter.types[i], justify=tk.LEFT,
+                                                     variable=self.type_var, value=i))
+            self.radio_buttons[-1].grid(row=r, column=c, sticky=tk.W)
+            r += 1
+            if r > 3:
+                r = 0
+                c += 1
 
     def reset(self):
         self.type_var.set(0)

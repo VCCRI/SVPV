@@ -50,7 +50,7 @@ class SVPVGui(tk.Tk):
         self.buttons_1 = tk.LabelFrame(self)
         if self.reset:
             self.reset.destroy()
-        self.reset = tk.Button(self.buttons_1, text="Reset Filters", command=self.reset)
+        self.reset = tk.Button(self.buttons_1, text="Reset Filters", command=self.reset_filters)
         self.reset.grid(row=0, column=0, padx=40, sticky=tk.W)
         if self.list:
             self.list.destroy()
@@ -123,7 +123,7 @@ class SVPVGui(tk.Tk):
         self.info_box = gw.InfoBox(self, message)
         self.info_box.grid(row=6, column=0, sticky=tk.NSEW, padx=10, columnspan=2)
 
-    def reset(self):
+    def reset_filters(self):
         self.set_info_box()
         self.current_samples = []
         self.set_genotype_selector()

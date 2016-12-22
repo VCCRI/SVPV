@@ -47,6 +47,7 @@ class VCFManager:
                         self.SVs[sv.chrom][sv.pos] = [sv]
                     # delly
                     if sv.svtype == 'TRA':
+                        self.count += 1
                         if sv.chr2 in self.SVs:
                             if sv.pos in self.SVs[sv.chr2]:
                                 self.SVs[sv.chr2][sv.end].append(sv)
@@ -209,21 +210,22 @@ class SV:
     valid_SVs = ['DEL', 'DUP', 'CNV', 'INV', 'TRA', 'INS', 'BND']
 
     def __init__(self, chrom, pos, end, svtype, svlen, inslen, chr2, gts=None, af=float(0)):
+        #print(chrom, pos, end, svtype, svlen)
         self.chrom = chrom
         self.pos = int(pos)
-        try:
+        if end != '.':
             self.end = int(end)
-        except ValueError:
+        else:
             self.end = self.pos
-            pass
 
+        self.svtype = svtype
         # delly sv field
-        if inslen != '.':
+        if inslen != '.' and self.svtype == 'INS':
             self.inslen = int(inslen)
         else:
             self.inslen = None
         # delly sv field
-        if chr2 != '.':
+        if chr2 != '.' and chr2 != chrom:
             self.chr2 = chr2
             self.chr2_pos = self.end
             self.end = self.pos
@@ -240,8 +242,7 @@ class SV:
                 self.len = self.end - self.pos + 1
             else:
                 self.len = None
-
-        self.svtype = svtype
+        #print(self.len)
 
         self.GTs = gts
         if gts:
@@ -296,10 +297,10 @@ class SV:
             return '\t'.join([self.chrom, str(self.pos), str(self.end), self.svtype, str(self.AF)]) + '\n'
 
     def string_tuple(self):
-        if self.svtype in ('TRA', 'INS'):
+        if self.svtype in ('TRA', 'BND'):
             l = 'NA'
         else:
-            l = str(self.end - self.pos + 1)
+            l = str(self.len)
         return (self.svtype, self.chrom, str(self.pos), l, ('{0:.2f}'.format(self.AF)))
 
     # print SVs, either with genotype per sample, or MAF for whole BATCH annotation

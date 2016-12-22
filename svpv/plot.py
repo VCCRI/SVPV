@@ -35,26 +35,41 @@ class Plot:
                                   ideal_num_bins=50))
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.bkpt_bins,
                                                    depth_bins=self.region_bins)
+            elif self.region_bins.length() <  3* par.run.is_len:
+                mid = (sv.pos + sv.end) // 2
+                self.region_bins = Bins(sv.chrom, mid - par.run.is_len, mid + par.run.is_len)
+                self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])
             else:
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])
 
         # single breakpoint
         elif sv.svtype =='INS':
-            self.bkpt_bins = (Bins(sv.chrom, sv.pos - int(1.5 * par.run.is_len), sv.pos + int(1.5 * par.run.is_len)),)
-            self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples))
+            self.region_bins = Bins(sv.chrom, sv.pos - par.run.is_len, sv.pos + par.run.is_len)
+            self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])
 
         # do not show depth region, just stats at pair of breakpoints
         elif sv.svtype in ('BND', 'TRA'):
             if sv.svtype == 'BND':
                 chr1, pos1 = sv.BND_Event.loci[0]
-                chr2, pos2 = sv.BND_Event.loci[1]
-            # delly TRA spec
+                if len(sv.BND_Event.loci) > 1:
+                    chr2, pos2 = sv.BND_Event.loci[1]
+                else:
+                    chr2, pos2 = None, None
+            # delly TRA exception
             elif sv.svtype == 'TRA':
                 chr1, pos1 = sv.chrom, sv.pos
                 chr2, pos2 = sv.chr2, sv.end
-            self.bkpt_bins = (Bins(chr1, pos1 - int(1.5 * par.run.is_len), pos1 + int(1.5 * par.run.is_len)),
-                              Bins(chr2, pos2 - int(1.5 * par.run.is_len), pos2 + int(1.5 * par.run.is_len)))
-            self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.bkpt_bins)
+            if chr1 == chr2 and abs(pos2-pos1) < par.run.is_len:
+                self.region_bins = Bins(chr1, pos1 - par.run.is_len, pos2 + par.run.is_len)
+                self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])
+            elif chr2 is not None:
+                self.bkpt_bins = (Bins(chr1, pos1 - par.run.is_len, pos1 + par.run.is_len, ideal_num_bins=50),
+                                  Bins(chr2, pos2 - par.run.is_len, pos2 + par.run.is_len, ideal_num_bins=50))
+                self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.bkpt_bins)
+            else:
+                self.region_bins = Bins(chr1, pos1 - par.run.is_len, pos1 + par.run.is_len)
+                self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])
+
 
         else:
             raise ValueError('unsupported svtype: {}'.format(self.sv.svtype))
@@ -227,7 +242,7 @@ class Plot:
             return '%d_%s' % (length/1e9, 'Gbp')
 
 class Bins:
-    def __init__(self, chrom, start, end, ideal_num_bins=100):
+    def __init__(self, chrom, start, end, ideal_num_bins=100, ):
 
         # aim for ideal_num_bins, but bins need to be uniformally distributed and of equal size
         # smallest bins size is 1bp, so for regions < num_bins bp there will be less than num_bins bins
@@ -238,6 +253,9 @@ class Bins:
         self.num = (end - start + 1) // self.size
         self.end = self.start + self.num * self.size - 1
         self.region = chrom + ':' + str(self.start) + '-' + str(self.end)
+
+    def length(self):
+        return self.end - self.start + 1
 
     def get_region_tuple(self):
         return self.chrom, self.start, self.end

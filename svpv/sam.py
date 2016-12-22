@@ -152,7 +152,7 @@ class SamStats:
                 aln_stats_file.write(str(aln.bins.start + i*aln.bins.size) + '\t')
                 for k in range(0,len(row)-1):
                     aln_stats_file.write(str(row[k]) + '\t')
-                aln_stats_file.write(str(row[k]) + '\n')
+                aln_stats_file.write(str(row[-1]) + '\n')
                 # fwd inserts
                 if aln.fwd_inserts[i]:
                     for k in range(0, len(aln.fwd_inserts[i])-1):
@@ -174,7 +174,7 @@ class SamStats:
                     depth_file.write(str(aln.depth_stats.bins.start + i * aln.depth_stats.bins.size) + '\t')
                     for j in range(0, len(aln.depth_stats.depths[i]) - 1):
                         depth_file.write(str(aln.depth_stats.depths[i][j]) + '\t')
-                    depth_file.write(str(row[-1]) + '\n')
+                    depth_file.write(str(aln.depth_stats.depths[i][-1]) + '\n')
 
             if not self.depth:
                 depth_file.close()

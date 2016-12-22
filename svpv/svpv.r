@@ -93,12 +93,14 @@ AlnStats <- function(folder){
   return(aln_stats)
 }
 # parse SV info
-VCFs <- function(file){
+VCFs <- function(params, file){
   if (file.exists(file)) {
     vcfs <- read.delim(file, header = TRUE, sep = '\t')
     vcfs <- split.data.frame(vcfs, vcfs$vcf)
+    if (params$type != 'split') { xrange <- params$Attr$region$xlims[2] - params$Attr$region$xlims[1] }
+    else { xrange <- params$Attr$loci[[1]]$xlims[2] - params$Attr$loci[[1]]$xlims[1] }
     for (n in names(vcfs)){
-      tracks <- get_tracks(vcfs[[n]]$start, vcfs[[n]]$end, vcfs[[n]]$chrom)
+      tracks <- get_tracks(vcfs[[n]]$start, vcfs[[n]]$end, vcfs[[n]]$chrom, types=vcfs[[n]]$svtype, xrange=xrange)
       vcfs[[n]] <- list(calls=vcfs[[n]][2:ncol(vcfs[[n]])],
                      tracks = tracks,
                      n_tracks = max(tracks),
@@ -108,12 +110,12 @@ VCFs <- function(file){
   return(vcfs)
 }
 # store data for a given sample
-Sample <- function(folder, sample, label = FALSE) {
+Sample <- function(params, folder, sample, label = FALSE) {
   my_folder = paste0(folder, sample, '/')
   return(list(
     Name = sample,
     Depths = Depths(my_folder),
-    vcfs = VCFs(paste0(my_folder, 'svs.tsv')),
+    vcfs = VCFs(params, paste0(my_folder, 'svs.tsv')),
     Ins = Inserts(my_folder),
     aln_stats = AlnStats(my_folder)))
 }
@@ -126,7 +128,7 @@ Annotations <- function(params, folder) {
   } else {
     genes = NULL
   }
-  return(list(Genes=genes, vcfs=VCFs(paste0(folder, 'SV_AF.tsv'))))
+  return(list(Genes=genes, vcfs=VCFs(params, paste0(folder, 'SV_AF.tsv'))))
 }
 # add main plot title
 add_title <- function(title, cex=1.25, font=2){
@@ -184,11 +186,11 @@ plot_depth <- function(params, depths) {
 }
 
 depth_plotter <- function(depth, bin_size){
-  rect(depth$bin, c(0), (depth$bin + bin_size), depth$total, col='#74C476')
+  rect(depth$bin, c(0), (depth$bin + bin_size), depth$total, col='seagreen3')
   # add depth$mapQ0 to depth
-  rect(depth$bin, depth$total, (depth$bin + bin_size), (depth$total - depth$mapQ0), col='white')
+  rect(depth$bin, depth$total, (depth$bin + bin_size), (depth$total - depth$mapQ0), col='gray95')
   # add depth$mapQltT to depth
-  rect(depth$bin, (depth$total - depth$mapQ0), (depth$bin + bin_size), depth$total - (depth$mapQ0 + depth$mapQltT), col='khaki1')
+  rect(depth$bin, (depth$total - depth$mapQ0), (depth$bin + bin_size), depth$total - (depth$mapQ0 + depth$mapQltT), col='wheat2')
 }
 
 # add the legend
@@ -206,7 +208,7 @@ add_legend <- function() {
   bottom = 0.20
   top = bottom + 0.20
   # depth legend
-  rect(c((1 / 6 - 0.1), (3 / 6 - 0.1), (5 / 6 - 0.1)), bottom, c((1 / 6 + 0.1), (3 / 6 + 0.1), (5 / 6 + 0.1)), top,  col=c('#74C476', 'khaki1', 'gray95'))
+  rect(c((1 / 6 - 0.1), (3 / 6 - 0.1), (5 / 6 - 0.1)), bottom, c((1 / 6 + 0.1), (3 / 6 + 0.1), (5 / 6 + 0.1)), top,  col=c('seagreen3', 'wheat2', 'gray95'))
   text( c((1 / 6), (3 / 6), (5 / 6)), c(top + 0.1), pos=3, labels=c(">= 30", "< 30", "= 0") )
   # inferred insert size legend
   text(1.5, top + 0.25, labels=c("Proportion in position x\nwith mapping distance y"))
@@ -232,7 +234,7 @@ aln_stats_pallete <- function(n){
   return(colorRampPalette(c("gray95", "#FDD49E", "#FDBB84", "#FC8D59", "#EF6548", "#D7301F", "#B30000", "#7F0000"))(n))
 }
 insert_size_pallete <- function(n){
-  return(colorRampPalette(c("gray95", "#C6DBEF", "#9ECAE1", "#6BAED6", "#4292C6", "#2171B5", "#08519C", "#08306B"))(n))
+  return(colorRampPalette(c("gray95", "#C7E9B4", "#7FCDBB", "#41B6C4", "#1D91C0", "#225EA8", "#253494", "#081D58"))(n))
 }
 
 plot_all_aln_stats <- function(params, aln_stats){
@@ -339,7 +341,7 @@ plot_svs <- function(params, vcf, AF=TRUE) {
     par(las=2)
     mtext(vcf$name, side=2, line=0, cex=0.8)
     # text(0.5 * (params$Attr$region$xlims[1] + params$Attr$region$xlims[2]), 0.5, labels="None")
-    sv_plotter(vcf$calls, vcf$tracks, params$Attr$region$xlims, AF=AF)
+    sv_plotter(vcf$calls, vcf$tracks, 1/max(vcf$tracks), params$Attr$region$xlims, AF=AF)
   } else {
     for (i in 1:2){
       empty_plot(params$Attr$loci[[i]]$xlims)
@@ -349,45 +351,54 @@ plot_svs <- function(params, vcf, AF=TRUE) {
       if (!length(idxs)) {
         text(0.5 * (params$Attr$loci[[i]]$xlims[1] + params$Attr$loci[[i]]$xlims[2]), 0.5, labels="None")
       } else {
-        sv_plotter(vcf$calls[idxs,], vcf$tracks[idxs], params$Attr$loci[[i]]$xlims, AF=AF)
+        sv_plotter(vcf$calls[idxs,], vcf$tracks[idxs], 1/max(vcf$tracks), params$Attr$loci[[i]]$xlims, AF=AF)
       }
     }
   }
 }
 # plot structural variants
-sv_plotter <- function(svs, tracks, xlims, AF=TRUE){
-  scale=1 / max(tracks)
+sv_plotter <- function(svs, tracks, scale,  xlims, AF=TRUE){
   par(las=1)
   par(font=2)
+  range = xlims[2] - xlims[1]
   for (i in 1:nrow(svs)) {
     # create a rectange covering each sv call
     start <- max(xlims[1], svs$start[i])
     end <- min(xlims[2], svs$end[i])
-    x_prop <- (end - start) / (xlims[2] - xlims[1])
+    x_prop <- (end - start) / range
     bottom <- ((tracks[i] - 1) * scale)
     top <- ((tracks[i]) * scale)
     spacer = 0.1*(top-bottom)
     # label the sv, if it is of sufficient length to not overlap bounds
     len <- svs$end[i] - svs$start[i] + 1
     units <- get_units(len)
-    
     if (AF) { 
       col = col=get_sv_col(svs$svtype[i], as.numeric(svs$MAF[i])) 
     } else { 
       col=get_sv_col(svs$svtype[i], 0.8*(0.5*grepl('1', svs$gt[i]) + 0.5*grepl('1/1', svs$gt[i])))
     }
-    rect(start, bottom + spacer, end, top - spacer, col=col, border=get_sv_col(svs$svtype[i], 1), lwd=2)
-    if (AF){
-      if (x_prop > 1/5){
-        text(0.5 * (start + end), 0.5 * (top + bottom), labels = paste0(svs$svtype[i], ' : AF = ', as.character(round(as.numeric(svs$AF[i]), digits = 3)), ' : ', as.character(round(len/units$val, digits=2)), " ", units$sym))
-      } else if (x_prop > 1/10){
-        text(0.5 * (start + end), 0.5 * (top + bottom), labels = paste0('AF = ', as.character(round(as.numeric(svs$AF[i]), digits = 3))))
+    if (!svs$svtype[i] %in% c('BND', 'INS', 'TRA')){
+      rect(start, bottom + spacer, end, top - spacer, col=col, border=get_sv_col(svs$svtype[i], 1), lwd=2)
+      if (AF){
+        if (x_prop > 1/5){
+          text(0.5 * (start + end), 0.5 * (top + bottom), labels = paste0(svs$svtype[i], ' : AF = ', as.character(round(as.numeric(svs$MAF[i]), digits = 3)), ' : ', as.character(round(len/units$val, digits=2)), " ", units$sym))
+        } else if (x_prop > 1/10){
+          text(0.5 * (start + end), 0.5 * (top + bottom), labels = paste0('AF = ', as.character(round(as.numeric(svs$MAF[i]), digits = 3))))
+        }
+      } else {
+        if (x_prop > 1/5){
+          text(0.5 * (max(xlims[1], svs$start[i]) + min(xlims[2], svs$end[i])), ((tracks[i] - 0.5) * scale), labels = paste(svs$svtype[i], ':', svs$gt[i], ':', as.character(round(len/units$val, digits=2)), " ", units$sym))
+        } else {
+          text(0.5 * (max(xlims[1], svs$start[i]) + min(xlims[2], svs$end[i])), ((tracks[i] - 0.5) * scale), labels = svs$gt[i])
+        }
       }
     } else {
-      if (x_prop > 1/5){
-        text(  0.5 * (max(xlims[1], svs$start[i]) + min(xlims[2], svs$end[i])), ((tracks[i] - 0.5) * scale), labels = paste(svs$svtype[i], ':', svs$gt[i], ':', as.character(round(len/units$val, digits=2)), " ", units$sym))
+      segments(start, bottom, start, top)
+      symbols(start, (top+bottom)/2, stars=matrix(rep(c(0.01*range), times=4), 1, 4, byrow=TRUE), inches=FALSE, add=TRUE, bg=col)
+      if (AF){
+      text(start+0.005*range, 0.5 * (top + bottom), labels = paste0(svs$svtype[i], ' : AF = ', as.character(round(as.numeric(svs$MAF[i]), digits = 3))), pos=4)
       } else {
-        text(  0.5 * (max(xlims[1], svs$start[i]) + min(xlims[2], svs$end[i])), ((tracks[i] - 0.5) * scale), labels = svs$gt[i])
+        text(start+0.005*range, 0.5 * (top + bottom), labels = paste0(svs$svtype[i], ' : ', svs$gt[i]), pos=4)
       }
     }
   }
@@ -415,7 +426,7 @@ get_sv_col <- function(type, intensity) {
   } else if ((grepl('DUP', type))) {
       return(colorRampPalette(c("#F7FBFF", "#DEEBF7", "#C6DBEF", "#9ECAE1", "#6BAED6", "#4292C6", "#2171B5", "#08519C"))(100)[20 + floor(80 * intensity)])
   } else if ((grepl('INV', type))) {
-      return(colorRampPalette(c("#F7FCF5", "#E5F5E0", "#C7E9C0", "#A1D99B", "#74C476", "#41AB5D", "#238B45", "#006D2C"))(100)[20 + floor(80 * intensity)])
+      return(colorRampPalette(c("#F7FCF5", "#E5F5E0", "#C7E9C0", "#A1D99B", "#74C476", "#41AB5D", "seagreen3", "#006D2C"))(100)[20 + floor(80 * intensity)])
   } else if ((grepl('CNV', type))) {
     return(colorRampPalette(c("#FCFBFD", "#EFEDF5", "#DADAEB", "#BCBDDC", "#9E9AC8", "#807DBA", "#6A51A3", "#54278F"))(100)[20 + floor(80 * intensity)])
   } else {
@@ -477,7 +488,11 @@ add_zoom_axes <- function(params){
   axis(side=1, at=at, labels=paste(as.character(round(at/units$val, digits=2)), units$sym),line=-1.5)
 }
 #returns an assignment to tracks for a set of regions such that there are no overlaps
-get_tracks <- function(starts, ends, chroms) {
+get_tracks <- function(starts, ends, chroms, types=NA, xrange=NA) {
+  if (!is.na(xrange)){
+    idxs = which(types %in% c('BND', 'TRA', 'INS'))
+    ends[idxs] = starts[idxs] + 0.1*xrange
+  }
   # assume that starts and ends are of same length and are sorted by lowest start first
   tracks <- vector("integer", length = length(starts))
   tracks[1] = 1
@@ -505,40 +520,51 @@ get_tracks <- function(starts, ends, chroms) {
 }
 # add refgene tracks to the plot
 plot_refgenes <- function(params, refgenes) {
-  if (is.null(refgenes)) {
-    empty_plot(c(0,1)); text(0.5 * (xlims[1] + xlims[2]), 0.5, labels = "None")
-  } else {
-    if (params$type != 'split'){
-      xlims <- params$Attr$region$xlims
-      empty_plot(xlims)
+  if (params$type != 'split'){
+    xlims <- params$Attr$region$xlims
+    empty_plot(xlims)
+    if (is.null(refgenes)) {
+      text(0.5 * (xlims[1] + xlims[2]), 0.5, labels = "None")
+      mtext('Genes', side=2, line=3, cex=0.75)
+    } else {
       for (i in 1:nrow(refgenes)){
         segments(xlims[1], (i- 0.5) * 1/nrow(refgenes), xlims[2], (i- 0.5) * 1/nrow(refgenes), col='gray50')
         refgene_plotter(params$Attr$region$xlims, nrow(refgenes), i, refgenes[i,])
       }
     }
-    else {
-      xlims <- params$Attr$loci[[1]]$xlims
-      empty_plot(xlims)
+  }
+  else {
+    xlims <- params$Attr$loci[[1]]$xlims
+    empty_plot(xlims)
+    if (is.null(refgenes)) {
+      text(0.5 * (xlims[1] + xlims[2]), 0.5, labels = "None")
+      mtext('Genes', side=2, line=3, cex=0.75)
+    } else {
       for (i in 1:nrow(refgenes)){
         segments(xlims[1], (i- 0.5) * 1/nrow(refgenes), xlims[2], (i- 0.5) * 1/nrow(refgenes), col='gray50')
-        refgene_plotter(params$Attr$region$xlims, nrow(refgenes), i, refgenes[i], plot_percentage=FALSE)
+        refgene_plotter(params$Attr$loci[[1]]$xlims, nrow(refgenes), i, refgenes[i,])
       }
-      xlims <- params$Attr$loci[[2]]$xlims
-      empty_plot(xlims)
+    }
+    xlims <- params$Attr$loci[[2]]$xlims
+    empty_plot(xlims)
+    if (is.null(refgenes)) {
+      text(0.5 * (xlims[1] + xlims[2]), 0.5, labels = "None")
+      mtext('Genes', side=2, line=3, cex=0.75)
+    } else {
       for (i in 1:nrow(refgenes)){
         segments(xlims[1], (i- 0.5) * 1/nrow(refgenes), xlims[2], (i- 0.5) * 1/nrow(refgenes), col='gray50')
-        refgene_plotter(params$Attr$region$xlims, nrow(refgenes), i, refgenes[i], plot_name=FALSE)
+        refgene_plotter(params$Attr$loci[[2]]$xlims, nrow(refgenes), i, refgenes[i,], plot_name=FALSE)
       }
     }
   }
 }
-
-refgene_plotter <- function(xlims, num_genes, idx, refgene, plot_name=TRUE, plot_percentage=TRUE){
+refgene_plotter <- function(xlims, num_genes, idx, refgene, plot_name=TRUE){
   plot_range <- xlims[2] - xlims[1]
   scale = 1/max(num_genes)
   plot_start = max(xlims[1], refgene$txStart)
   plot_end = min(xlims[2], refgene$txEnd)
   plot_len = plot_end - plot_start + 1
+  if (plot_len <= 0) return(NULL)
   total_len = refgene$txEnd - refgene$txStart + 1
   fwd = ("+" == as.character(refgene$strand))
   if (fwd) {dir = '->'} else {dir = '<-'}
@@ -549,9 +575,6 @@ refgene_plotter <- function(xlims, num_genes, idx, refgene, plot_name=TRUE, plot
   par(xpd=NA)
   if (plot_name) {
     text(xlims[1], ((idx- 0.5) * scale), labels=paste(refgene$name2, dir), pos=2)
-  }
-  if (plot_percentage) {
-    text(xlims[2], ((idx- 0.5) * scale), labels=paste(as.character(round(100*plot_len/total_len, digits=0)), '%'), pos=4)
   }
   par(xpd=FALSE)
   # get the exon starts and ends
@@ -623,7 +646,7 @@ get_plot_layout <- function(params, annotations, num_samples, vcfs_per_sample, m
     # breakpoint zoom axes
     if (params$type == 'zoom'){ h <- c(h, 2); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col }
     # separator
-    h <- c(h, 1); p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col
+    h <- c(h, 1.5); p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col
   }
   # add in h for SV_AF tracks
   if (params$tracks$svAF) {
@@ -653,7 +676,7 @@ get_plot_layout <- function(params, annotations, num_samples, vcfs_per_sample, m
   }
   # add in bottom x-axis
   if (params$type == 'zoom') { h <- c(h, 4); p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col }
-  else { h <- c(4); p_n <- p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col }
+  else { h <- c(h, 4); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col }
   # add room for legend
   if (params$tracks$legend) {
     h <- c(h, 6); p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col
@@ -666,13 +689,13 @@ get_plot_layout <- function(params, annotations, num_samples, vcfs_per_sample, m
 visualise <- function(folder, sample_names, plot_args, outfile, title='') {
   params <- PlotParams(folder, plot_args)
   num_samples <- length(sample_names)
-  samples <-  lapply(sample_names, function(x) Sample(folder, x))
+  samples <-  lapply(sample_names, function(x) Sample(params, folder, x))
   vcfs_per_sample <- lapply(samples, function(x) sapply(x$vcfs, function(y) y$n_tracks))
   ins_ylim <- max(sapply(samples, function(x) x$Ins$ylim))
   annotations <- Annotations(params, folder)
   lay_out <- get_plot_layout(params, annotations, num_samples, vcfs_per_sample)
   pdf(outfile, title='SVPV Graphics Output', width = 8, height = 0.15* sum(lay_out$heights), bg = 'white')
-  par(mai = c(0, 0, 0, 0), omi = c(0.2, 0, 0.1, 0.20))
+  par(mai = c(0, 0, 0, 0), omi = c(0.2, 0, 0.1, 0))
   layout(lay_out$mat, heights=lay_out$heights, widths=lay_out$widths)
   add_position_axis(params, 3) # top x axis
   add_title(title)
@@ -698,8 +721,7 @@ visualise <- function(folder, sample_names, plot_args, outfile, title='') {
   graphics.off()
 }
 # read command-line arguments
-#args <- commandArgs(trailingOnly = TRUE)
-args <- c('NA12877_S1,NA12878_S1,NA12884_S1', '/home/jacmun/R/SVPV_debug/INV/chr1_247127925/', '/home/jacmun/R/SVPV_debug/INV/chr1_247127925/out.pdf', "INV ", '-d', '-or', '-v', '-ss', '-cl', '-i', '-r', '-af', '-l', '-dm')
+args <- commandArgs(trailingOnly = TRUE)
 sample_names <- strsplit(as.character(args[1]), ',')[[1]]
 folder <- args[2]
 outfile <- args[3]
