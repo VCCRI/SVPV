@@ -24,33 +24,19 @@ class Plot:
         self.bkpt_bins = None
 
         # show depth over whole region but zoom in on breakpoints if necessary
-        if sv.svtype in ('DEL', 'DUP', 'CNV'):
+        if sv.svtype in ('DEL', 'DUP', 'CNV', 'INV'):
             start = sv.pos - par.run.expansion * (sv.end - sv.pos + 1)
             end = sv.end + par.run.expansion * (sv.end - sv.pos + 1)
             self.region_bins = Bins(sv.chrom, start, end)
             if self.region_bins.size / par.run.is_len > 0.25:
                 self.bkpt_bins = (Bins(sv.chrom, sv.pos - int(1.5 * par.run.is_len), sv.pos + int(1.5 * par.run.is_len),
-                                       ideal_num_bins=50),
-                             Bins(sv.chrom, sv.end - int(1.5 * par.run.is_len), sv.end + int(1.5 * par.run.is_len),
-                                       ideal_num_bins=50))
+                                  ideal_num_bins=50),
+                                  Bins(sv.chrom, sv.end - int(1.5 * par.run.is_len), sv.end + int(1.5 * par.run.is_len),
+                                  ideal_num_bins=50))
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.bkpt_bins,
                                                    depth_bins=self.region_bins)
             else:
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])
-
-        # show as single region if small enought, otherwise just window around breakpoints
-        elif sv.svtype == 'INV':
-            start = sv.pos - par.run.expansion * (sv.end - sv.pos + 1)
-            end = sv.end + par.run.expansion * (sv.end - sv.pos + 1)
-            self.region_bins = Bins(sv.chrom, start, end)
-            if self.region_bins.size / par.run.is_len > 0.25:
-                self.bkpt_bins = (
-                Bins(sv.chrom, sv.pos - int(1.5 * par.run.is_len), sv.pos + int(1.5 * par.run.is_len)),
-                Bins(sv.chrom, sv.end - int(1.5 * par.run.is_len), sv.end + int(1.5 * par.run.is_len)))
-                self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.bkpt_bins)
-                self.region_bins = None
-            else:
-                self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.region_bins)
 
         # single breakpoint
         elif sv.svtype =='INS':
@@ -69,6 +55,7 @@ class Plot:
             self.bkpt_bins = (Bins(chr1, pos1 - int(1.5 * par.run.is_len), pos1 + int(1.5 * par.run.is_len)),
                               Bins(chr2, pos2 - int(1.5 * par.run.is_len), pos2 + int(1.5 * par.run.is_len)))
             self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.bkpt_bins)
+
         else:
             raise ValueError('unsupported svtype: {}'.format(self.sv.svtype))
         self.print_data()
@@ -113,7 +100,8 @@ class Plot:
                 for g in gs:
                     if g not in genes:
                         genes.append(g)
-            RefGeneEntry.print_entries(genes, open(os.path.join(self.dirs['pos'], 'refgene.tsv'), 'w'))
+            if genes:
+                RefGeneEntry.print_entries(genes, open(os.path.join(self.dirs['pos'], 'refgene.tsv'), 'w'))
 
         # sample-wise SV annotation
         for i, s in enumerate(self.samples):
@@ -124,8 +112,6 @@ class Plot:
                 for sv in _svs_:
                     if sv not in svs:
                         svs.append(sv)
-            if self.sv not in svs:
-                svs.append(self.sv)
             SV.print_SVs_header(sv_file, sample_index=self.par.run.vcf.get_sample_index(s))
             SV.print_SVs(svs, sv_file, self.par.run.vcf.name, sample_index=self.par.run.vcf.get_sample_index(s))
             for vcf in self.par.run.alt_vcfs:

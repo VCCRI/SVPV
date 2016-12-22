@@ -118,7 +118,7 @@ Sample <- function(folder, sample, label = FALSE) {
     aln_stats = AlnStats(my_folder)))
 }
 # container for annotations
-Annotations <- function(folder) {
+Annotations <- function(params, folder) {
   #check if refgenes file exists, if so read
   genes_file <- paste0(folder, 'refgene.tsv')
   if (file.exists(genes_file)) {
@@ -163,13 +163,14 @@ add_position_axis <- function(params, side) {
 }
 # plot read depth and mapping quality
 plot_depth <- function(params, depths) {
-  par(las=1)
   if (params$type != 'split'){
     ylims = c(0, 1.2 * max(depths$region$total - depths$region$mapQ0 - depths$region$mapQltT, na.rm=TRUE))
     empty_plot(params$Attr$region$xlims, ylim=ylims)
     add_border(params$Attr$region$xlims, ylims)
     depth_plotter(depths$region, params$Attr$r_bin_size)
-    title(ylab='Depth\n(reads/ bp)', line=2)
+    par(las=3)
+    mtext('Depth\n(reads/ bp)', side=2, line=3, cex=0.75)
+    par(las=1)
     axis(2, tick=TRUE, labels=TRUE, line=0.5)
   } else {
     ylims = c(0, 1.2 * max(sapply(depths$loci, function(x) max(x$total - x$mapQ0 - x$mapQltT, na.rm=TRUE))))
@@ -326,11 +327,34 @@ bin_plot_inserts <- function(ins, ylim, num_y_bins=10, add_axis=FALSE, ylab=''){
     ticks_at <- c((mid - interval), mid, (mid + interval))
     text(0, num_y_bins + 0.5, labels =">", cex=0.85, pos=2)
     axis(2, at=10 * ticks_at / ylim,  labels=as.character(ticks_at),  line=0.5)
-    title(ylab=paste0(ylab,'(', units$sym, ')'), line=1.5)
+    par(las=1)
+    mtext(paste0(ylab,'(', units$sym, ')'), side=2, line=3.5, cex=0.6)
+  }
+}
+# coordinate sv plotting
+plot_svs <- function(params, vcf, AF=TRUE) {
+  if (params$type != 'split'){
+    empty_plot(params$Attr$region$xlims)
+    add_border(params$Attr$region$xlims ,c(0,1))
+    par(las=2)
+    mtext(vcf$name, side=2, line=0, cex=0.8)
+    # text(0.5 * (params$Attr$region$xlims[1] + params$Attr$region$xlims[2]), 0.5, labels="None")
+    sv_plotter(vcf$calls, vcf$tracks, params$Attr$region$xlims, AF=AF)
+  } else {
+    for (i in 1:2){
+      empty_plot(params$Attr$loci[[i]]$xlims)
+      add_border(params$Attr$loci[[i]]$xlims, c(0,1))
+      if (i == 1) mtext(vcf$name, side=2, line=0, cex=0.8)
+      idxs = which(vcf$calls$chrom == params$Attr$loci[[i]]$chr)
+      if (!length(idxs)) {
+        text(0.5 * (params$Attr$loci[[i]]$xlims[1] + params$Attr$loci[[i]]$xlims[2]), 0.5, labels="None")
+      } else {
+        sv_plotter(vcf$calls[idxs,], vcf$tracks[idxs], params$Attr$loci[[i]]$xlims, AF=AF)
+      }
+    }
   }
 }
 # plot structural variants
-#plot_svs(params, sample$svs, AF=FALSE)
 sv_plotter <- function(svs, tracks, xlims, AF=TRUE){
   scale=1 / max(tracks)
   par(las=1)
@@ -365,32 +389,9 @@ sv_plotter <- function(svs, tracks, xlims, AF=TRUE){
       } else {
         text(  0.5 * (max(xlims[1], svs$start[i]) + min(xlims[2], svs$end[i])), ((tracks[i] - 0.5) * scale), labels = svs$gt[i])
       }
-  }
-}
-  par(font = 1)
-}
-# coordinate sv plotting
-plot_svs <- function(params, vcf, AF=TRUE) {
-  if (params$type != 'split'){
-    empty_plot(params$Attr$region$xlims)
-    add_border(params$Attr$region$xlims ,c(0,1))
-    par(las=2)
-    mtext(vcf$name, side=2, line=0, cex=0.8)
-    # text(0.5 * (params$Attr$region$xlims[1] + params$Attr$region$xlims[2]), 0.5, labels="None")
-    sv_plotter(vcf$calls, vcf$tracks, params$Attr$region$xlims, AF=AF)
-  } else {
-    for (i in 1:2){
-      empty_plot(params$Attr$loci[[i]]$xlims)
-      add_border(params$Attr$loci[[i]]$xlims, c(0,1))
-      if (i == 1) mtext(vcf$name, side=2, line=0, cex=0.8)
-      idxs = which(vcf$calls$chrom == params$Attr$loci[[i]]$chr)
-      if (!length(idxs)) {
-        text(0.5 * (params$Attr$loci[[i]]$xlims[1] + params$Attr$loci[[i]]$xlims[2]), 0.5, labels="None")
-      } else {
-        sv_plotter(vcf$calls[idxs,], vcf$tracks[idxs], params$Attr$loci[[i]]$xlims, AF=AF)
-      }
     }
   }
+  par(font = 1)
 }
 # for getting sv col based on genotype
 gt_to_intensity <- function(gt){
@@ -436,45 +437,44 @@ plot_sample <- function(sample, params, ins_ylim) {
   if (params$tracks$ins){ plot_insert_sizes(params, sample$Ins, ins_ylim) }
   # plot aln stats
   plot_all_aln_stats(params, sample$aln_stats)
-  # plot zoom details
-  if (params$type == 'zoom'){ add_zoom_detail(params,axes=TRUE) }
+  # plot zoom axis
+  if (params$type == 'zoom'){ add_zoom_axes(params) }
   # add separator
   separator()
 }
 # add annotations of details of the plot
-plot_details <- function(bin_size, num_bins) {
-  mtext( paste("Bin size: ", as.character(bin_size), "    Num bins: ", as.character(num_bins), "    Date: ", as.character(Sys.Date()) ), side = 1, line = 0, adj = 0, cex = 0.65 )
+plot_details <- function(params) {
+  if (params$type == 'contiguous'){
+    mtext(paste("Bin size: ", as.character(params$Attr$r_bin_size), "   Num bins: ", as.character(params$Attr$r_bin_num), "   Date: ", as.character(Sys.Date()) ), side = 1, line = 0, adj = 0, cex = 0.65 )
+  } else if (params$type == 'zoom'){
+    mtext(paste("Depth bin size: ", as.character(params$Attr$r_bin_size), "   Num depth bins: ", as.character(params$Attr$r_bin_num), "   Zoom bin size: ", as.character(params$Attr$l_bin_size), "   Num zoom bins: ", as.character(params$Attr$l_bin_num), "   Date: ", as.character(Sys.Date()) ), side = 1, line = 0, adj = 0, cex = 0.65 )
+  } else {
+    mtext(paste("Bin size: ", as.character(params$Attr$l_bin_size), "   Num bins: ", as.character(params$Attr$l_bin_num), "   Date: ", as.character(Sys.Date()) ), side = 1, line = 0, adj = 0, cex = 0.65 )
+  }
 }
 # graphical representation of linear transformation between depth plot and zoomed in inserts size and aln stats plots
-add_zoom_detail <- function(params, col='black', spacer=2, axes = FALSE){
+add_zoom_detail <- function(params, col='black', spacer=2){
   #(xlims, start_1, end_1, start_2, end_2, num_bins, col='black', spacer=2, axes = FALSE)
   xlims <- params$Attr$region$xlims
-  start_1 <- params$Attr$loci[[1]]$start
-  start_2 <- params$Attr$loci[[2]]$start
-  end_1 <- params$Attr$loci[[1]]$end
-  end_2 <- params$Attr$loci[[2]]$end
+  start_1 <- params$Attr$loci[[1]]$start; start_2 <- params$Attr$loci[[2]]$start
+  end_1 <- params$Attr$loci[[1]]$end; end_2 <- params$Attr$loci[[2]]$end
   num_bins <- params$Attr$l_bin_num
   range = xlims[2] - xlims[1]
-  zoom_start_1 = xlims[1] + (spacer/(num_bins+4*spacer))*range
-  zoom_end_1 = xlims[1] + ((spacer + 0.5*num_bins)/(num_bins+4*spacer))*range
-  zoom_start_2 = xlims[1] + ((3*spacer+0.5*num_bins)/(num_bins+4*spacer))*range
-  zoom_end_2 = xlims[1] + ((3*spacer+num_bins)/(num_bins+4*spacer))*range
   empty_plot(xlims)
-  if (axes){
-    # add axes for the zoomed regions
-    units <- get_units(end_1-start_1)
-    at = (zoom_start_1 + (zoom_end_1-zoom_start_1)*c((1/6),(1/2),(5/6)))
-    labels = ((start_1 + (end_1-start_1)*c((1/6),(1/2),(5/6)))/units$val)
-    axis(side=1, at=at, labels=paste(as.character(round(labels, digits=1)), units$sym), line=-2)
-    at = (zoom_start_2 + (zoom_end_2-zoom_start_2)*c((1/6),(1/2),(5/6)))
-    labels = ((start_2 + (end_2-start_2)*c((1/6),(1/2),(5/6)))/units$val)
-    axis(side=1, at=at, labels=paste(as.character(round(labels, digits=1)), units$sym),line=-2)
-  } else {
-    # show the level of zoom
-    segments(c(start_1, end_1, start_2, end_2), c(0.7), c(start_1, end_1, start_2, end_2), c(2), col=col, lwd=2)
-    segments(c(start_1, end_1, start_2, end_2), c(0.7), c(zoom_start_1, zoom_end_1, zoom_start_2, zoom_end_2), c(0.3), col=col, lwd=2)
-    segments(c(zoom_start_1, zoom_end_1, zoom_start_2, zoom_end_2), c(0.3), c(zoom_start_1, zoom_end_1, zoom_start_2, zoom_end_2), c(-1), col=col, lwd=2)
-  }
+  segments(c(start_1, end_1, start_2, end_2), c(0.7), c(start_1, end_1, start_2, end_2), c(2), col=col, lwd=2, ljoin=1)
+  segments(c(start_1, end_1, start_2, end_2), c(0.7), c(xlims[1], xlims[1] + 0.475*range, xlims[1] + 0.525*range, xlims[2]), c(0), col=col, lwd=2, ljoin=1)
+}
+
+# add axis to zoom plots
+add_zoom_axes <- function(params){
+  par(las=0)
+  units <- get_units(params$Attr$loci[[1]]$end - params$Attr$loci[[1]]$start)
+  at = (params$Attr$loci[[1]]$start + (params$Attr$loci[[1]]$end - params$Attr$loci[[1]]$start) *c((1/6),(1/2),(5/6)))
+  empty_plot(params$Attr$loci[[1]]$xlims)
+  axis(side=1, at=at,labels=paste(as.character(round(at/ units$val, digits=1)), units$sym), line=-1.5)
+  at = (params$Attr$loci[[2]]$start + (params$Attr$loci[[2]]$end - params$Attr$loci[[2]]$start) *c((1/6),(1/2),(5/6)))
+  empty_plot(params$Attr$loci[[2]]$xlims)
+  axis(side=1, at=at, labels=paste(as.character(round(at/units$val, digits=2)), units$sym),line=-1.5)
 }
 #returns an assignment to tracks for a set of regions such that there are no overlaps
 get_tracks <- function(starts, ends, chroms) {
@@ -504,89 +504,113 @@ get_tracks <- function(starts, ends, chroms) {
   return(tracks)
 }
 # add refgene tracks to the plot
-plot_refgenes <- function(params, refgenes,) {
-  
-  if (params$type != 'split'){
-    xlims <- params$Attr$region$xlims
-  }
-  else {
-    xlims <- params$Attr$loci[[1]]$xlims
-    xlims <- params$Attr$loci[[2]]$xlims
-  }
-  empty_plot(xlims)
-  plot_range <- xlims[2] - xlims[1]
-  # if no refgene annotation in region don't plot it
+plot_refgenes <- function(params, refgenes) {
   if (is.null(refgenes)) {
-    text(0.5 * (xlims[1] + xlims[2]), 0.5, labels = "None")
+    empty_plot(c(0,1)); text(0.5 * (xlims[1] + xlims[2]), 0.5, labels = "None")
   } else {
-    # ensure no genes are plotted overlapping by assigning those that do overlap to separate tracks in a greedy fashion
-    # since refgenes should already be sorted by start position this is fairly straightforward
-    tracks <- 1:nrow(refgenes)
-    scale = 1/max(tracks)
-    for (i in 1:(nrow(refgenes))) {
-      # plot thin rectangle for whole length of transcript
-      plot_start = max(xlims[1], refgenes$txStart[i])
-      plot_end = min(xlims[2], refgenes$txEnd[i])
-      plot_len = plot_end - plot_start + 1
-      total_len = refgenes$txEnd[i] - refgenes$txStart[i] + 1
-      fwd = ("+" == as.character(refgenes$strand[i]))
-      if (fwd) {dir = '->'} else {dir = '<-'}
-      segments(xlims[1], (tracks[i]- 0.5) * scale, xlims[2], (tracks[i]- 0.5) * scale, col='gray50')
-      rect(plot_start, ((tracks[i] - 0.8) * scale), plot_end, ((tracks[i]-0.2) * scale), col = '#74C476', border='gray50')
-      units <- get_units(plot_len)
-      par(font=2)
-      #l abel the gene
-      par(xpd=NA)
-      text(xlims[1], ((tracks[i]- 0.5) * scale), labels=paste(refgenes$name2[i], dir), pos=2)
-      text(xlims[2], ((tracks[i]- 0.5) * scale), labels=paste(as.character(round(100*plot_len/total_len, digits=0)), '%'), pos=4)
-      par(xpd=FALSE)
-      # get the exon starts and ends
-      starts = as.numeric(strsplit(as.character(refgenes$exonStarts[i]), ',')[[1]])
-      ends = as.numeric(strsplit(as.character(refgenes$exonEnds[i]), ',')[[1]])
-      fwd = ("+" == as.character(refgenes$strand[i]))
-      min_exon_label_dist = 0.02 * (xlims[2] - xlims[1])
-      last_exon_labelled = NA
-      # plot exons
-      for (j in 1:length(starts)) {
-        # check if exon is within plot limits
-        if ((ends[j] < xlims[1]) | (starts[j] > xlims[2])) { next }
-        rect(max(xlims[1], starts[j]), ((tracks[i] - 0.925) * scale),  min(xlims[2], ends[j]), ((tracks[i] - 0.075) * scale), col = '#6BAED6', border='gray50')
-      }
-      for (j in 1:length(starts)) {
-        if ((ends[j] < xlims[1]) | (starts[j] > xlims[2])) { next }
-        if (fwd) {num = j} else {num = length(starts) - j + 1}
-        label_pos = 0.5 * (max(xlims[1], starts[j]) + min(xlims[2], ends[j]))
-        # ensure enought distance between exon labels and gene name label before annotating
-        if (is.na(last_exon_labelled) | (label_pos - last_exon_labelled) > min_exon_label_dist){
-          text(0.5 * (max(xlims[1], starts[j]) + min(xlims[2], ends[j])), ((tracks[i]-0.5) * scale), labels = as.character(num))
-          last_exon_labelled = label_pos
-        }
+    if (params$type != 'split'){
+      xlims <- params$Attr$region$xlims
+      empty_plot(xlims)
+      for (i in 1:nrow(refgenes)){
+        segments(xlims[1], (i- 0.5) * 1/nrow(refgenes), xlims[2], (i- 0.5) * 1/nrow(refgenes), col='gray50')
+        refgene_plotter(params$Attr$region$xlims, nrow(refgenes), i, refgenes[i,])
       }
     }
-    par(font=1)
+    else {
+      xlims <- params$Attr$loci[[1]]$xlims
+      empty_plot(xlims)
+      for (i in 1:nrow(refgenes)){
+        segments(xlims[1], (i- 0.5) * 1/nrow(refgenes), xlims[2], (i- 0.5) * 1/nrow(refgenes), col='gray50')
+        refgene_plotter(params$Attr$region$xlims, nrow(refgenes), i, refgenes[i], plot_percentage=FALSE)
+      }
+      xlims <- params$Attr$loci[[2]]$xlims
+      empty_plot(xlims)
+      for (i in 1:nrow(refgenes)){
+        segments(xlims[1], (i- 0.5) * 1/nrow(refgenes), xlims[2], (i- 0.5) * 1/nrow(refgenes), col='gray50')
+        refgene_plotter(params$Attr$region$xlims, nrow(refgenes), i, refgenes[i], plot_name=FALSE)
+      }
     }
   }
+}
+
+refgene_plotter <- function(xlims, num_genes, idx, refgene, plot_name=TRUE, plot_percentage=TRUE){
+  plot_range <- xlims[2] - xlims[1]
+  scale = 1/max(num_genes)
+  plot_start = max(xlims[1], refgene$txStart)
+  plot_end = min(xlims[2], refgene$txEnd)
+  plot_len = plot_end - plot_start + 1
+  total_len = refgene$txEnd - refgene$txStart + 1
+  fwd = ("+" == as.character(refgene$strand))
+  if (fwd) {dir = '->'} else {dir = '<-'}
+  rect(plot_start, ((idx - 0.8) * scale), plot_end, ((idx-0.2) * scale), col = '#74C476', border='gray50')
+  units <- get_units(plot_len)
+  par(font=2)
+  # label the gene
+  par(xpd=NA)
+  if (plot_name) {
+    text(xlims[1], ((idx- 0.5) * scale), labels=paste(refgene$name2, dir), pos=2)
+  }
+  if (plot_percentage) {
+    text(xlims[2], ((idx- 0.5) * scale), labels=paste(as.character(round(100*plot_len/total_len, digits=0)), '%'), pos=4)
+  }
+  par(xpd=FALSE)
+  # get the exon starts and ends
+  starts = as.numeric(strsplit(as.character(refgene$exonStarts), ',')[[1]])
+  ends = as.numeric(strsplit(as.character(refgene$exonEnds), ',')[[1]])
+  fwd = ("+" == as.character(refgene$strand))
+  min_exon_label_dist = 0.02 * (xlims[2] - xlims[1])
+  last_exon_labelled = NA
+  # plot exons
+  for (j in 1:length(starts)) {
+    # check if exon is within plot limits
+    if ((ends[j] < xlims[1]) | (starts[j] > xlims[2])) { next }
+    rect(max(xlims[1], starts[j]), ((idx - 0.925) * scale),  min(xlims[2], ends[j]), ((idx - 0.075) * scale), col = '#6BAED6', border='gray50')
+  }
+  for (j in 1:length(starts)) {
+    if ((ends[j] < xlims[1]) | (starts[j] > xlims[2])) { next }
+    if (fwd) {num = j} else {num = length(starts) - j + 1}
+    label_pos = 0.5 * (max(xlims[1], starts[j]) + min(xlims[2], ends[j]))
+    # ensure enough distance between exon labels and gene name label before annotating
+    if (is.na(last_exon_labelled) | (label_pos - last_exon_labelled) > min_exon_label_dist){
+      text(0.5 * (max(xlims[1], starts[j]) + min(xlims[2], ends[j])), ((idx-0.5) * scale), labels = as.character(num))
+      last_exon_labelled = label_pos
+    }
+  }
+  par(font=1)
+}
 # returns the appropriate matrix and heights for the plot layout
 get_plot_layout <- function(params, annotations, num_samples, vcfs_per_sample, max=200) {
-  if (params$type != 'split') n_col = 1 else n_col = 2
+  if (params$type == 'contiguous') n_col = 1 else n_col = 2
   # generate vectors heights h, plot number p_n for layout
   # top x-axis
-  h <- c(4); p_n <- 1:n_col; idx <- n_col
+  if (params$type == 'zoom') {h <- c(4); p_n <- rep(1, times=n_col); idx <- n_col }
+  else { h <- c(4); p_n <- 1:n_col; idx <- n_col }
   # title
-  h <- c(h,2); p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col
+  h <- c(h,1); p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col
   # separator
   h <- c(h, 1); p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col
   for (i in 1:num_samples){
     # sample title
     h <- c(h, 1.5); p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col
     # add in SV plots
-    for (j in 1:length(vcfs_per_sample[[i]])){
-      h <- c(h, 1.5*vcfs_per_sample[[i]][j]); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col
+    if (length(vcfs_per_sample[[i]]) > 0){
+      for (j in 1:length(vcfs_per_sample[[i]])){
+        if (params$type == 'zoom'){
+          h <- c(h, 1.5*vcfs_per_sample[[i]][j]);  p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col
+        } else {
+          h <- c(h, 1.5*vcfs_per_sample[[i]][j]); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col
+        }
+      }
     }
-    # depth
-    if (params$tracks$depth) { h <- c(h, 7); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col }
+    if (params$tracks$depth) { 
+      if (params$type == 'zoom') {
+        h <- c(h, 7); p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col
+      } else {
+        h <- c(h, 7); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col
+      }
+    }
     # breakpoint zoom illustration
-    if (params$type == 'zoom'){ h <- c(h, 2); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col }
+    if (params$type == 'zoom'){ h <- c(h, 2);  p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col }
     # add tracks according to plot params
     if (params$tracks$ins) { h <- c(h, 4, 4); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+2*n_col)); idx=idx+2*n_col  }
     if (params$tracks$clipped) {  h <- c(h, 1); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col }
@@ -604,25 +628,38 @@ get_plot_layout <- function(params, annotations, num_samples, vcfs_per_sample, m
   # add in h for SV_AF tracks
   if (params$tracks$svAF) {
     for (vcf in annotations$vcfs) {
-      h <- c(h, 1.5*vcf$n_tracks); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col
+      if (params$type == 'zoom'){
+        h <- c(h, 1.5*vcf$n_tracks);  p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col
+      } else {
+        h <- c(h, 1.5*vcf$n_tracks); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col
+      }
     }
   }
   # add in h for refGene annotation tracks
   if (params$tracks$refgene) {
-    if (length(annotations$Genes$chrom) > 1) {
-      h <- c(h, 1*nrow(annotations$Genes)); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col
+    if (!is.null(annotations$Genes)) {
+      if (params$type != 'split'){
+        h <- c(h, 1*nrow(annotations$Genes));  p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col
+      } else {
+        h <- c(h, 1*nrow(annotations$Genes)); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col
+      }
     } else {
-      h <- c(h, 1); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col
+      if (params$type != 'split'){
+        h <- c(h, 1);  p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col
+      } else {
+        h <- c(h, 1); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col
+      }
     }
   }
   # add in bottom x-axis
-  h <- c(h, 4); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col
+  if (params$type == 'zoom') { h <- c(h, 4); p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col }
+  else { h <- c(4); p_n <- p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col }
   # add room for legend
   if (params$tracks$legend) {
     h <- c(h, 6); p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col
   }
   mat <- cbind((p_n[idx]+1):(p_n[idx]+length(h)), matrix(p_n, length(h), n_col, byrow = TRUE))
-  widths <- c(1, rep(9/n_col, times=n_col))
+  widths <- c(1, rep(8/n_col, times=n_col))
   return(list(mat=mat, heights=h, widths=widths))
 }
 # main method
@@ -632,11 +669,11 @@ visualise <- function(folder, sample_names, plot_args, outfile, title='') {
   samples <-  lapply(sample_names, function(x) Sample(folder, x))
   vcfs_per_sample <- lapply(samples, function(x) sapply(x$vcfs, function(y) y$n_tracks))
   ins_ylim <- max(sapply(samples, function(x) x$Ins$ylim))
-  annotations <- Annotations(folder)
+  annotations <- Annotations(params, folder)
   lay_out <- get_plot_layout(params, annotations, num_samples, vcfs_per_sample)
-  #pdf(outfile, title='SVPV Graphics Output', width = 8, height = 0.15* sum(lay_out$heights), bg = 'white')
+  pdf(outfile, title='SVPV Graphics Output', width = 8, height = 0.15* sum(lay_out$heights), bg = 'white')
+  par(mai = c(0, 0, 0, 0), omi = c(0.2, 0, 0.1, 0.20))
   layout(lay_out$mat, heights=lay_out$heights, widths=lay_out$widths)
-  par(mar = c(0, 0, 0, 0), oma = c(0.5,0,0.5,0.5))
   add_position_axis(params, 3) # top x axis
   add_title(title)
   separator()
@@ -651,18 +688,18 @@ visualise <- function(folder, sample_names, plot_args, outfile, title='') {
     }
   }
   # add in heights for refGene annotation tracks
-  if (params$tracks$refgene) {  plot_refgenes(params, annotations$Genes) }
+  if (params$tracks$refgene) { plot_refgenes(params, annotations$Genes) }
   # plot bottom x-axis
-  add_position_axis(xlims, 1)
+  add_position_axis(params, 1)
   # add legend
   if (params$tracks$legend) { add_legend() }
   # add details
-  plot_details(samples[[1]]$Bin_size, samples[[1]]$Num_bins)
+  plot_details(params)
   graphics.off()
 }
 # read command-line arguments
 #args <- commandArgs(trailingOnly = TRUE)
-args <- c('NA12877_S1,NA12878_S1,NA12884_S1', '/home/jacmun/R/SVPV_debug/INV/chr1_247127925/', '/home/jacmun/R/SVPV_debug/INV/chr1_247127925/cdfbdc4880.pdf', "DEL at chr1:4064686-4066276", '-d', '-or', '-v', '-ss', '-cl', '-i', '-r', '-af', '-l', '-dm')
+args <- c('NA12877_S1,NA12878_S1,NA12884_S1', '/home/jacmun/R/SVPV_debug/INV/chr1_247127925/', '/home/jacmun/R/SVPV_debug/INV/chr1_247127925/out.pdf', "INV ", '-d', '-or', '-v', '-ss', '-cl', '-i', '-r', '-af', '-l', '-dm')
 sample_names <- strsplit(as.character(args[1]), ',')[[1]]
 folder <- args[2]
 outfile <- args[3]

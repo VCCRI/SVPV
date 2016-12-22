@@ -379,7 +379,7 @@ class SAMtools:
         return p
 
     @staticmethod
-    def bedcov(num_bins, bin_size, bed, bam, min_Q=30, verbose=False):
+    def bedcov(num_bins, bin_size, bed, bam, min_Q=30, verbose=True):
         cmd = ['samtools', 'bedcov', '-Q', str(min_Q), bed, bam]
         if verbose:
             print(' '.join(cmd) + '\n')

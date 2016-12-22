@@ -164,7 +164,7 @@ class VCFManager:
                         continue
             # filter by ref_genes/intersection with specific gene
             if filter_par.RG_intersection or filter_par.gene_list_intersection or filter_par.exonic:
-                intersecting = filter_par.ref_genes.get_entries_in_range(chrom, sv.pos, sv.end)
+                intersecting = filter_par.ref_genes.get_entries_in_range(sv.chrom, sv.pos, sv.end)
                 if not intersecting:
                     delete.append(i)
                     continue
