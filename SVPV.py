@@ -82,6 +82,7 @@ usage = 'Usage example:\n' \
         '-r\t0/[1]\tforce refgenes plot on or off.\n' \
         '-af\t0/[1]\tforce allele frequency plot on or off.\n' \
         '-l\t0/[1]\tforce plot legend on or off.\n' \
+        '-lrg_svs\t[0]/1\tshow/hide SVs larger than current plot area\n' \
         '\n\nNote: additional parameters can be adjusted by editing \'config.py\'.\n'
 
 
@@ -411,6 +412,7 @@ class PlotParams:
         self.legend = True
         self.diff_mol = True
         self.grouping = 8
+        self.lrg_svs = False
 
     # command line arguments for calling Rscipt
     def get_R_args(self):

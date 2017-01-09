@@ -335,6 +335,7 @@ bin_plot_inserts <- function(ins, ylim, num_y_bins=10, add_axis=FALSE, ylab=''){
 }
 # coordinate sv plotting
 plot_svs <- function(params, vcf, AF=TRUE) {
+  par(xpd=TRUE)
   if (params$type != 'split'){
     empty_plot(params$Attr$region$xlims)
     add_border(params$Attr$region$xlims ,c(0,1))
@@ -355,6 +356,7 @@ plot_svs <- function(params, vcf, AF=TRUE) {
       }
     }
   }
+  par(xpd=FALSE)
 }
 # plot structural variants
 sv_plotter <- function(svs, tracks, scale,  xlims, AF=TRUE){
@@ -394,7 +396,7 @@ sv_plotter <- function(svs, tracks, scale,  xlims, AF=TRUE){
       }
     } else {
       segments(start, bottom, start, top)
-      symbols(start, (top+bottom)/2, stars=matrix(rep(c(0.01*range), times=4), 1, 4, byrow=TRUE), inches=FALSE, add=TRUE, bg=col)
+      symbols(start, (top+bottom)/2, stars=matrix(rep(c(1), times=4), 1, 4, byrow=TRUE), inches=0.07, add=TRUE, bg=col, fg=get_sv_col(svs$svtype[i], 1))
       if (AF){
       text(start+0.005*range, 0.5 * (top + bottom), labels = paste0(svs$svtype[i], ' : AF = ', as.character(round(as.numeric(svs$MAF[i]), digits = 3))), pos=4)
       } else {
@@ -423,11 +425,11 @@ get_sv_col <- function(type, intensity) {
     return('white')
   } else if ((grepl('DEL', type))) {
       return(colorRampPalette(c("#FFF5F0", "#FEE0D2", "#FCBBA1", "#FC9272", "#FB6A4A", "#EF3B2C", "#CB181D", "#A50F15"))(100)[20 + floor(80 * intensity)])
-  } else if ((grepl('DUP', type))) {
+  } else if ((grepl('(DUP)|(INS)', type))) {
       return(colorRampPalette(c("#F7FBFF", "#DEEBF7", "#C6DBEF", "#9ECAE1", "#6BAED6", "#4292C6", "#2171B5", "#08519C"))(100)[20 + floor(80 * intensity)])
-  } else if ((grepl('INV', type))) {
+  } else if ((grepl('(INV)|(BND)', type))) {
       return(colorRampPalette(c("#F7FCF5", "#E5F5E0", "#C7E9C0", "#A1D99B", "#74C476", "#41AB5D", "seagreen3", "#006D2C"))(100)[20 + floor(80 * intensity)])
-  } else if ((grepl('CNV', type))) {
+  } else if ((grepl('(CNV)|(TRA)', type))) {
     return(colorRampPalette(c("#FCFBFD", "#EFEDF5", "#DADAEB", "#BCBDDC", "#9E9AC8", "#807DBA", "#6A51A3", "#54278F"))(100)[20 + floor(80 * intensity)])
   } else {
     return(colorRampPalette(c("#FFFFFF", "#F0F0F0", "#D9D9D9", "#BDBDBD", "#969696", "#737373", "#525252", "#252525"))(100)[20 + floor(80 * intensity)])
@@ -491,7 +493,7 @@ add_zoom_axes <- function(params){
 get_tracks <- function(starts, ends, chroms, types=NA, xrange=NA) {
   if (!is.na(xrange)){
     idxs = which(types %in% c('BND', 'TRA', 'INS'))
-    ends[idxs] = starts[idxs] + 0.1*xrange
+    ends[idxs] = starts[idxs] + 0.3*xrange
   }
   # assume that starts and ends are of same length and are sorted by lowest start first
   tracks <- vector("integer", length = length(starts))
@@ -549,7 +551,6 @@ plot_refgenes <- function(params, refgenes) {
     empty_plot(xlims)
     if (is.null(refgenes)) {
       text(0.5 * (xlims[1] + xlims[2]), 0.5, labels = "None")
-      mtext('Genes', side=2, line=3, cex=0.75)
     } else {
       for (i in 1:nrow(refgenes)){
         segments(xlims[1], (i- 0.5) * 1/nrow(refgenes), xlims[2], (i- 0.5) * 1/nrow(refgenes), col='gray50')

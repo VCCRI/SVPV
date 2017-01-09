@@ -47,15 +47,16 @@ class VCFManager:
                         self.SVs[sv.chrom][sv.pos] = [sv]
                     # delly
                     if sv.svtype == 'TRA':
+                        sv = sv.get_tra_site_2()
                         self.count += 1
-                        if sv.chr2 in self.SVs:
-                            if sv.pos in self.SVs[sv.chr2]:
-                                self.SVs[sv.chr2][sv.end].append(sv)
+                        if sv.chrom in self.SVs:
+                            if sv.pos in self.SVs[sv.chrom]:
+                                self.SVs[sv.chrom][sv.pos].append(sv)
                             else:
-                                self.SVs[sv.chr2][sv.end] = [sv]
+                                self.SVs[sv.chrom][sv.pos] = [sv]
                         else:
-                            self.SVs[sv.chr2] = {}
-                            self.SVs[sv.chr2][sv.end] = [sv]
+                            self.SVs[sv.chrom] = {}
+                            self.SVs[sv.chrom][sv.pos] = [sv]
             line = p.stdout.readline()
         # add processed breakends into SVs
         for bnd_e in bnds.get_events():
@@ -96,7 +97,7 @@ class VCFManager:
                     self.count -= 1
 
     # return all SV calls that overlap with given range
-    def get_svs_in_range(self, chrom, start, end, sample=None):
+    def get_svs_in_range(self, chrom, start, end, sample=None, lrg_svs=True):
         ret = []
         if chrom in self.positions:
             for pos in self.positions[chrom]:
@@ -107,8 +108,10 @@ class VCFManager:
                         continue
                     if sv.end < start:
                         continue
-                    else:
-                        ret.append(sv)
+                    if not lrg_svs:
+                        if sv.pos < start and sv.end > end:
+                            continue
+                    ret.append(sv)
 
         if sample is not None:
             delete = []
@@ -225,7 +228,7 @@ class SV:
         else:
             self.inslen = None
         # delly sv field
-        if chr2 != '.' and chr2 != chrom:
+        if self.svtype == 'TRA':
             self.chr2 = chr2
             self.chr2_pos = self.end
             self.end = self.pos
@@ -249,6 +252,15 @@ class SV:
             self.AF = self.get_AF()
         else:
             self.AF = float(af)
+
+    def get_tra_site_2(self):
+        sv = copy.copy(self)
+        sv.chrom = self.chr2
+        sv.pos = self.chr2_pos
+        sv.end = sv.pos
+        sv.chr2 = self.chrom
+        sv.chr2_pos = self.pos
+        return sv
 
     @staticmethod
     def parse_sv(line, db_mode):
@@ -297,11 +309,22 @@ class SV:
             return '\t'.join([self.chrom, str(self.pos), str(self.end), self.svtype, str(self.AF)]) + '\n'
 
     def string_tuple(self):
-        if self.svtype in ('TRA', 'BND'):
+        if self.svtype == 'BND':
             l = 'NA'
+            chr2, pos2 = self.BND_Event.loci[0]
+            if ((self.chrom, self.pos) == (chr2, pos2)) and len(self.BND_Event.loci) > 1:
+                chr2, pos2 = self.BND_Event.loci[1]
+            elif (self.chrom, self.pos) == (chr2, pos2):
+                chr2, pos2 = 'NA', 'NA'
+        # delly TRA exception
+        elif self.svtype == 'TRA':
+            l = 'NA'
+            chr2, pos2 = self.chr2, self.chr2_pos
         else:
             l = str(self.len)
-        return (self.svtype, self.chrom, str(self.pos), l, ('{0:.2f}'.format(self.AF)))
+            chr2 = 'NA'
+            pos2 = 'NA'
+        return (self.svtype, self.chrom, str(self.pos), chr2, str(pos2), l, ('{0:.2f}'.format(self.AF)))
 
     # print SVs, either with genotype per sample, or MAF for whole BATCH annotation
     @staticmethod

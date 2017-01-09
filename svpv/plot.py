@@ -58,7 +58,7 @@ class Plot:
             # delly TRA exception
             elif sv.svtype == 'TRA':
                 chr1, pos1 = sv.chrom, sv.pos
-                chr2, pos2 = sv.chr2, sv.end
+                chr2, pos2 = sv.chr2, sv.chr2_pos
             if chr1 == chr2 and abs(pos2-pos1) < par.run.is_len:
                 self.region_bins = Bins(chr1, pos1 - par.run.is_len, pos2 + par.run.is_len)
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])
@@ -123,7 +123,7 @@ class Plot:
             sv_file = open(os.path.join(self.dirs[s], 'svs.tsv'), 'w')
             svs = []
             for region in queries:
-                _svs_ = self.par.run.vcf.get_svs_in_range(*region, sample=s)
+                _svs_ = self.par.run.vcf.get_svs_in_range(*region, sample=s, lrg_svs=self.par.plot.lrg_svs)
                 for sv in _svs_:
                     if sv not in svs:
                         svs.append(sv)
@@ -132,7 +132,7 @@ class Plot:
             for vcf in self.par.run.alt_vcfs:
                 svs = []
                 for region in queries:
-                    _svs_ = vcf.get_svs_in_range(*region, sample=s)
+                    _svs_ = vcf.get_svs_in_range(*region, sample=s, lrg_svs=self.par.plot.lrg_svs)
                     for sv in _svs_:
                         if sv not in svs:
                             svs.append(sv)
@@ -146,7 +146,7 @@ class Plot:
         # primary vcf
         svs = []
         for region in queries:
-            _svs_ = self.par.run.vcf.get_svs_in_range(*region)
+            _svs_ = self.par.run.vcf.get_svs_in_range(*region, lrg_svs=self.par.plot.lrg_svs)
             for sv in _svs_:
                 if sv not in svs:
                     svs.append(sv)
@@ -156,7 +156,7 @@ class Plot:
         if self.par.run.ref_vcf:
             svs = []
             for region in queries:
-                _svs_ = self.par.run.ref_vcf.get_svs_in_range(*region)
+                _svs_ = self.par.run.ref_vcf.get_svs_in_range(*region, lrg_svs=self.par.plot.lrg_svs)
                 for sv in _svs_:
                     if sv not in svs:
                         svs.append(sv)
@@ -166,7 +166,7 @@ class Plot:
         for vcf in self.par.run.alt_vcfs:
             svs = []
             for region in queries:
-                _svs_ = vcf.get_svs_in_range(*region)
+                _svs_ = vcf.get_svs_in_range(*region, lrg_svs=self.par.plot.lrg_svs)
                 for sv in _svs_:
                     if sv not in svs:
                         svs.append(sv)
@@ -187,7 +187,7 @@ class Plot:
             out = os.path.join(self.dirs['pos'], '%s.%s.%s.%s.%s.pdf' % (self.sv.chrom, self.sv.pos, self.sv.svtype,
                                                                          self.get_length_units(), id))
             cmd = ['Rscript', Plot.svpv_r, ','.join(current_samples), os.path.join(self.dirs['pos'], ''), out]
-            cmd.append('"%s at %s:%d-%d"' % (self.sv.svtype, self.sv.chrom, self.sv.pos, self.sv.end))
+            cmd.append('"%s at %s:%d"' % (self.sv.svtype, self.sv.chrom, self.sv.pos))
             cmd.extend(self.par.plot.get_R_args())
             print(' '.join(cmd) + '\n')
             try:
