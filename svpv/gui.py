@@ -131,6 +131,14 @@ class SVPVGui(tk.Tk):
         self.apply_filters()
         self.set_sv_chooser()
 
+    def switch_vcf(self, i):
+        print('switching to {}'.format(self.par.run.alt_vcfs[i].name))
+        tmp = self.par.run.vcf
+        self.par.run.vcf = self.par.run.alt_vcfs[i]
+        self.par.run.alt_vcfs[i] = tmp
+        self.config(menu=gw.MenuBar(self))
+        self.reset_filters()
+
     def view_gts(self):
         self.set_info_box()
         self.info_box.genotypes(self.svs[self.sv_chooser.sv_fl.selected_idx], self.par.run.vcf.samples, self.par.run.samples)

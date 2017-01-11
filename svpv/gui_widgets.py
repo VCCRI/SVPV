@@ -28,6 +28,15 @@ class MenuBar(tk.Menu):
         self.resize.add_radiobutton(label='x-large', var=self.size_var, value=5, command=self.update_size)
         self.add_cascade(label='View', menu=self.resize)
 
+        self.vcf_var = tk.IntVar(value=0)
+        self.vcf = tk.Menu(self, tearoff=0)
+        self.vcf.add_radiobutton(label=parent.par.run.vcf.name, var=self.vcf_var, value=0,
+                                        command=self.switch_vcf)
+        for i in range(len(parent.par.run.alt_vcfs)):
+            self.vcf.add_radiobutton(label=parent.par.run.alt_vcfs[i].name, var=self.vcf_var, value=i+1,
+                                            command=self.switch_vcf)
+        self.add_cascade(label='VCF', menu=self.vcf)
+
     def asksaveasfilename(self):
         if not self.parent.filename:
             self.parent.set_info_box(message='Error: No figure has been created yet.')
@@ -44,6 +53,10 @@ class MenuBar(tk.Menu):
 
     def update_size(self):
         self.parent.text_size(self.size_var.get())
+
+    def switch_vcf(self):
+        if self.vcf_var.get() != 0:
+            self.parent.switch_vcf(self.vcf_var.get()-1)
 
 
 class SampleSelector(tk.LabelFrame):

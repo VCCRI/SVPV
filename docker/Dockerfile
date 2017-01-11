@@ -1,41 +1,43 @@
 FROM ubuntu:16.04
 
 MAINTAINER Jacob Munro j.munro@victorchang.edu.au
-
-RUN apt-get update && apt-get install --no-install-recommends -y \
-    asciidoc \
+# python-dev
+RUN apt-get update && apt-get install -y \
     cmake \
     git \
     graphicsmagick-imagemagick-compat \
     libncurses-dev \
     python \
-    python-dev \
     python-numpy \
     python-tk \
     zlib1g-dev \
+    && apt-get install --no-install-recommends -y \
+    asciidoc \
+    libxml2-utils \
+    xmlto \
     && apt-get clean
 
 # install htslib, samtools and bcftools
-RUN cd /opt \
+RUN cd /usr/local \
     && git clone https://github.com/samtools/htslib.git \
-    && cd /opt/htslib \
+    && cd /usr/local/htslib \
     && make \
     && make lib-static \
     && make install
-RUN cd /opt \
+RUN cd /usr/local \
     && git clone https://github.com/samtools/bcftools.git \
-    && cd /opt/bcftools \
+    && cd /usr/local/bcftools \
     && make \
     && make docs \
     && make install
-RUN cd /opt \
+RUN cd /usr/local \
     && git clone https://github.com/samtools/samtools.git \
-    && cd /opt/samtools \
+    && cd /usr/local/samtools \
     && make \
     && make install
 
 # install SVPV
-RUN cd ~
+RUN cd /usr/local \
     && git clone https://github.com/VCCRI/SVPV.git \
 
 # add user
