@@ -2,16 +2,17 @@ FROM ubuntu:16.04
 
 MAINTAINER Jacob Munro j.munro@victorchang.edu.au
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    asciidoc \
     cmake \
     git \
+    graphicsmagick-imagemagick-compat \
+    libncurses-dev \
     python \
     python-dev \
     python-numpy \
     python-tk \
-    graphicsmagick-imagemagick-compat \
     zlib1g-dev \
-    asciidoc \
     && apt-get clean
 
 # install htslib, samtools and bcftools
@@ -43,3 +44,4 @@ USER ubuntu
 
 # start bash
 CMD ["/bin/bash"]
+
