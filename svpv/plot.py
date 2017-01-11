@@ -27,24 +27,26 @@ class Plot:
         if sv.svtype in ('DEL', 'DUP', 'CNV', 'INV'):
             start = sv.pos - par.run.expansion * (sv.end - sv.pos + 1)
             end = sv.end + par.run.expansion * (sv.end - sv.pos + 1)
-            self.region_bins = Bins(sv.chrom, start, end)
+            self.region_bins = Bins(sv.chrom, start, end, ideal_num_bins=par.run.num_bins)
             if self.region_bins.size / par.run.is_len > 0.25:
                 self.bkpt_bins = (Bins(sv.chrom, sv.pos - int(1.5 * par.run.is_len), sv.pos + int(1.5 * par.run.is_len),
-                                  ideal_num_bins=50),
+                                  ideal_num_bins=par.run.num_bins//2),
                                   Bins(sv.chrom, sv.end - int(1.5 * par.run.is_len), sv.end + int(1.5 * par.run.is_len),
-                                  ideal_num_bins=50))
+                                  ideal_num_bins=par.run.num_bins//2))
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.bkpt_bins,
                                                    depth_bins=self.region_bins)
             elif self.region_bins.length() <  3* par.run.is_len:
                 mid = (sv.pos + sv.end) // 2
-                self.region_bins = Bins(sv.chrom, mid - par.run.is_len, mid + par.run.is_len)
+                self.region_bins = Bins(sv.chrom, mid - par.run.is_len, mid + par.run.is_len,
+                                        ideal_num_bins=par.run.num_bins)
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])
             else:
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])
 
         # single breakpoint
         elif sv.svtype =='INS':
-            self.region_bins = Bins(sv.chrom, sv.pos - par.run.is_len, sv.pos + par.run.is_len)
+            self.region_bins = Bins(sv.chrom, sv.pos - 2*par.run.read_len, sv.pos + 2*par.run.read_len,
+                                    ideal_num_bins=par.run.num_bins)
             self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])
 
         # do not show depth region, just stats at pair of breakpoints
@@ -59,15 +61,19 @@ class Plot:
             elif sv.svtype == 'TRA':
                 chr1, pos1 = sv.chrom, sv.pos
                 chr2, pos2 = sv.chr2, sv.chr2_pos
-            if chr1 == chr2 and abs(pos2-pos1) < par.run.is_len:
-                self.region_bins = Bins(chr1, pos1 - par.run.is_len, pos2 + par.run.is_len)
+            if chr1 == chr2 and abs(pos2-pos1) < 2*par.run.read_len:
+                self.region_bins = Bins(chr1, pos1 - 2*par.run.read_len, pos2 + 2*par.run.read_len,
+                                        ideal_num_bins=par.run.num_bins)
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])
             elif chr2 is not None:
-                self.bkpt_bins = (Bins(chr1, pos1 - par.run.is_len, pos1 + par.run.is_len, ideal_num_bins=50),
-                                  Bins(chr2, pos2 - par.run.is_len, pos2 + par.run.is_len, ideal_num_bins=50))
+                self.bkpt_bins = (Bins(chr1, pos1 - 2*par.run.read_len, pos1 + 2*par.run.read_len,
+                                       ideal_num_bins=par.run.num_bins//2),
+                                  Bins(chr2, pos2 - 2*par.run.read_len, pos2 + 2*par.run.read_len,
+                                       ideal_num_bins=par.run.num_bins//2))
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.bkpt_bins)
             else:
-                self.region_bins = Bins(chr1, pos1 - par.run.is_len, pos1 + par.run.is_len)
+                self.region_bins = Bins(chr1, pos1 - 2*par.run.read_len, pos1 + 2*par.run.read_len,
+                                        ideal_num_bins=par.run.num_bins)
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])
 
 
@@ -242,7 +248,7 @@ class Plot:
             return '%d_%s' % (length/1e9, 'Gbp')
 
 class Bins:
-    def __init__(self, chrom, start, end, ideal_num_bins=100, ):
+    def __init__(self, chrom, start, end, ideal_num_bins=100):
 
         # aim for ideal_num_bins, but bins need to be uniformally distributed and of equal size
         # smallest bins size is 1bp, so for regions < num_bins bp there will be less than num_bins bins

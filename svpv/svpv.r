@@ -219,16 +219,16 @@ add_legend <- function() {
   rect(2.15 + 0.7 / 10 * (0:9), bottom, 2.15 + 0.7 / 10 * (1:10), top, col=aln_stats_pallete(10)[(1:10)])
   text(c(2.18, 2.82), bottom - 0.08, as.character(c(0, 1)))
   # SV AF legend
-  sv_types <- c("DEL", "DUP", "CNV", "INV")
+  sv_types <- c("DEL", "DUP/INS", "CNV/TRA", "INV/BND")
   height = 0.13
   top = bottom + 0.15 * length(sv_types)
   par(family='mono', font=2)
   for (i in 1:length(sv_types)){
-    rect(3.20 + 0.7 / 10 * (0:9), bottom + (i-1) * height, 3.20 + 0.7 / 10 * (1:10), bottom + (i) * height, col=sapply(1:10, function(x) get_sv_col(sv_types[i], x/10)))
-    text(3.20, bottom + (i-0.5) * height, sv_types[i], pos=2)
+    rect(3.35 + 0.6 / 10 * (0:9), bottom + (i-1) * height, 3.35 + 0.6 / 10 * (1:10), bottom + (i) * height, col=sapply(1:10, function(x) get_sv_col(sv_types[i], x/10)))
+    text(3.35, bottom + (i-0.5) * height, sv_types[i], pos=2)
   }
   par(family='sans', font=1)
-  text(c(3.23, 3.87), bottom - 0.08, as.character(c(0, 1)))
+  text(c(3.35, 3.93), bottom - 0.08, as.character(c(0, 1)))
 }
 aln_stats_pallete <- function(n){
   return(colorRampPalette(c("gray95", "#FDD49E", "#FDBB84", "#FC8D59", "#EF6548", "#D7301F", "#B30000", "#7F0000"))(n))
@@ -721,6 +721,7 @@ visualise <- function(folder, sample_names, plot_args, outfile, title='') {
   plot_details(params)
   graphics.off()
 }
+
 # read command-line arguments
 args <- commandArgs(trailingOnly = TRUE)
 sample_names <- strsplit(as.character(args[1]), ',')[[1]]

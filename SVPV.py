@@ -13,9 +13,14 @@ from svpv.sam import SAMtools
 from svpv.refgene import RefgeneManager
 from svpv.plot import Plot
 
+version = "1.00"
 
 def main(argv=sys.argv):
-    print("\nStructural Variant Prediction Viewer\n")
+    print("\n"
+          "========================================\n"
+          "| Structural Variant Prediction Viewer |\n"
+          "| Version 1.00                         |\n"
+          "========================================\n")
     try:
         assert (sys.version_info[0] == 2 and sys.version_info[1] >= 7) or (sys.version_info[0] > 2)
     except AssertionError:
@@ -251,7 +256,6 @@ class Params:
                     exit(1)
         self.run.check()
 
-
 # class to store run parameters
 class RunParams:
     valid = ('-vcf','-aln', '-samples', '-manifest', '-o', '-gui', '-ref_gene', '-ref_vcf', '-no_display')
@@ -285,6 +289,10 @@ class RunParams:
             self.is_len = config.is_len
         except AttributeError:
             self.is_len = 500
+        try:
+            self.read_len = config.read_len
+        except AttributeError:
+            self.is_len = 100
         try:
             self.expansion = config.expansion
         except AttributeError:
@@ -358,7 +366,6 @@ class RunParams:
         for i in sorted(delete, reverse=True):
             del self.samples[i]
             del self.bams[i]
-        #self.plot_par.check()
 
 
 # class to store parameters for filtering SVs from VCF
@@ -379,7 +386,7 @@ class FilterParams:
         # DEL/DUP/CNV/INV
         self.svtype = None
         # path to genes list file
-        self.gene_list = None
+        self.gene_list = []
         # switch for filtering by gene list
         self.gene_list_intersection = False
         # intersection with refgenes

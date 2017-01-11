@@ -256,7 +256,7 @@ class SvChooser(tk.LabelFrame):
             self.lab.grid(row=0, column=0, sticky = tk.EW)
             self.num_svs_lab = tk.Label(self, text='-- of %d SVs' % sv_count)
         else:
-            self.sv_fl = FieldedListbox(self, ("SV Type", "Chr 1", "pos 1", "Chr 2", "pos 2", "Length (bp)", "AF"))
+            self.sv_fl = FieldedListbox(self, ("SV Type", "Chr A", "Pos A", "Chr B", "Pos B", "Length (bp)", "AF"))
             for sv in svs:
                 self.sv_fl.push_entry(sv.string_tuple())
             self.num_svs_lab = tk.Label(self, text='%d of %d SVs' % (len(svs), sv_count))
