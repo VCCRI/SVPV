@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     python-numpy \
     python-tk \
     graphicsmagick-imagemagick-compat \
+    zlib1g-dev \
     && apt-get clean
 
 # install htslib, samtools and bcftools
