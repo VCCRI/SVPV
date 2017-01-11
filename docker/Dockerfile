@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
     python-dev \
     python-numpy \
     python-tk \
-	graphicsmagick-imagemagick-compat \
+    graphicsmagick-imagemagick-compat \
     && apt-get clean
 
 # install htslib, samtools and bcftools
