@@ -15,10 +15,10 @@ from svpv.refgene import RefgeneManager
 from svpv.plot import Plot
 
 version = "1.00"
-info = ("========================================\n"
-        "| Structural Variant Prediction Viewer |\n"
-        "| Version 1.00                         |\n"
-        "========================================\n")
+info = ("\t========================================\n"
+        "\t| Structural Variant Prediction Viewer |\n"
+        "\t| Version 1.00                         |\n"
+        "\t========================================\n")
 
 def main(argv=sys.argv):
     try:
@@ -47,8 +47,8 @@ def main(argv=sys.argv):
                 plot.plot_figure(group=par.plot.grouping)
 
 usage = 'Usage example:\n' \
-        'SVPV -vcf input_svs.vcf -samples sample1,sample2 -aln alignment1.bam,alignment2.sam -o /out/directory/\n\n'\
-        'Run args:\n' \
+        'SVPV -vcf input_svs.vcf -samples sample1,sample2 -aln alignment1.bam,alignment2.sam -o /out/directory/\n'\
+        '\nRun args:\n' \
         '[required]\n' \
         '-vcf\t\tPrimary structural variant prediction vcf/bcf file.\n' \
         '-aln\t\tComma separated list of alignment files (BAM/CRAM).\n' \
@@ -63,7 +63,8 @@ usage = 'Usage example:\n' \
         '-manifest\tWhitespace delimited file with first column sample names and' \
             '\n\t\tsecond column alignment files.' \
             '\n\t\toverrides \'-samples\' and \'-aln\' if also given.\n' \
-        'Filter args:\n' \
+        '-fa\t\tReference genome Fasta file to add GC content annotation\n' \
+        '\nFilter args:\n' \
         '-max_len\tmaximum length of structural variants (bp).\n' \
         '-min_len\tminimum length of structural variants (bp).\n' \
         '-af\t\tAllele frequency threshold, \n' \
@@ -75,7 +76,7 @@ usage = 'Usage example:\n' \
         '-rgi\t\tRestrict to SVs that intersect refGenes, \'-ref_gene\' must be supplied.\n' \
         '-exonic\t\tRestrict to SVs that intersect exons of refGenes,' \
         '\n\t\t\'-ref_gene\' must be supplied.\n' \
-        'Plot args:\n' \
+        '\nPlot args:\n' \
         '-d\t0/[1]\tforce sequencing depth plot on or off.\n' \
         '-or\t0/[1]\tforce orphaned reads plot on or off.\n' \
         '-v\t0/[1]\tforce inverted pairs plot on or off.\n' \
@@ -87,7 +88,7 @@ usage = 'Usage example:\n' \
         '-r\t0/[1]\tforce refgenes plot on or off.\n' \
         '-af\t0/[1]\tforce allele frequency plot on or off.\n' \
         '-l\t0/[1]\tforce plot legend on or off.\n' \
-        '-lrg_svs\t[0]/1\tshow/hide SVs larger than current plot area\n' \
+        '-l_svs\t[0]/1\tshow/hide SVs larger than current plot area\n' \
         '\n\nNote: additional parameters can be adjusted by editing \'config.py\'.\n'
 
 
@@ -125,6 +126,9 @@ class Params:
                         self.run.gui = True
                     elif a == '-no_display':
                         self.run.display = False
+                    elif a == '-fa':
+                        check_file_exists(args[i + 1])
+                        self.run.fa = args[i + 1]
                     elif a == '-ref_gene':
                         self.run.ref_genes = RefgeneManager(args[i + 1])
                         self.filter.ref_genes = self.run.ref_genes
@@ -258,7 +262,7 @@ class Params:
 
 # class to store run parameters
 class RunParams:
-    valid = ('-vcf','-aln', '-samples', '-manifest', '-o', '-gui', '-ref_gene', '-ref_vcf', '-no_display')
+    valid = ('-vcf','-aln', '-samples', '-manifest', '-o', '-gui', '-ref_gene', '-ref_vcf', '-no_display', '-fa')
 
     def __init__(self):
         # path to vcf
@@ -277,7 +281,10 @@ class RunParams:
         self.ref_genes = None
         # vcf for including population frequencies
         self.ref_vcf = None
+        # include calls that are not present in samples
         self.all = False
+        # reference genome fasta file
+        self.fa = None
 
         # get configurations
         # include defaults in case they are accidentally deleted
@@ -419,7 +426,7 @@ class PlotParams:
         self.legend = True
         self.diff_mol = True
         self.grouping = 8
-        self.lrg_svs = False
+        self.l_svs = False
 
     # command line arguments for calling Rscipt
     def get_R_args(self):

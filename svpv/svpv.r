@@ -8,6 +8,20 @@ PlotAttr <- function(folder){
               l_bin_size=attr$l_bin_size,
               l_bin_num=attr$l_bin_num))
 }
+# parse GC content if present
+GC <- function(folder){
+  region <- NA
+  loci <- list()
+  for (f in list.files(folder)){
+    if (grepl('region_gc.tsv', f)){
+      region <- as.numeric(scan(paste0(folder, f), sep='\t', what='numeric', quiet=TRUE))
+    } else if (grepl('.gc.tsv', f)){
+      pos <- sub('.gc.tsv', '', basename(f))
+      loci[[pos]] <- as.numeric(scan(paste0(folder, f), sep='\t', what='numeric', quiet=TRUE))
+    }
+  }
+  return(list(region=region, loci=loci))
+}
 # store plot parameters
 PlotParams <- function(folder, args) {
   tracks <- list(
@@ -34,11 +48,9 @@ PlotParams <- function(folder, args) {
   } else {
     type = 'split'
   }
+  gc <- GC(folder)
   if (is.na(attr$l_bin_num)) { num_loci = 0 } else { num_loci = length(attr$loci) }
-  return(list(tracks = tracks,
-              type = type,
-              num_loci = num_loci,
-              Attr = attr))
+  return(list(tracks=tracks, type=type, num_loci=num_loci, Attr=attr, GC=gc))
 }
 # split a region string (eg 'chr1:100-200')
 Region <- function(region){
@@ -146,21 +158,40 @@ separator <- function() {
 empty_plot <- function(xlim,ylim=c(0, 1),type='n',bty='n', xaxt='n', yaxt='n', ylab='', xlab='') {
     plot(1, type=type, ylim=ylim, xlim=xlim, bty=bty, xaxt=xaxt, yaxt=yaxt, ylab=ylab, xlab=xlab)
 }
-# add axis to a plot
+# add axis to a plot and include GC if present
 add_position_axis <- function(params, side) {
   par(las=1)
   if (params$type == 'split'){
-    for (i in 1:2){
-      units <- get_units(params$Attr$loci[[i]]$end - params$Attr$loci[[i]]$start + 1)
-      empty_plot(c(params$Attr$loci[[i]]$start, params$Attr$loci[[i]]$end) / units$val)
-      mtext(paste0(params$Attr$loci[[i]]$chr, ' pos (', units$sym, ')'), side=side, line=-1, cex=0.85)
+    for (l in params$Attr$loci[1:2]){
+      units <- get_units(l$end)
+      empty_plot(c(l$start, l$end) / units$val)
+      mtext(paste0(l$chr, ' pos (', units$sym, ')'), side=side, line=-1, cex=0.85)
       axis(side=side, line=-3)
+      if (is.numeric(params$GC$loci[[paste0(l$chr, '.', as.character(l$start))]])){
+        gc <- params$GC$loci[[paste0(l$chr, '.', as.character(l$start))]]
+        par(new=TRUE)
+        n_bins <- length(gc)
+        if (side == 3) empty_plot(c(0, n_bins), ylim=c(0,5))
+        else empty_plot(c(0, n_bins), ylim=c(5,0))
+        rect(0:(n_bins-1), 0, 1:n_bins, 1, col=colorRampPalette(c('gray95', 'gray5'))(100)[ceiling(100*gc)], border=NA)
+        rect(0, 0, n_bins, 1, border='black', lwd=0.5)
+        par(xpd=NA); text(0, 0.5, labels='GC', pos=2, cex=0.85); par(xpd=FALSE)
+      }
     }
   } else {
-    units <- get_units(params$Attr$region$end - params$Attr$region$start + 1)
+    units <- get_units(params$Attr$region$end)
     empty_plot(c(params$Attr$region$start, params$Attr$region$end) / units$val)
     mtext( paste0(params$Attr$region$chr, ' pos (', units$sym, ')'), side=side, line=-1, cex=0.85)
     axis(side=side, line=-3)
+    if (is.numeric(params$GC$region)){
+      par(new=TRUE)
+      n_bins <- length(params$GC$region)
+      if (side == 3) empty_plot(c(0, n_bins), ylim=c(0,5))
+      else empty_plot(c(0, n_bins), ylim=c(5,0))
+      rect(0:(n_bins-1), 0, 1:n_bins, 1, col=colorRampPalette(c('gray95', 'gray5'))(100)[ceiling(100*params$GC$region)], border=NA)
+      rect(0, 0, n_bins, 1, border='black', lwd=0.5)
+      text(0, 0.5, labels='GC', pos=2, cex=0.85)
+    }
   }
 }
 # plot read depth and mapping quality
@@ -234,7 +265,7 @@ aln_stats_pallete <- function(n){
   return(colorRampPalette(c("gray95", "#FDD49E", "#FDBB84", "#FC8D59", "#EF6548", "#D7301F", "#B30000", "#7F0000"))(n))
 }
 insert_size_pallete <- function(n){
-  return(colorRampPalette(c("gray95", "#C7E9B4", "#7FCDBB", "#41B6C4", "#1D91C0", "#225EA8", "#253494", "#081D58"))(n))
+  return(colorRampPalette(c("gray95", "#DEEBF7", "#C6DBEF", "#9ECAE1", "#6BAED6", "#4292C6", "#2171B5", "#08519C", "#08306B"))(n))
 }
 
 plot_all_aln_stats <- function(params, aln_stats){

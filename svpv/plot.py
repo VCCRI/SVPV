@@ -8,7 +8,7 @@ import os
 import subprocess
 from hashlib import sha1
 import copy
-from .sam import SamStats
+from .sam import SamStats, SAMtools
 from .vcf import SV
 from .refgene import RefGeneEntry
 
@@ -44,7 +44,7 @@ class Plot:
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])
 
         # single breakpoint
-        elif sv.svtype =='INS':
+        elif sv.svtype == 'INS':
             self.region_bins = Bins(sv.chrom, sv.pos - 2*par.run.read_len, sv.pos + 2*par.run.read_len,
                                     ideal_num_bins=par.run.num_bins)
             self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])
@@ -76,11 +76,9 @@ class Plot:
                                         ideal_num_bins=par.run.num_bins)
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])
 
-
         else:
             raise ValueError('unsupported svtype: {}'.format(self.sv.svtype))
         self.print_data()
-
 
     def print_data(self):
         # create directories
@@ -89,6 +87,14 @@ class Plot:
         # print sample data to file
         for i, s in enumerate(self.samples):
             self.sam_stats[i].print_stats(self.dirs[s])
+
+        if self.par.run.fa:
+            if self.region_bins:
+                self.region_bins.print_gc(self.par.run.fa, open(os.path.join(self.dirs['pos'], 'region_gc.tsv'), 'wt'))
+            else:
+                for bin in self.bkpt_bins:
+                    bin.print_gc(self.par.run.fa, open(os.path.join(self.dirs['pos'],
+                                                                    '{}.{}.gc.tsv'.format(bin.chrom, bin.start)), 'wt'))
 
         # plot attributes for use in R
         plot_attr = open(os.path.join(self.dirs['pos'], 'plot_attr.tsv'), 'wt')
@@ -129,7 +135,7 @@ class Plot:
             sv_file = open(os.path.join(self.dirs[s], 'svs.tsv'), 'w')
             svs = []
             for region in queries:
-                _svs_ = self.par.run.vcf.get_svs_in_range(*region, sample=s, lrg_svs=self.par.plot.lrg_svs)
+                _svs_ = self.par.run.vcf.get_svs_in_range(*region, sample=s, lrg_svs=self.par.plot.l_svs)
                 for sv in _svs_:
                     if sv not in svs:
                         svs.append(sv)
@@ -138,7 +144,7 @@ class Plot:
             for vcf in self.par.run.alt_vcfs:
                 svs = []
                 for region in queries:
-                    _svs_ = vcf.get_svs_in_range(*region, sample=s, lrg_svs=self.par.plot.lrg_svs)
+                    _svs_ = vcf.get_svs_in_range(*region, sample=s, lrg_svs=self.par.plot.l_svs)
                     for sv in _svs_:
                         if sv not in svs:
                             svs.append(sv)
@@ -152,7 +158,7 @@ class Plot:
         # primary vcf
         svs = []
         for region in queries:
-            _svs_ = self.par.run.vcf.get_svs_in_range(*region, lrg_svs=self.par.plot.lrg_svs)
+            _svs_ = self.par.run.vcf.get_svs_in_range(*region, lrg_svs=self.par.plot.l_svs)
             for sv in _svs_:
                 if sv not in svs:
                     svs.append(sv)
@@ -162,7 +168,7 @@ class Plot:
         if self.par.run.ref_vcf:
             svs = []
             for region in queries:
-                _svs_ = self.par.run.ref_vcf.get_svs_in_range(*region, lrg_svs=self.par.plot.lrg_svs)
+                _svs_ = self.par.run.ref_vcf.get_svs_in_range(*region, lrg_svs=self.par.plot.l_svs)
                 for sv in _svs_:
                     if sv not in svs:
                         svs.append(sv)
@@ -172,7 +178,7 @@ class Plot:
         for vcf in self.par.run.alt_vcfs:
             svs = []
             for region in queries:
-                _svs_ = vcf.get_svs_in_range(*region, lrg_svs=self.par.plot.lrg_svs)
+                _svs_ = vcf.get_svs_in_range(*region, lrg_svs=self.par.plot.l_svs)
                 for sv in _svs_:
                     if sv not in svs:
                         svs.append(sv)
@@ -259,6 +265,14 @@ class Bins:
         self.num = (end - start + 1) // self.size
         self.end = self.start + self.num * self.size - 1
         self.region = chrom + ':' + str(self.start) + '-' + str(self.end)
+
+    def print_gc(self, fasta, file):
+        vals =[]
+        for i in range(self.num):
+            vals.append(str(SAMtools.get_GC(fasta, '{}:{}-{}'.format(self.chrom, self.start + i*self.size,
+                                                                                self.start + (i+1)*self.size))))
+        file.write('\t'.join(vals) + '\n')
+        file.close()
 
     def length(self):
         return self.end - self.start + 1

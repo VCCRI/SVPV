@@ -431,4 +431,6 @@ class SAMtools:
                     elif base.upper() in ('A', 'T'):
                         AT += 1
             line = p.stdout.readline()
+        if AT + GC == 0:
+            return 0
         return GC / (AT + GC)
