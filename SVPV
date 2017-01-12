@@ -483,7 +483,7 @@ def example(argv):
     run_argv.append('-ref_gene')
     run_argv.append(os.path.join(path, 'hg38.refgene.partial.txt'))
     run_argv.append('-o')
-    run_argv.append(os.path.join(path, 'output'))
+    run_argv.append(os.path.join(os.path.expanduser("~"), 'svpv_output'))
     main(argv=run_argv)
     if '-gui' not in argv:
         print('\nSuccess!\n')
