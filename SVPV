@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # # -*- coding: utf-8 -*-
 # """
 # author: Jacob Munro, Victor Chang Cardiac Research Institute
@@ -14,13 +15,12 @@ from svpv.refgene import RefgeneManager
 from svpv.plot import Plot
 
 version = "1.00"
+info = ("========================================\n"
+        "| Structural Variant Prediction Viewer |\n"
+        "| Version 1.00                         |\n"
+        "========================================\n")
 
 def main(argv=sys.argv):
-    print("\n"
-          "========================================\n"
-          "| Structural Variant Prediction Viewer |\n"
-          "| Version 1.00                         |\n"
-          "========================================\n")
     try:
         assert (sys.version_info[0] == 2 and sys.version_info[1] >= 7) or (sys.version_info[0] > 2)
     except AssertionError:
@@ -47,7 +47,7 @@ def main(argv=sys.argv):
                 plot.plot_figure(group=par.plot.grouping)
 
 usage = 'Usage example:\n' \
-        'SVPV.py -vcf input_svs.vcf -samples sample1,sample2 -aln alignment1.bam,alignment2.sam -o /out/directory/\n\n'\
+        'SVPV -vcf input_svs.vcf -samples sample1,sample2 -aln alignment1.bam,alignment2.sam -o /out/directory/\n\n'\
         'Run args:\n' \
         '[required]\n' \
         '-vcf\t\tPrimary structural variant prediction vcf/bcf file.\n' \
@@ -489,4 +489,5 @@ def example(argv):
         print('\nSuccess!\n')
 
 if __name__ == "__main__":
+    print('\n{}\n'.format(info))
     main()

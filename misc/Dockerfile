@@ -38,11 +38,11 @@ RUN cd /usr/local \
 
 # install SVPV
 RUN cd /usr/local \
-    && git clone https://github.com/VCCRI/SVPV.git \
+    && git clone https://github.com/VCCRI/SVPV.git
 
 # add user
-RUN groupadd -r -g 1000 ubuntu && useradd -r -g ubuntu -u 1000 -m ubuntu
-USER ubuntu
+RUN groupadd -r -g 1000 svpv_usr && useradd -r -g svpv_usr -u 1000 -m svpv_usr
+USER svpv_usr
 
 # start bash
 CMD ["/bin/bash"]
