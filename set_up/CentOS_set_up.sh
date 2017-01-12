@@ -1,18 +1,26 @@
 #!/usr/bin/env bash
-apt-get update && apt-get install -y \
+
+###############################################
+# install bcftools/samtools/SVPV dependencies #
+# tested on fresh CentOS 7 image              #
+###############################################
+
+yum update -y && yum install -y \
+gcc \
 cmake \
 git \
-graphicsmagick-imagemagick-compat \
-libncurses-dev \
+ImageMagick \
+ncurses-devel \
 python \
-python-numpy \
-python-tk \
-zlib1g-dev \
-&& apt-get install --no-install-recommends -y \
+numpy \
+tkinter \
+zlib-devel \
+epel-release \
 asciidoc \
-libxml2-utils \
-xmlto \
-&& apt-get clean
+libxml2-devel \
+xmlto
+
+yum install -y R && yum clean all
 
 cd /usr/local \
 && git clone https://github.com/samtools/htslib.git \

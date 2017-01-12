@@ -1,8 +1,11 @@
 FROM ubuntu:16.04
 
+# Note: Installing SVPV in a Docker container will essentially prohibit GUI use
+
 MAINTAINER Jacob Munro j.munro@victorchang.edu.au
-# python-dev
-RUN apt-get update && apt-get install -y \
+
+# install prerequisites
+RUN apt-get update -y && apt-get install -y \
     cmake \
     git \
     graphicsmagick-imagemagick-compat \
@@ -15,6 +18,7 @@ RUN apt-get update && apt-get install -y \
     asciidoc \
     libxml2-utils \
     xmlto \
+    r-base-core \
     && apt-get clean
 
 # install htslib, samtools and bcftools
@@ -46,4 +50,3 @@ USER svpv_usr
 
 # start bash
 CMD ["/bin/bash"]
-

@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
-apt-get update && apt-get install -y \
+
+###############################################
+# install bcftools/samtools/SVPV dependencies #
+# tested on fresh Ubuntu 16.04 image          #
+###############################################
+
+apt-get update -y && apt-get install -y \
 cmake \
 git \
 graphicsmagick-imagemagick-compat \
@@ -8,6 +14,7 @@ python \
 python-numpy \
 python-tk \
 zlib1g-dev \
+r-base-core \
 && apt-get install --no-install-recommends -y \
 asciidoc \
 libxml2-utils \
