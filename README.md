@@ -25,13 +25,13 @@ Limited support exists for breakends ('BND') and translocations ('TRA').
 
 ###Installation
 * Navigate to desired install directory and clone this repository.
-`git clone https://github.com/VCCRI/SVPV.git SVPV`
+  `git clone https://github.com/VCCRI/SVPV.git SVPV`
 * Ensure that requirements are met. For convenience shell scripts are provided for Ubuntu and CentOS.
-'sudo sh ./SVPV/set_up/Ubuntu_set_up.sh'
+  'sudo sh ./SVPV/set_up/Ubuntu_set_up.sh'
 * Test that SVPV is working. If you get any error messages at this point it is likely that some requirements aren't met.
-`python ./SVPV/SVPV -example`
+  `python ./SVPV/SVPV -example`
 * Test the gui is working
-`python ./SVPV/SVPV -example -gui`
+  `python ./SVPV/SVPV -example -gui`
 * all done!
 
 ###Non-linux users
