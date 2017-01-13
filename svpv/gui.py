@@ -76,8 +76,8 @@ class SVPVGui(tk.Tk):
         if self.display_cb:
             self.display_cb.destroy()
         self.display_var = tk.IntVar(value=1)
-        self.display_cb = tk.Checkbutton(self.buttons_2, text='display plot on creation', variable=self.display_var, onvalue=1,
-                                         offvalue=0)
+        self.display_cb = tk.Checkbutton(self.buttons_2, text='display plot on creation', variable=self.display_var,
+                                         onvalue=1, offvalue=0)
         self.display_cb.grid(row=1, column=1, padx=25, sticky=tk.E)
         self.buttons_2.grid(row=5, column=0, columnspan=2, sticky=tk.EW, padx=10)
 
@@ -216,7 +216,14 @@ class SVPVGui(tk.Tk):
             self.info_box.message.config(text="Error: No SV Selected")
         else:
             plot = Plot(self.svs[self.sv_chooser.sv_fl.selected_idx], self.current_samples, self.par)
-            self.filename = plot.plot_figure(group=self.par.plot.grouping, display=self.par.run.display)
+            if self.display_var.get():
+                self.filename = plot.plot_figure(group=self.par.plot.grouping, display=self.par.run.display)
+            else:
+                self.filename = plot.plot_figure(group=self.par.plot.grouping, display=False)
+            self.info_box.message.config(text='plot path copied to clipboard')
+            self.clipboard_clear()
+            self.clipboard_append(self.filename)
+            self.update()
 
     def set_plot_all_dir(self):
         dir_options = {}

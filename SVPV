@@ -53,24 +53,35 @@ usage = 'Usage example:\n' \
         '-vcf\t\tPrimary structural variant prediction vcf/bcf file.\n' \
         '-aln\t\tComma separated list of alignment files (BAM/CRAM).\n' \
         '-samples\tComma separated list of samples to view,' \
-            '\n\t\tNames must be the same as in vcf.\n' \
+            '\n\t\t\tnames must be the same as in vcf.\n' \
         '-o\t\tOutput directory.\n' \
         '[optional]\n' \
         '-gui\t\tRun in gui mode.\n' \
-        '-no_display\tdon\'t attempt to display pdf files in gui mode \n' \
         '-ref_vcf\tReference structural variant vcf/bcf file for annotation.\n' \
         '-ref_gene\tRefseq genes file for annotation.\n' \
         '-manifest\tWhitespace delimited file with first column sample names and' \
             '\n\t\tsecond column alignment files.' \
             '\n\t\toverrides \'-samples\' and \'-aln\' if also given.\n' \
-        '-fa\t\tReference genome Fasta file to add GC content annotation\n' \
+        '-fa\t\tReference genome Fasta file to add GC content annotation.\n' \
+        '-separate_plots\tIndividual plots produced for each sample.\n' \
+        '-l_svs\t\tshow SVs extending beyond the current plot area.\n' \
+        '-disp\t\tPDF viewer command. GUI mode only.\n' \
+        '\t\t\tdefault: "display"\n' \
+        '-is_len\t\tlibrary insert length, optimises window size.\n' \
+        '\t\t\tdefault: 500\n' \
+        '-rd_len\t\tsequencing read length, optimises window size.\n' \
+        '\t\t\tdefault: 100\n' \
+        '-exp\t\twindow expansion, proportion of SV len added to each side.\n' \
+        '\t\t\tdefault: 1\n' \
+        '-n_bins\t\ttarget number of bins for plot window.\n' \
+        '\t\t\tdefault: 100\n' \
         '\nFilter args:\n' \
         '-max_len\tmaximum length of structural variants (bp).\n' \
         '-min_len\tminimum length of structural variants (bp).\n' \
-        '-af\t\tAllele frequency threshold, \n' \
-            '\t\teg \'-af <0.1\' for SV with frequency less than 0.1.\n' \
-        '-gts\t\tSpecify genotypes of given samples.' \
-            '\n\t\teg sample1:0/1,1/1;sample3:1/1\n' \
+        '-af\t\tAllele frequency threshold: \n' \
+            '\t\t\teg \'-af <0.1\' for SV with frequency less than 0.1.\n' \
+        '-gts\t\tSpecify genotypes of given samples:' \
+            '\n\t\t\teg \'-gts sample1:0/1,1/1;sample3:1/1\'.\n' \
         '-chrom\t\tRestrict to comma separated list of chromosomes.\n' \
         '-svtype\t\tRestrict to given SV type (DEL/DUP/CNV/INV).\n' \
         '-rgi\t\tRestrict to SVs that intersect refGenes, \'-ref_gene\' must be supplied.\n' \
@@ -84,12 +95,11 @@ usage = 'Usage example:\n' \
         '-cl\t0/[1]\tforce clipped reads plot on or off.\n' \
         '-se\t[0]/1\tforce SAM \'secondary alignment\' plot on or off.\n' \
         '-su\t[0]/1\tforce SAM \'supplementary alignment\' plot on or off.\n' \
+        '-dm\t[0]/1\tforce mate different molecule alignment plot on or off.\n' \
         '-i\t0/[1]\tforce inferred insert size plot on or off.\n' \
         '-r\t0/[1]\tforce refgenes plot on or off.\n' \
         '-af\t0/[1]\tforce allele frequency plot on or off.\n' \
-        '-l\t0/[1]\tforce plot legend on or off.\n' \
-        '-l_svs\t[0]/1\tshow/hide SVs larger than current plot area\n' \
-        '\n\nNote: additional parameters can be adjusted by editing \'config.py\'.\n'
+        '-l\t0/[1]\tforce plot legend on or off.\n'
 
 
 def check_file_exists(path):
@@ -125,8 +135,16 @@ class Params:
                         self.run.out_dir = args[i + 1]
                     elif a == '-gui':
                         self.run.gui = True
-                    elif a == '-no_display':
-                        self.run.display = False
+                    elif a == '-disp':
+                        self.run.display = args[i + 1]
+                    elif a == '-is_len':
+                        self.run.is_len = int(args[i + 1])
+                    elif a == '-rd_len':
+                        self.run.rd_len = int(args[i + 1])
+                    elif a == '-exp':
+                        self.run.expansion = float(args[i + 1])
+                    elif a == '-n_bins':
+                        self.run.num_bins = int(args[i + 1])
                     elif a == '-fa':
                         check_file_exists(args[i + 1])
                         self.run.fa = args[i + 1]
@@ -256,6 +274,8 @@ class Params:
                             self.plot.legend = True
                     elif a == '-separate_plots':
                         self.plot.grouping = 1
+                    elif a == 'l_svs':
+                        self.plot.l_svs = True
                 else:
                     print("unrecognised argument: " + a)
                     exit(1)
@@ -263,7 +283,8 @@ class Params:
 
 # class to store run parameters
 class RunParams:
-    valid = ('-vcf','-aln', '-samples', '-manifest', '-o', '-gui', '-ref_gene', '-ref_vcf', '-no_display', '-fa')
+    valid = ('-vcf','-aln', '-samples', '-manifest', '-o', '-gui', '-ref_gene', '-ref_vcf', '-fa', '-is_len', '-rd_len',
+             '-exp', '-n_bins', '-disp')
 
     def __init__(self):
         # path to vcf
@@ -289,26 +310,11 @@ class RunParams:
 
         # get configurations
         # include defaults in case they are accidentally deleted
-        try:
-            self.display = config.display.split()
-        except AttributeError:
-            self.display = ['display']
-        try:
-            self.is_len = config.is_len
-        except AttributeError:
-            self.is_len = 500
-        try:
-            self.read_len = config.read_len
-        except AttributeError:
-            self.is_len = 100
-        try:
-            self.expansion = config.expansion
-        except AttributeError:
-            self.expansion = 1
-        try:
-            self.num_bins = config.num_bins
-        except AttributeError:
-            self.num_bins = 100
+        self.display = 'display'
+        self.is_len = 500
+        self.rd_len = 100
+        self.expansion = 1
+        self.num_bins = 100
 
     def get_bams(self, samples):
         bams = []
@@ -410,7 +416,8 @@ class FilterParams:
 
 # class to store parameters for what to show in R plots
 class PlotParams:
-    valid = ('-d', '-or', '-v', '-ss', '-se', '-su', '-cl', '-i', '-r', '-af', '-l', '-gc', '-dm', '-separate_plots')
+    valid = ('-d', '-or', '-v', '-ss', '-se', '-su', '-cl', '-i', '-r', '-af', '-l', '-gc', '-dm', '-separate_plots',
+             '-l_svs')
 
     def __init__(self):
         self.gc = False

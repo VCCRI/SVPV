@@ -45,7 +45,7 @@ class Plot:
 
         # single breakpoint
         elif sv.svtype == 'INS':
-            self.region_bins = Bins(sv.chrom, sv.pos - 2*par.run.read_len, sv.pos + 2*par.run.read_len,
+            self.region_bins = Bins(sv.chrom, sv.pos - 2*par.run.rd_len, sv.pos + 2*par.run.rd_len,
                                     ideal_num_bins=par.run.num_bins)
             self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])
 
@@ -61,18 +61,18 @@ class Plot:
             elif sv.svtype == 'TRA':
                 chr1, pos1 = sv.chrom, sv.pos
                 chr2, pos2 = sv.chr2, sv.chr2_pos
-            if chr1 == chr2 and abs(pos2-pos1) < 2*par.run.read_len:
-                self.region_bins = Bins(chr1, pos1 - 2*par.run.read_len, pos2 + 2*par.run.read_len,
+            if chr1 == chr2 and abs(pos2-pos1) < 2*par.run.rd_len:
+                self.region_bins = Bins(chr1, pos1 - 2*par.run.rd_len, pos2 + 2*par.run.rd_len,
                                         ideal_num_bins=par.run.num_bins)
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])
             elif chr2 is not None:
-                self.bkpt_bins = (Bins(chr1, pos1 - 2*par.run.read_len, pos1 + 2*par.run.read_len,
+                self.bkpt_bins = (Bins(chr1, pos1 - 2*par.run.rd_len, pos1 + 2*par.run.rd_len,
                                        ideal_num_bins=par.run.num_bins//2),
-                                  Bins(chr2, pos2 - 2*par.run.read_len, pos2 + 2*par.run.read_len,
+                                  Bins(chr2, pos2 - 2*par.run.rd_len, pos2 + 2*par.run.rd_len,
                                        ideal_num_bins=par.run.num_bins//2))
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.bkpt_bins)
             else:
-                self.region_bins = Bins(chr1, pos1 - 2*par.run.read_len, pos1 + 2*par.run.read_len,
+                self.region_bins = Bins(chr1, pos1 - 2*par.run.rd_len, pos1 + 2*par.run.rd_len,
                                         ideal_num_bins=par.run.num_bins)
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])
 
@@ -209,7 +209,7 @@ class Plot:
                 exit(1)
 
             if display:
-                cmd = copy.copy(display)
+                cmd = [display]
                 cmd.append(out)
                 print(' '.join(cmd) + '\n')
                 try:

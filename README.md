@@ -15,6 +15,7 @@ insertion (INS) and breakend ('BND') are supported. Delly-style translocations (
 * R v3.+
 * [SAMtools and BCFtools](https://github.com/samtools) (version 1.3)
 * Linux environment, or access to linux via ssh
+
 **Note:** SAMtools and BCFtools must be executable by typing 'samtools' and 'bcftools' into the terminal.
   
 **GUI**  
@@ -40,7 +41,7 @@ insertion (INS) and breakend ('BND') are supported. Delly-style translocations (
 * all done!
 
 ###Non-linux users
-* The easiest way to get SVPV running on your PC or Mac is to run a virtual machine in software such as
+* The easiest way to get SVPV running 'on' your Windows or Mac is to run a virtual machine in software such as
  [Oracle VM Virtual Box](https://www.virtualbox.org/).
 * You can download an Ubuntu 16.04 image at [osboxes.org](http://www.osboxes.org/ubuntu/)
 * After your Ubuntu image is running follow the installation instructions above
@@ -65,11 +66,18 @@ python SVPV -vcf caller1_svs.vcf -samples sample1,sample2,sample3 -aln alignment
 |-aln                 | Comma separated list of alignment files (indexed BAM/CRAM)                | required <sup>2</sup>
 |-samples             | Comma separated list of samples to view, names must be the same as in VCF | required <sup>2</sup>
 |-gui                 | run in gui mode                                                           | optional |
-|-no_display          | don't attempt to display pdf files in GUI mode                            | optional |
 |-ref_vcf<sup>1</sup> | Reference structural variant vcf/bcf file for annotation                  | optional |
 |-ref_gene            | Refseq genes regene table file for annotation<sup>3</sup>                 | optional |
 |-manifest            | Whitespace delimited file, first column sample names, <br> second column alignment file path. Overrides '-samples' and '-aln' if also given. | optional
 |-separate_plots      | Plot each sample separately                                               | optional |
+|-l_svs               | show SVs extending beyond the current plot area.                          | optional |
+|-disp                | PDF viewer command. GUI mode only. Default: "Display"                     | optional |
+|-is_len              | library insert length, optimises window size. Default: 500                | optional |
+|-rd_len              | sequencing read length, optimises window size. Default: 100               | optional |
+|-exp                 | window expansion, proportion of SV len added to each side. Default: 1     | optional |
+|-n_bins              | target number of bins for plot window. Default: 100                       | optional |
+
+
 
 <sup>1</sup>vcfs may be specified by a file (e.g. '-vcf /path/to/file.vcf') or by a name and a file (e.g. '-vcf delly:/path/to/file'). If not specified names will be 'primary', 'alternate' and 'reference' by default.
 
