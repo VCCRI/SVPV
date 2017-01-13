@@ -6,15 +6,16 @@ that allows users to visually identify false postive calls. Input is a set align
 set of structural variant predictions on these alignments (VCF files). Output is a set of pdf files of structural
 variant regions.
 
-Deletions (DEL), duplications (DUP), copy number variations (CNV), inversions (INV), and insertions (INS) are supported.
-Limited support exists for breakends ('BND') and translocations ('TRA').
+VCF structural variant types deletion (DEL), duplication (DUP), copy number variation (CNV), inversion (INV),
+insertion (INS) and breakend ('BND') are supported. Delly-style translocations (TRA) are also supported.
 
 ###Requirements
 **Basic**  
 * Python 2.7.+ and NumPy
 * R v3.+
 * [SAMtools and BCFtools](https://github.com/samtools) (version 1.3)
-* Linux environment, or access to linux via ssh  
+* Linux environment, or access to linux via ssh
+**Note:** SAMtools and BCFtools must be executable by typing 'samtools' and 'bcftools' into the terminal.
   
 **GUI**  
 * X11 if running over ssh
@@ -42,20 +43,19 @@ Limited support exists for breakends ('BND') and translocations ('TRA').
 * The easiest way to get SVPV running on your PC or Mac is to run a virtual machine in software such as
  [Oracle VM Virtual Box](https://www.virtualbox.org/).
 * You can download an Ubuntu 16.04 image at [osboxes.org](http://www.osboxes.org/ubuntu/)
-* After you Ubuntu image is running simply follow the installation instructions above
+* After your Ubuntu image is running follow the installation instructions above
 
-**Note:** SAMtools and BCFtools must be executable by typing 'samtools' and 'bcftools' into the terminal.
 
 ###Usage
 Running in GUI mode allows users to select and view individual structural variant calls on some subset of the supplied samples. Running in batch mode (i.e. not GUI mode) will generates plots for each call with the suplied set of samples, matching the supplied filter arguments.
 
 **example:**  
 ```
-python SVPV.py -gui -o ./example/output/ -vcf delly:./example/delly.vcf -alt_vcf cnvnator:./example/cnvnator.vcf -manifest ./example/example.manifest -ref_gene ./example/hg38.refgene.partial.txt -ref_vcf ./example/1000G.vcf
+python SVPV -gui -o ./example/output/ -vcf delly:./example/delly.vcf -alt_vcf cnvnator:./example/cnvnator.vcf -manifest ./example/example.manifest -ref_gene ./example/hg38.refgene.partial.txt -ref_vcf ./example/1000G.vcf
 ```
 **another example:**
 ```
-python SVPV.py -vcf caller1_svs.vcf -samples sample1,sample2,sample3 -aln alignment1.bam,alignment2.bam,alignment3.bam -o /out/directory/ -alt_vcf caller2_svs.vcf -ref_vcf 1000_genomes_svs.vcf -ref_gene hg38.refgene.txt -max_len 100000 -af <0.25 -gts sample1:1/1,0/1;sample3:0/0 -svtype DEL -exonic -ss 0 -se 1
+python SVPV -vcf caller1_svs.vcf -samples sample1,sample2,sample3 -aln alignment1.bam,alignment2.bam,alignment3.bam -o /out/directory/ -alt_vcf caller2_svs.vcf -ref_vcf 1000_genomes_svs.vcf -ref_gene hg38.refgene.txt -max_len 100000 -af <0.25 -gts sample1:1/1,0/1;sample3:0/0 -svtype DEL -exonic -ss 0 -se 1
 ```
 
 |Run args:            | Description                                                               | Notes    |
