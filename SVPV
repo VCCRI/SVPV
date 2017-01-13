@@ -8,7 +8,6 @@ from __future__ import print_function
 import sys
 import os
 import re
-import config
 from svpv.vcf import VCFManager, BCFtools
 from svpv.sam import SAMtools
 from svpv.refgene import RefgeneManager

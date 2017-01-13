@@ -242,30 +242,16 @@ class Plot:
                 os.mkdir(dirs[s])
         return dirs
 
-    def get_length_units(self):
-        if self.sv.svtype in ('DEL', 'DUP', 'CNV', 'INV'):
-            length = self.sv.end - self.sv.pos + 1
-            if length < 1e3:
-                return '%d_%s' % (length, 'bp')
-            elif 1e3 <= length < 1e6:
-                return '%d_%s' % (length/1e3, 'kbp')
-            elif 1e6 <= length < 1e9:
-                return '%d_%s' % (length/1e6, 'Mbp')
-            else:
-                return '%d_%s' % (length/1e9, 'Gbp')
-        else:
-            return ''
-
 class Bins:
     def __init__(self, chrom, start, end, ideal_num_bins=100):
 
         # aim for ideal_num_bins, but bins need to be uniformally distributed and of equal size
         # smallest bins size is 1bp, so for regions < num_bins bp there will be less than num_bins bins
         self.chrom = chrom
-        self.start = start
-        self.size = (end - start + 1) // ideal_num_bins
+        self.start = max(0, start)
+        self.size = (end - self.start + 1) // ideal_num_bins
         self.size += not (self.size) * 1
-        self.num = (end - start + 1) // self.size
+        self.num = (end - self.start + 1) // self.size
         self.end = self.start + self.num * self.size - 1
         self.region = chrom + ':' + str(self.start) + '-' + str(self.end)
 

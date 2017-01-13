@@ -1,11 +1,13 @@
 # parse plot attributes
 PlotAttr <- function(folder){
   attr <- read.table(paste0(folder, 'plot_attr.tsv'), header=TRUE, as.is = TRUE, sep='\t')
+  if (!is.na(attr$loci)) loci=lapply(unlist(strsplit(attr$loci, ',')), function(x) Region(x))
+  else loci = NA
   return(list(ver=attr$ver,
               region=Region(attr$region),
               r_bin_size=as.numeric(attr$r_bin_size),
               r_bin_num=as.numeric(attr$r_bin_num),
-              loci=lapply(unlist(strsplit(attr$loci, ',')), function(x) Region(x)),
+              loci=loci,
               l_bin_size=as.numeric(attr$l_bin_size),
               l_bin_num=as.numeric(attr$l_bin_num)))
 }
@@ -328,10 +330,10 @@ get_units <- function(num_bp) {
     return(list(val=1000000000, sym='Gbp'))
   }
 }
-# return the 1.1 * lowest insert size in the highest top 15% - heuristic for avoiding outliers
+# heuristic for avoiding errors when determing insert size upper
 estimate_ylim <- function(ins) {
   sorted <- sort(ins)
-  return(1.1 * sorted[floor(length(sorted) * 0.85)])
+  return(1.1 * sorted[floor(length(sorted) * 0.985)])
 }
 plot_insert_sizes <- function(params, ins, ylim, num_y_bins=10){
   # organise sensible units for ticks on plot
