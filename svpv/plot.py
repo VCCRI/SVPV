@@ -98,7 +98,8 @@ class Plot:
 
         # plot attributes for use in R
         plot_attr = open(os.path.join(self.dirs['pos'], 'plot_attr.tsv'), 'wt')
-        plot_attr.write('\t'.join(('region', 'r_bin_size', 'r_bin_num', 'loci', 'l_bin_size', 'l_bin_num')) + '\n')
+        plot_attr.write('\t'.join(('ver', 'region', 'r_bin_size', 'r_bin_num', 'loci', 'l_bin_size', 'l_bin_num')) + '\n')
+        plot_attr.write('SVPV v{}\t'.format(self.par.ver))
         if self.region_bins:
             plot_attr.write('{}\t{}\t{}\t'.format(self.region_bins.region, self.region_bins.size, self.region_bins.num))
         else:
@@ -196,10 +197,9 @@ class Plot:
                 id = current_samples[0]
             else:
                 id = sha1(''.join(current_samples).encode('utf-8')).hexdigest()[0:10]
-            out = os.path.join(self.dirs['pos'], '%s.%s.%s.%s.%s.pdf' % (self.sv.chrom, self.sv.pos, self.sv.svtype,
-                                                                         self.get_length_units(), id))
+            out = os.path.join(self.dirs['pos'], '{}.{}.{}.{}.pdf'.format(self.sv.chrom, self.sv.pos, self.sv.svtype,id))
             cmd = ['Rscript', Plot.svpv_r, ','.join(current_samples), os.path.join(self.dirs['pos'], ''), out]
-            cmd.append('"%s at %s:%d"' % (self.sv.svtype, self.sv.chrom, self.sv.pos))
+            cmd.append('"{} at {}:{}"'.format(self.sv.svtype, self.sv.chrom, self.sv.pos))
             cmd.extend(self.par.plot.get_R_args())
             print(' '.join(cmd) + '\n')
             try:
@@ -243,15 +243,18 @@ class Plot:
         return dirs
 
     def get_length_units(self):
-        length = self.sv.end - self.sv.pos + 1
-        if length < 1e3:
-            return '%d_%s' % (length, 'bp')
-        elif 1e3 <= length < 1e6:
-            return '%d_%s' % (length/1e3, 'kbp')
-        elif 1e6 <= length < 1e9:
-            return '%d_%s' % (length/1e6, 'Mbp')
+        if self.sv.svtype in ('DEL', 'DUP', 'CNV', 'INV'):
+            length = self.sv.end - self.sv.pos + 1
+            if length < 1e3:
+                return '%d_%s' % (length, 'bp')
+            elif 1e3 <= length < 1e6:
+                return '%d_%s' % (length/1e3, 'kbp')
+            elif 1e6 <= length < 1e9:
+                return '%d_%s' % (length/1e6, 'Mbp')
+            else:
+                return '%d_%s' % (length/1e9, 'Gbp')
         else:
-            return '%d_%s' % (length/1e9, 'Gbp')
+            return ''
 
 class Bins:
     def __init__(self, chrom, start, end, ideal_num_bins=100):

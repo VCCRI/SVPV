@@ -1,8 +1,13 @@
 Structural Variant Prediction Viewer  
 ------------------------------------
-View predicted structural variant regions from paired-end whole genome sequencing alignments and compare calls from differenct structural variant prediction algorithms. Statistics related to structural variants are presented in a form that allows users to visually identify false postive calls. Input is a set alignment files (SAM/BAM/CRAM format), and a set of structural variant predictions on these alignments (VCF files). Output is a set of pdf files of structural variant regions.
+View predicted structural variant regions from paired-end whole genome sequencing alignments and compare calls from
+differenct structural variant prediction algorithms. Statistics related to structural variants are presented in a form
+that allows users to visually identify false postive calls. Input is a set alignment files (SAM/BAM/CRAM format), and a
+set of structural variant predictions on these alignments (VCF files). Output is a set of pdf files of structural
+variant regions.
 
-Deletions (DEL), duplications (DUP), copy number variations (CNV) and inversions (INV) are supported. Translocations (TRA) and insertions (INS) are not supported.
+Deletions (DEL), duplications (DUP), copy number variations (CNV), inversions (INV), and insertions (INS) are supported.
+Limited support exists for breakends ('BND') and translocations ('TRA').
 
 ###Requirements
 **Basic**  
@@ -19,13 +24,21 @@ Deletions (DEL), duplications (DUP), copy number variations (CNV) and inversions
   * or other X11 pdf viewer specified in 'config.py'
 
 ###Installation
-* navigate to desired install directory and clone this repository  
+* Navigate to desired install directory and clone this repository.
 `git clone https://github.com/VCCRI/SVPV.git SVPV`
-* test everything is working  
-`python ./SVPV/SVPV.py -example`
-* test the gui is working  
-`python ./SVPV/SVPV.py -example -gui`
-* all done!  
+* Ensure that requirements are met. For convenience shell scripts are provided for Ubuntu and CentOS.
+'sudo sh ./SVPV/set_up/Ubuntu_set_up.sh'
+* Test that SVPV is working. If you get any error messages at this point it is likely that some requirements aren't met.
+`python ./SVPV/SVPV -example`
+* Test the gui is working
+`python ./SVPV/SVPV -example -gui`
+* all done!
+
+###Non-linux users
+* The easiest way to get SVPV running on your PC or Mac is to run a virtual machine in software such as
+ [Oracle VM Virtual Box](https://www.virtualbox.org/).
+* You can download an Ubuntu 16.04 image at [osboxes.org](http://www.osboxes.org/ubuntu/)
+* After you Ubuntu image is running simply follow the installation instructions above
 
 **Note:** SAMtools and BCFtools must be executable by typing 'samtools' and 'bcftools' into the terminal.
 

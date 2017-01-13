@@ -1,16 +1,17 @@
 # parse plot attributes
 PlotAttr <- function(folder){
-  attr <- read.table(paste0(folder, 'plot_attr.tsv'), header=TRUE, colClasses=c('character', 'numeric', 'numeric'), sep='\t')
-  return(list(region=Region(attr$region),
-              r_bin_size=attr$r_bin_size,
-              r_bin_num=attr$r_bin_num,
+  attr <- read.table(paste0(folder, 'plot_attr.tsv'), header=TRUE, as.is = TRUE, sep='\t')
+  return(list(ver=attr$ver,
+              region=Region(attr$region),
+              r_bin_size=as.numeric(attr$r_bin_size),
+              r_bin_num=as.numeric(attr$r_bin_num),
               loci=lapply(unlist(strsplit(attr$loci, ',')), function(x) Region(x)),
-              l_bin_size=attr$l_bin_size,
-              l_bin_num=attr$l_bin_num))
+              l_bin_size=as.numeric(attr$l_bin_size),
+              l_bin_num=as.numeric(attr$l_bin_num)))
 }
 # parse GC content if present
 GC <- function(folder){
-  region <- NA
+  region <- NULL
   loci <- list()
   for (f in list.files(folder)){
     if (grepl('region_gc.tsv', f)){
@@ -162,7 +163,8 @@ empty_plot <- function(xlim,ylim=c(0, 1),type='n',bty='n', xaxt='n', yaxt='n', y
 add_position_axis <- function(params, side) {
   par(las=1)
   if (params$type == 'split'){
-    for (l in params$Attr$loci[1:2]){
+    for (i in 1:2){
+      l <- params$Attr$loci[[i]]
       units <- get_units(l$end)
       empty_plot(c(l$start, l$end) / units$val)
       mtext(paste0(l$chr, ' pos (', units$sym, ')'), side=side, line=-1, cex=0.85)
@@ -175,7 +177,7 @@ add_position_axis <- function(params, side) {
         else empty_plot(c(0, n_bins), ylim=c(5,0))
         rect(0:(n_bins-1), 0, 1:n_bins, 1, col=colorRampPalette(c('gray95', 'gray5'))(100)[ceiling(100*gc)], border=NA)
         rect(0, 0, n_bins, 1, border='black', lwd=0.5)
-        par(xpd=NA); text(0, 0.5, labels='GC', pos=2, cex=0.85); par(xpd=FALSE)
+        #if (i == 1) par(xpd=NA); text(0, 0.5, labels='GC', pos=2, cex=0.85); par(xpd=FALSE)
       }
     }
   } else {
@@ -234,21 +236,26 @@ add_legend <- function() {
   add_border(c(3, 4), c(0, 1))
   par(font=2)
   text(c(0.5, 1.5, 2.5, 3.5), 1,  pos=1, labels=c("Read MapQ", "Inferred Insert Size", "Mapping Stats", "SV Allele Frequency"))
+  text(0.5, 0.45, labels='GC content')
   par(font=1)
   # constants
-  bottom = 0.20
-  top = bottom + 0.20
+  bottom = 0.18
+  top = bottom + 0.18
+  lmr = c(0.18, (0.18+0.82)/2, 0.82)
   # depth legend
-  rect(c((1 / 6 - 0.1), (3 / 6 - 0.1), (5 / 6 - 0.1)), bottom, c((1 / 6 + 0.1), (3 / 6 + 0.1), (5 / 6 + 0.1)), top,  col=c('seagreen3', 'wheat2', 'gray95'))
-  text( c((1 / 6), (3 / 6), (5 / 6)), c(top + 0.1), pos=3, labels=c(">= 30", "< 30", "= 0") )
+  rect(c((1 / 6 - 0.1), (3 / 6 - 0.1), (5 / 6 - 0.1)), bottom+0.4, c((1 / 6 + 0.1), (3 / 6 + 0.1), (5 / 6 + 0.1)), top+0.4,  col=c('seagreen3', 'wheat2', 'gray95'))
+  text( c((1 / 6), (3 / 6), (5 / 6)), c(top + 0.325), labels=c(">= 30", "< 30", "= 0") )
+  # GC Legend
+  rect(0.15 + 0.7 / 10 * (0:9), bottom, 0.15 + 0.7 / 10 * (1:10), top, col=colorRampPalette(c('gray95', 'gray5'))(10)[(1:10)])
+  text(lmr, bottom - 0.08, format(c(0, 0.5, 1), nsmall=1))
   # inferred insert size legend
-  text(1.5, top + 0.25, labels=c("Proportion in position x\nwith mapping distance y"))
+  text(1.5, top + 0.25, labels=c("proportion in position x\nwith mapping distance y"))
   rect(1.15 + 0.7 / 10 * (0:9), bottom, 1.15 + 0.7 / 10 * (1:10), top, col=insert_size_pallete(10)[(1:10)])
-  text(c(1.18, 1.82), bottom - 0.08, as.character(c(0, 1)))
+  text(lmr+1, bottom - 0.08, format(c(0, 0.5, 1), nsmall=1))
   # Mapping stats legend 
-  text(2.5, top + 0.1, pos=3, labels=c("proportion of reads in position x"))
+  text(2.5, top + 0.25, labels=c("proportion of reads\nin position x"))
   rect(2.15 + 0.7 / 10 * (0:9), bottom, 2.15 + 0.7 / 10 * (1:10), top, col=aln_stats_pallete(10)[(1:10)])
-  text(c(2.18, 2.82), bottom - 0.08, as.character(c(0, 1)))
+  text(lmr+2, bottom - 0.08, format(c(0, 0.5, 1), nsmall=1))
   # SV AF legend
   sv_types <- c("DEL", "DUP/INS", "CNV/TRA", "INV/BND")
   height = 0.13
@@ -259,7 +266,7 @@ add_legend <- function() {
     text(3.35, bottom + (i-0.5) * height, sv_types[i], pos=2)
   }
   par(family='sans', font=1)
-  text(c(3.35, 3.93), bottom - 0.08, as.character(c(0, 1)))
+  text(c(3.35, (3.35+3.93)/2, 3.93), bottom - 0.08, format(c(0, 0.5, 1), nsmall=1))
 }
 aln_stats_pallete <- function(n){
   return(colorRampPalette(c("gray95", "#FDD49E", "#FDBB84", "#FC8D59", "#EF6548", "#D7301F", "#B30000", "#7F0000"))(n))
@@ -488,13 +495,16 @@ plot_sample <- function(sample, params, ins_ylim) {
 }
 # add annotations of details of the plot
 plot_details <- function(params) {
+  det <- params$Attr$ver
   if (params$type == 'contiguous'){
-    mtext(paste("Bin size: ", as.character(params$Attr$r_bin_size), "   Num bins: ", as.character(params$Attr$r_bin_num), "   Date: ", as.character(Sys.Date()) ), side = 1, line = 0, adj = 0, cex = 0.65 )
+    det <- paste0(det, "   Bin size: ", as.character(params$Attr$r_bin_size), "   Num bins: ", as.character(params$Attr$r_bin_num))
   } else if (params$type == 'zoom'){
-    mtext(paste("Depth bin size: ", as.character(params$Attr$r_bin_size), "   Num depth bins: ", as.character(params$Attr$r_bin_num), "   Zoom bin size: ", as.character(params$Attr$l_bin_size), "   Num zoom bins: ", as.character(params$Attr$l_bin_num), "   Date: ", as.character(Sys.Date()) ), side = 1, line = 0, adj = 0, cex = 0.65 )
+    det <- paste0(det, "   Depth bin size: ", as.character(params$Attr$r_bin_size), "   Num depth bins: ", as.character(params$Attr$r_bin_num), "   Zoom bin size: ", as.character(params$Attr$l_bin_size), "   Num zoom bins: ", as.character(params$Attr$l_bin_num))
   } else {
-    mtext(paste("Bin size: ", as.character(params$Attr$l_bin_size), "   Num bins: ", as.character(params$Attr$l_bin_num), "   Date: ", as.character(Sys.Date()) ), side = 1, line = 0, adj = 0, cex = 0.65 )
+    det <- paste0(det, "   Bin size: ", as.character(params$Attr$l_bin_size), "   Num bins: ", as.character(params$Attr$l_bin_num))
   }
+  det <- paste0(det, "   Date: ", as.character(Sys.Date()))
+  mtext(det, side = 1, line = 0, adj = 0, cex = 0.65 )
 }
 # graphical representation of linear transformation between depth plot and zoomed in inserts size and aln stats plots
 add_zoom_detail <- function(params, col='black', spacer=2){

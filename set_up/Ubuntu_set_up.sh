@@ -3,6 +3,7 @@
 ###############################################
 # install bcftools/samtools/SVPV dependencies #
 # tested on fresh Ubuntu 16.04 image          #
+# requires root access                        #
 ###############################################
 
 apt-get update -y && apt-get install -y \

@@ -15,10 +15,10 @@ from svpv.refgene import RefgeneManager
 from svpv.plot import Plot
 
 version = "1.00"
-info = ("\t========================================\n"
-        "\t| Structural Variant Prediction Viewer |\n"
-        "\t| Version 1.00                         |\n"
-        "\t========================================\n")
+info = ("\t============================================\n"
+        "\t||  Structural Variant Prediction Viewer  ||\n"
+        "\t||  Version {}                          ||\n"
+        "\t============================================\n".format(version))
 
 def main(argv=sys.argv):
     try:
@@ -103,6 +103,7 @@ class Params:
         self.run = RunParams()
         self.filter = FilterParams(self)
         self.plot = PlotParams()
+        self.ver = version
 
         for i, a in enumerate(args):
             if a[0] == '-':
@@ -188,7 +189,7 @@ class Params:
                         # specify genotypes of given samples in form: sample1:0/1,1/1;sample3:1/1
                         self.filter.sampleGTs = {}
                         for sample in args[i + 1].split(';'):
-                            filter.sampleGTs[sample.split(':')[0]] = sample.split(':')[1].split(',')
+                            self.filter.sample_GTs[sample.split(':')[0]] = sample.split(':')[1].split(',')
                     elif a == '-chrom':
                         self.filter.chrom = args[i + 1]
 
@@ -496,5 +497,5 @@ def example(argv):
         print('\nSuccess!\n')
 
 if __name__ == "__main__":
-    print('\n{}\n'.format(info))
+    print('\n\n{}\n'.format(info))
     main()

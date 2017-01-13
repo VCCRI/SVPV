@@ -3,6 +3,7 @@
 ###############################################
 # install bcftools/samtools/SVPV dependencies #
 # tested on fresh CentOS 7 image              #
+# requires root access                        #
 ###############################################
 
 yum update -y && yum install -y \

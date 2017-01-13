@@ -23,8 +23,8 @@ class SVPVGui(tk.Tk):
         self.viewGTs = None
         self.viewSV = None
         self.plotAll = None
+        self.display_cb = None
         self.setup_static_features()
-
         self.config(menu=gw.MenuBar(self))
         self.current_samples = []
         self.svs = self.par.run.vcf.filter_svs(self.par.filter)
@@ -67,12 +67,18 @@ class SVPVGui(tk.Tk):
         self.viewGTs.grid(row=0, column=0, padx=25, sticky=tk.W)
         if self.viewSV:
             self.viewSV.destroy()
-        self.viewSV = tk.Button(self.buttons_2, text="View Structural Variant", command=self.view_sv)
-        self.viewSV.grid(row=0, column=1, padx=25, sticky=tk.E)
+        self.viewSV = tk.Button(self.buttons_2, text="Plot Selected SV", command=self.view_sv)
+        self.viewSV.grid(row=0, column=1, padx=25, sticky=tk.W)
         if self.plotAll:
             self.plotAll.destroy()
-        self.plotAll = tk.Button(self.buttons_2, text="Plot All", command=self.plot_all)
+        self.plotAll = tk.Button(self.buttons_2, text="Plot All SVs", command=self.plot_all)
         self.plotAll.grid(row=0, column=2, padx=25, sticky=tk.E)
+        if self.display_cb:
+            self.display_cb.destroy()
+        self.display_var = tk.IntVar(value=1)
+        self.display_cb = tk.Checkbutton(self.buttons_2, text='display plot on creation', variable=self.display_var, onvalue=1,
+                                         offvalue=0)
+        self.display_cb.grid(row=1, column=1, padx=25, sticky=tk.E)
         self.buttons_2.grid(row=5, column=0, columnspan=2, sticky=tk.EW, padx=10)
 
     def text_size(self, opt):

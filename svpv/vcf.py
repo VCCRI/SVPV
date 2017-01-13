@@ -154,7 +154,7 @@ class VCFManager:
                                     and '*' not in filter_par.sample_GTs[sample]:
                         delete.append(i)
                         break
-                if delete[-1] == i:
+                if delete and delete[-1] == i:
                     continue
             # filter by maf
             if filter_par.AF_thresh:
