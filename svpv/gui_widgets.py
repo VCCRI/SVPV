@@ -5,9 +5,10 @@
 from __future__ import print_function
 try:
     import Tkinter as tk
+    import tkFileDialog
 except ImportError:
     import tkinter as tk
-import tkFileDialog
+    from tkinter import filedialog as tkFileDialog
 import re
 from shutil import copyfile
 
