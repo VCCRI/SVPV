@@ -21,9 +21,10 @@ insertion (INS) and breakend ('BND') are supported. Delly-style translocations (
 **GUI**  
 * X11 if running over ssh
 * python 2.7 tkinter
-* [GraphicsMagick](http://www.graphicsmagick.org/) or ImageMagick ('display')
-  * Recommended: GraphicsMagick build w/ --enable-magick-compat
-  * or other X11 pdf viewer specified in 'config.py'
+* Recommended: [GraphicsMagick](http://www.graphicsmagick.org/) or ImageMagick ('display')
+  * GraphicsMagick build w/ --enable-magick-compat
+  * Note: any other X11 capable pdf viewer specified by '-disp' will work
+  * alternatively users can navigate to plot directory and open the file with a local pdf viewer
 
 ###Installation
 * Navigate to desired install directory and clone this repository.
@@ -71,7 +72,7 @@ python SVPV -vcf caller1_svs.vcf -samples sample1,sample2,sample3 -aln alignment
 |-manifest            | Whitespace delimited file, first column sample names, <br> second column alignment file path. Overrides '-samples' and '-aln' if also given. | optional
 |-separate_plots      | Plot each sample separately                                               | optional |
 |-l_svs               | show SVs extending beyond the current plot area.                          | optional |
-|-disp                | PDF viewer command. GUI mode only. Default: "Display"                     | optional |
+|-disp                | PDF viewer command. GUI mode only. Default: "display"                     | optional |
 |-is_len              | library insert length, optimises window size. Default: 500                | optional |
 |-rd_len              | sequencing read length, optimises window size. Default: 100               | optional |
 |-exp                 | window expansion, proportion of SV len added to each side. Default: 1     | optional |
