@@ -5,12 +5,12 @@
 from __future__ import print_function
 try:
     import Tkinter as tk
+    import tkFileDialog
 except ImportError:
     import tkinter as tk
+    from tkinter import filedialog as tkFileDialog
 from . import gui_widgets as gw
 from .plot import Plot
-import tkFileDialog
-
 
 
 class SVPVGui(tk.Tk):
