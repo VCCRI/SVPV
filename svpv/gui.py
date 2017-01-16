@@ -3,7 +3,10 @@
 # author: Jacob Munro, Victor Chang Cardiac Research Institute
 # """
 from __future__ import print_function
-import Tkinter as tk
+try:
+    import Tkinter as tk
+except ImportError:
+    import tkinter as tk
 import gui_widgets as gw
 from plot import Plot
 import tkFileDialog
