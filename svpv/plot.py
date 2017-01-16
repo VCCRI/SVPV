@@ -23,29 +23,31 @@ class Plot:
         self.region_bins = None
         self.bkpt_bins = None
 
+        # half breakpoint windop
+        h_bkpt_wind = (par.run.bkpt_win * par.run.rd_len) // 2
+
         # show depth over whole region but zoom in on breakpoints if necessary
         if sv.svtype in ('DEL', 'DUP', 'CNV', 'INV'):
             start = sv.pos - par.run.expansion * (sv.end - sv.pos + 1)
             end = sv.end + par.run.expansion * (sv.end - sv.pos + 1)
             self.region_bins = Bins(sv.chrom, start, end, ideal_num_bins=par.run.num_bins)
-            if self.region_bins.size / par.run.is_len > 0.25:
-                self.bkpt_bins = (Bins(sv.chrom, sv.pos - int(1.5 * par.run.is_len), sv.pos + int(1.5 * par.run.is_len),
-                                  ideal_num_bins=par.run.num_bins//2),
-                                  Bins(sv.chrom, sv.end - int(1.5 * par.run.is_len), sv.end + int(1.5 * par.run.is_len),
-                                  ideal_num_bins=par.run.num_bins//2))
+            if (end - start) > self.par.run.bkpt_win * self.par.run.rd_len:
+                self.bkpt_bins = (Bins(sv.chrom, sv.pos - h_bkpt_wind, sv.pos + h_bkpt_wind,
+                                       ideal_num_bins=par.run.num_bins//2),
+                                  Bins(sv.chrom, sv.end - h_bkpt_wind, sv.end + h_bkpt_wind,
+                                       ideal_num_bins=par.run.num_bins//2))
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.bkpt_bins,
                                                    depth_bins=self.region_bins)
-            elif self.region_bins.length() <  3* par.run.is_len:
+            elif self.region_bins.length() <  self.par.run.bkpt_win * self.par.run.rd_len:
                 mid = (sv.pos + sv.end) // 2
-                self.region_bins = Bins(sv.chrom, mid - par.run.is_len, mid + par.run.is_len,
-                                        ideal_num_bins=par.run.num_bins)
+                self.region_bins = Bins(sv.chrom, mid - h_bkpt_wind, mid + h_bkpt_wind, ideal_num_bins=par.run.num_bins)
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])
             else:
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])
 
         # single breakpoint
         elif sv.svtype == 'INS':
-            self.region_bins = Bins(sv.chrom, sv.pos - 2*par.run.rd_len, sv.pos + 2*par.run.rd_len,
+            self.region_bins = Bins(sv.chrom, sv.pos - h_bkpt_wind, sv.pos + h_bkpt_wind,
                                     ideal_num_bins=par.run.num_bins)
             self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])
 
@@ -62,18 +64,14 @@ class Plot:
                 chr1, pos1 = sv.chrom, sv.pos
                 chr2, pos2 = sv.chr2, sv.chr2_pos
             if chr1 == chr2 and abs(pos2-pos1) < 2*par.run.rd_len:
-                self.region_bins = Bins(chr1, pos1 - 2*par.run.rd_len, pos2 + 2*par.run.rd_len,
-                                        ideal_num_bins=par.run.num_bins)
+                self.region_bins = Bins(chr1, pos1 - h_bkpt_wind, pos2 + h_bkpt_wind, ideal_num_bins=par.run.num_bins)
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])
             elif chr2 is not None:
-                self.bkpt_bins = (Bins(chr1, pos1 - 2*par.run.rd_len, pos1 + 2*par.run.rd_len,
-                                       ideal_num_bins=par.run.num_bins//2),
-                                  Bins(chr2, pos2 - 2*par.run.rd_len, pos2 + 2*par.run.rd_len,
-                                       ideal_num_bins=par.run.num_bins//2))
+                self.bkpt_bins = (Bins(chr1, pos1 - h_bkpt_wind, pos1 + h_bkpt_wind, ideal_num_bins=par.run.num_bins//2),
+                                  Bins(chr2, pos2 - h_bkpt_wind, pos2 + h_bkpt_wind, ideal_num_bins=par.run.num_bins//2))
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.bkpt_bins)
             else:
-                self.region_bins = Bins(chr1, pos1 - 2*par.run.rd_len, pos1 + 2*par.run.rd_len,
-                                        ideal_num_bins=par.run.num_bins)
+                self.region_bins = Bins(chr1, pos1 - h_bkpt_wind, pos1 + h_bkpt_wind, ideal_num_bins=par.run.num_bins)
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])
 
         else:

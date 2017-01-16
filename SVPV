@@ -66,12 +66,12 @@ usage = 'Usage example:\n' \
         '-l_svs\t\tshow SVs extending beyond the current plot area.\n' \
         '-disp\t\tPDF viewer command. GUI mode only.\n' \
         '\t\t\tdefault: "display"\n' \
-        '-is_len\t\tlibrary insert length, optimises window size.\n' \
-        '\t\t\tdefault: 500\n' \
         '-rd_len\t\tsequencing read length, optimises window size.\n' \
         '\t\t\tdefault: 100\n' \
         '-exp\t\twindow expansion, proportion of SV len added to each side.\n' \
         '\t\t\tdefault: 1\n' \
+        '-bkpt_win\t\tbreakpoint window, number of read lengths to set windows around breakpoints.\n' \
+        '\t\t\tdefault: 5\n' \
         '-n_bins\t\ttarget number of bins for plot window.\n' \
         '\t\t\tdefault: 100\n' \
         '\nFilter args:\n' \
@@ -136,12 +136,12 @@ class Params:
                         self.run.gui = True
                     elif a == '-disp':
                         self.run.display = args[i + 1]
-                    elif a == '-is_len':
-                        self.run.is_len = int(args[i + 1])
                     elif a == '-rd_len':
                         self.run.rd_len = int(args[i + 1])
                     elif a == '-exp':
                         self.run.expansion = float(args[i + 1])
+                    elif a == '-bkpt_win':
+                        self.run.bkpt_win = float(args[i + 1])
                     elif a == '-n_bins':
                         self.run.num_bins = int(args[i + 1])
                     elif a == '-fa':
@@ -282,8 +282,8 @@ class Params:
 
 # class to store run parameters
 class RunParams:
-    valid = ('-vcf','-aln', '-samples', '-manifest', '-o', '-gui', '-ref_gene', '-ref_vcf', '-fa', '-is_len', '-rd_len',
-             '-exp', '-n_bins', '-disp')
+    valid = ('-vcf','-aln', '-samples', '-manifest', '-o', '-gui', '-ref_gene', '-ref_vcf', '-fa', '-rd_len',
+             '-exp', '-bkpt_win', '-n_bins', '-disp')
 
     def __init__(self):
         # path to vcf
@@ -310,9 +310,9 @@ class RunParams:
         # get configurations
         # include defaults in case they are accidentally deleted
         self.display = 'display'
-        self.is_len = 500
         self.rd_len = 100
         self.expansion = 1
+        self.bkpt_win = 5
         self.num_bins = 100
 
     def get_bams(self, samples):

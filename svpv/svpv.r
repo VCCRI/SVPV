@@ -524,13 +524,17 @@ add_zoom_detail <- function(params, col='black', spacer=2){
 # add axis to zoom plots
 add_zoom_axes <- function(params){
   par(las=0)
-  units <- get_units(params$Attr$loci[[1]]$end - params$Attr$loci[[1]]$start)
+  units <- get_units(params$Attr$loci[[1]]$start)
   at = (params$Attr$loci[[1]]$start + (params$Attr$loci[[1]]$end - params$Attr$loci[[1]]$start) *c((1/6),(1/2),(5/6)))
-  empty_plot(params$Attr$loci[[1]]$xlims)
-  axis(side=1, at=at,labels=paste(as.character(round(at/ units$val, digits=1)), units$sym), line=-1.5)
+  empty_plot(params$Attr$loci[[1]]$xlims/ units$val)
+  axis(1, line=-2.5)
+  mtext(units$sym, side=1, line=-0.5, cex=0.7)
+  #axis(side=1, at=at,labels=paste(as.character(round(at/ units$val, digits=1)), units$sym), line=-1.5)
   at = (params$Attr$loci[[2]]$start + (params$Attr$loci[[2]]$end - params$Attr$loci[[2]]$start) *c((1/6),(1/2),(5/6)))
-  empty_plot(params$Attr$loci[[2]]$xlims)
-  axis(side=1, at=at, labels=paste(as.character(round(at/units$val, digits=2)), units$sym),line=-1.5)
+  empty_plot(params$Attr$loci[[2]]$xlims/ units$val)
+  axis(1, line=-2.5)
+  mtext(units$sym, side=1, line=-0.5, cex=0.7)
+  #axis(side=1, at=at, labels=paste(as.character(round(at/units$val, digits=2)), units$sym),line=-1.5)
 }
 #returns an assignment to tracks for a set of regions such that there are no overlaps
 get_tracks <- function(starts, ends, chroms, types=NA, xrange=NA) {
@@ -688,7 +692,7 @@ get_plot_layout <- function(params, annotations, num_samples, vcfs_per_sample, m
     if (params$tracks$inverted) { h <- c(h, 1); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col }
     if (params$tracks$samestrand) { h <- c(h, 1); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col }
     # breakpoint zoom axes
-    if (params$type == 'zoom'){ h <- c(h, 2); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col }
+    if (params$type == 'zoom'){ h <- c(h, 3); p_n <- c(p_n, (p_n[idx]+1):(p_n[idx]+n_col)); idx=idx+n_col }
     # separator
     h <- c(h, 1.5); p_n <- c(p_n, rep(p_n[idx]+1, times=n_col)); idx=idx+n_col
   }

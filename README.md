@@ -21,7 +21,7 @@ insertion (INS) and breakend ('BND') are supported. Delly-style translocations (
 **GUI**  
 * X11 if running over ssh
 * python 2.7 tkinter
-* Recommended: [GraphicsMagick](http://www.graphicsmagick.org/) or ImageMagick ('display')
+* Recommended: [GraphicsMagick](http://www.graphicsmagick.org/README.html) or ImageMagick ('display')
   * GraphicsMagick build w/ --enable-magick-compat
   * Note: any other X11 capable pdf viewer specified by '-disp' will work
   * alternatively users can navigate to plot directory and open the file with a local pdf viewer
