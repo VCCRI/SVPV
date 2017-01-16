@@ -7,8 +7,8 @@ try:
     import Tkinter as tk
 except ImportError:
     import tkinter as tk
-import gui_widgets as gw
-from plot import Plot
+from . import gui_widgets as gw
+from .plot import Plot
 import tkFileDialog
 
 
