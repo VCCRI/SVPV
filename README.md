@@ -63,15 +63,13 @@ matching the supplied filter arguments.
 |-gui                 | run in gui mode                                                            | optional |
 |-ref_vcf<sup>1</sup> | Reference structural variant vcf/bcf file for annotation                   | optional |
 |-ref_gene            | Refseq genes regene table file for annotation<sup>3</sup>                  | optional |
-|-manifest            | Whitespace delimited file, first column sample names, <br> second column alignment file path.
-Overrides '-samples' and '-aln' if also given.                                                     | optional |
+|-manifest            | Whitespace delimited file, first column sample names, <br> second column alignment file path. Overrides '-samples' and '-aln' if also given.                                                     | optional |
 |-separate_plots      | Plot each sample separately                                                | optional |
 |-l_svs               | show SVs extending beyond the current plot area.                           | optional |
 |-disp                | PDF viewer command. GUI mode only. Default: "display"                      | optional |
 |-rd_len              | sequencing read length, optimises window size. Default: 100                | optional |
 |-exp                 | window expansion, proportion of SV len added to each side. Default: 1      | optional |
-|-bkpt_win            | breakpoint window, number of read lengths to set windows around breakpoints
-<br> Default:5                                                                                     | optional |
+|-bkpt_win            | breakpoint window, number of read lengths to set windows around breakpoints <br> Default:5                                                                                     | optional |
 |-n_bins              | target number of bins for plot window. Default: 100                        | optional |
 
 
@@ -119,7 +117,7 @@ python SVPV -gui -o ./example/output/ -vcf delly:./example/delly.vcf,cnvnator:./
 ```
 **Advance usage example:**
 ```
-python SVPV -vcf caller1_svs.vcf,caller2_svs.vcf -samples sample1,sample2,sample3 -aln alignment1.bam,alignment2.bam,alignment3.bam
+python SVPV -vcf caller1_svs.vcf,caller2_svs.vcf -samples sample1,sample2,sample3 -aln s1.bam,s2.bam,s3.bam
 -o /out/directory/ -ref_vcf 1000_genomes_svs.vcf -ref_gene hg38.refgene.txt -max_len 100000 -af <0.25 -gts
 sample1:1/1,0/1;sample3:0/0 -svtype DEL -exonic -ss 0 -se 1
 ```
