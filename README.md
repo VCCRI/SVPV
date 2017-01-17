@@ -122,18 +122,25 @@ python SVPV -vcf caller1_svs.vcf,caller2_svs.vcf -samples sample1,sample2,sample
 sample1:1/1,0/1;sample3:0/0 -svtype DEL -exonic -ss 0 -se 1
 ```
 
-### Structural Variant VCFs
-BCFtools is used to parse vcf/bcf formatted files.
-SVPV expects either the 'SVTYPE' info field or symbolic alternative alleles (e.g. '\<DEL\>') to recognise structural
-variant calls. VCF entries without either 'SVTYPE' or symbolic allele being equal to one of DEL, DUP, CNV, INS,
-INV, BND or TRA\* will be ignored. 'END' is required fo DEL, DUP, CNV and INV type variants. BND encoded Translocations
-are supported, these require the either 'MATEID' or 'EVENTID' fields.
-Please see the [VCF specifications](http://samtools.github.io/hts-specs/VCFv4.3.pdf) for clarification.
+###  VCF Field Requirements:
 
-Specifically, the following VCF fields are parsed: CHROM, POS, ID, ALT, INFO, END, SVTYPE, SVLEN, EVENTID, GT, AF,
- PAIRID, MATEID, INSLEN\*, CHR2\*. Not all fields are required.
+SV Type         | Required VCF Fields
+----------------|------------------------------------------------|
+All Types       | CHROM, POS, SVTYPE<sup>1</sup>, GT<sup>2</sup> |
+DEL/DUP/CNV/INV | SVLEN or END                                   |
+INS             | SVLEN or INSLEN\*                              |
+BND             | ALT, ID, MATEID/PAIRID/EVENTID                 |
+TRA\*           | CHR2, END                                      |
 
-\*For compatipility with Delly, SVTYPE='TRA' is supported, and info fields 'CHR2' and 'INSLEN' are parsed.
 
-## SVPV Plot Window Sizing and Types
+<sup>1</sup>If SVTYPE is not found then ALT is parsed for symbolic alternate alleles.
+These should match one of DEL, DUP, CNV, INS, INV, BND or TRA or the call will be ignored.
+
+<sup>2</sup>For reference VCF only, GT is not required if AF is present.
+
+*Included for compatibility with Delly2
+
+Please see the [VCF specifications](http://samtools.github.io/hts-specs/VCFv4.3.pdf) for further details.
+
+### SVPV Plot Window Sizing and Types
 * Please see the [wiki](https://github.com/VCCRI/SVPV/wiki/SVPV-Plot-Windows)
