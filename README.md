@@ -10,7 +10,7 @@ VCF structural variant types deletion (DEL), duplication (DUP), copy number vari
 insertion (INS) and breakend ('BND') are supported. Delly-style translocations (TRA) are also supported.
 
 ###Requirements
-**Basic**  
+**Command Line Mode**
 * Python 2.7.+ and NumPy
 * R v3.+
 * [SAMtools and BCFtools](https://github.com/samtools) (version 1.3)
@@ -18,7 +18,8 @@ insertion (INS) and breakend ('BND') are supported. Delly-style translocations (
 
 **Note:** SAMtools and BCFtools must be executable by typing 'samtools' and 'bcftools' into the terminal.
   
-**GUI**  
+**GUI Mode**
+* All command line mode requirements, and:
 * X11 if running over ssh
 * python 2.7 tkinter
 * Recommended: [GraphicsMagick](http://www.graphicsmagick.org/README.html) or ImageMagick ('display')
@@ -49,15 +50,20 @@ insertion (INS) and breakend ('BND') are supported. Delly-style translocations (
 
 
 ###Usage
-Running in GUI mode allows users to select and view individual structural variant calls on some subset of the supplied samples. Running in batch mode (i.e. not GUI mode) will generates plots for each call with the suplied set of samples, matching the supplied filter arguments.
+Running in GUI mode allows users to select and view individual structural variant calls on some subset of the supplied
+samples. Running in batch mode (i.e. not GUI mode) will generates plots for each call with the suplied set of samples,
+matching the supplied filter arguments.
 
 **example:**  
 ```
-python SVPV -gui -o ./example/output/ -vcf delly:./example/delly.vcf -alt_vcf cnvnator:./example/cnvnator.vcf -manifest ./example/example.manifest -ref_gene ./example/hg38.refgene.partial.txt -ref_vcf ./example/1000G.vcf
+python SVPV -gui -o ./example/output/ -vcf delly:./example/delly.vcf -alt_vcf cnvnator:./example/cnvnator.vcf -manifest
+./example/example.manifest -ref_gene ./example/hg38.refgene.partial.txt -ref_vcf ./example/1000G.vcf
 ```
 **another example:**
 ```
-python SVPV -vcf caller1_svs.vcf -samples sample1,sample2,sample3 -aln alignment1.bam,alignment2.bam,alignment3.bam -o /out/directory/ -alt_vcf caller2_svs.vcf -ref_vcf 1000_genomes_svs.vcf -ref_gene hg38.refgene.txt -max_len 100000 -af <0.25 -gts sample1:1/1,0/1;sample3:0/0 -svtype DEL -exonic -ss 0 -se 1
+python SVPV -vcf caller1_svs.vcf -samples sample1,sample2,sample3 -aln alignment1.bam,alignment2.bam,alignment3.bam -o
+ /out/directory/ -alt_vcf caller2_svs.vcf -ref_vcf 1000_genomes_svs.vcf -ref_gene hg38.refgene.txt -max_len 100000 -af
+ <0.25 -gts sample1:1/1,0/1;sample3:0/0 -svtype DEL -exonic -ss 0 -se 1
 ```
 
 |Run args:            | Description                                                                | Notes    |
@@ -69,18 +75,21 @@ python SVPV -vcf caller1_svs.vcf -samples sample1,sample2,sample3 -aln alignment
 |-gui                 | run in gui mode                                                            | optional |
 |-ref_vcf<sup>1</sup> | Reference structural variant vcf/bcf file for annotation                   | optional |
 |-ref_gene            | Refseq genes regene table file for annotation<sup>3</sup>                  | optional |
-|-manifest            | Whitespace delimited file, first column sample names, <br> second column alignment file path. Overrides '-samples' and '-aln' if also given. | optional
+|-manifest            | Whitespace delimited file, first column sample names, <br> second column alignment file path.
+Overrides '-samples' and '-aln' if also given.                                                     | optional |
 |-separate_plots      | Plot each sample separately                                                | optional |
 |-l_svs               | show SVs extending beyond the current plot area.                           | optional |
 |-disp                | PDF viewer command. GUI mode only. Default: "display"                      | optional |
 |-rd_len              | sequencing read length, optimises window size. Default: 100                | optional |
 |-exp                 | window expansion, proportion of SV len added to each side. Default: 1      | optional |
-|-bkpt_win            | breakpoint window, number of read lengths to set windows around breakpoints <br> Default:5 | optional |
+|-bkpt_win            | breakpoint window, number of read lengths to set windows around breakpoints
+<br> Default:5                                                                                     | optional |
 |-n_bins              | target number of bins for plot window. Default: 100                        | optional |
 
 
 
-<sup>1</sup>vcfs may be specified by a file (e.g. '-vcf /path/to/file.vcf') or by a name and a file (e.g. '-vcf delly:/path/to/file'). If not specified names will be 'primary', 'alternate' and 'reference' by default.
+<sup>1</sup>vcfs may be specified by a file (e.g. '-vcf /path/to/file.vcf') or by a name and a file
+(e.g. '-vcf delly:/path/to/file'). If not specified names will be 'vcf 1', 'vcf 2', etc and 'reference' by default.
 
 <sup>2</sup>'-samples' and '-aln' not required if '-manifest' is supplied.
 
@@ -119,10 +128,13 @@ python SVPV -vcf caller1_svs.vcf -samples sample1,sample2,sample3 -aln alignment
 
 ### Structural Variant VCFs
 BCFtools is used to parse vcf/bcf formatted files.
-SVPV expects either the 'SVTYPE' info field or symbolic alternative alleles (e.g. '\<DEL\>') to recognise structural variant calls.
-VCF entries with neither 'SVTYPE' or symbolic allele on the supported SVtype list (DEL, DUP, CNV, INS\*, INV, BND, TRA\*) will be ignored.
-'END' is required for deletion, duplication and CNV type variants and 'ISLEN' for insertions.
-SVTYPE='BND': Translocations, inversions and generic breakend types are also supported. These require the either MATEID or EVENTID fields.
+SVPV expects either the 'SVTYPE' info field or symbolic alternative alleles (e.g. '\<DEL\>') to recognise structural
+variant calls. VCF entries without either 'SVTYPE' or symbolic allele being equal to one of DEL, DUP, CNV, INS,
+INV, BND or TRA\* will be ignored. 'END' is required fo DEL, DUP, CNV and INV type variants. BND encoded Translocations
+are supported, these require the either 'MATEID' or 'EVENTID' fields.
 Please see the [VCF specifications](http://samtools.github.io/hts-specs/VCFv4.3.pdf) for clarification.
+
+Specifically, the following VCF fields are parsed: CHROM, POS, ID, ALT, INFO, END, SVTYPE, SVLEN, EVENTID, PAIRID, MATEID,
+ INSLEN\*, CHR2\*)
 
 \*For compatipility with Delly, SVTYPE='TRA' is supported, and info fields 'CHR2' and 'INSLEN' are parsed.
