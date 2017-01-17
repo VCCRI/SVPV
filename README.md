@@ -54,18 +54,6 @@ Running in GUI mode allows users to select and view individual structural varian
 samples. Running in batch mode (i.e. not GUI mode) will generates plots for each call with the suplied set of samples,
 matching the supplied filter arguments.
 
-**example:**  
-```
-python SVPV -gui -o ./example/output/ -vcf delly:./example/delly.vcf -alt_vcf cnvnator:./example/cnvnator.vcf -manifest
-./example/example.manifest -ref_gene ./example/hg38.refgene.partial.txt -ref_vcf ./example/1000G.vcf
-```
-**another example:**
-```
-python SVPV -vcf caller1_svs.vcf -samples sample1,sample2,sample3 -aln alignment1.bam,alignment2.bam,alignment3.bam -o
- /out/directory/ -alt_vcf caller2_svs.vcf -ref_vcf 1000_genomes_svs.vcf -ref_gene hg38.refgene.txt -max_len 100000 -af
- <0.25 -gts sample1:1/1,0/1;sample3:0/0 -svtype DEL -exonic -ss 0 -se 1
-```
-
 |Run args:            | Description                                                                | Notes    |
 |---------------------|----------------------------------------------------------------------------|----------|
 |-vcf<sup>1</sup>     | list of structural variant prediction VCF/BCF files                        | required |
@@ -124,7 +112,17 @@ Overrides '-samples' and '-aln' if also given.                                  
 |-af        | 1       | force allele frequency plot on or off                   |
 |-l         | 1       | force plot legend on or off                             |
 
-
+**Usage example:**
+```
+python SVPV -gui -o ./example/output/ -vcf delly:./example/delly.vcf,cnvnator:./example/cnvnator.vcf -manifest
+/example/example.manifest -ref_gene ./example/hg38.refgene.partial.txt -ref_vcf 1000G:./example/1000G.vcf
+```
+**Advance usage example:**
+```
+python SVPV -vcf caller1_svs.vcf,caller2_svs.vcf -samples sample1,sample2,sample3 -aln alignment1.bam,alignment2.bam,alignment3.bam
+-o /out/directory/ -ref_vcf 1000_genomes_svs.vcf -ref_gene hg38.refgene.txt -max_len 100000 -af <0.25 -gts
+sample1:1/1,0/1;sample3:0/0 -svtype DEL -exonic -ss 0 -se 1
+```
 
 ### Structural Variant VCFs
 BCFtools is used to parse vcf/bcf formatted files.
@@ -134,7 +132,10 @@ INV, BND or TRA\* will be ignored. 'END' is required fo DEL, DUP, CNV and INV ty
 are supported, these require the either 'MATEID' or 'EVENTID' fields.
 Please see the [VCF specifications](http://samtools.github.io/hts-specs/VCFv4.3.pdf) for clarification.
 
-Specifically, the following VCF fields are parsed: CHROM, POS, ID, ALT, INFO, END, SVTYPE, SVLEN, EVENTID, PAIRID, MATEID,
- INSLEN\*, CHR2\*)
+Specifically, the following VCF fields are parsed: CHROM, POS, ID, ALT, INFO, END, SVTYPE, SVLEN, EVENTID, GT, AF,
+ PAIRID, MATEID, INSLEN\*, CHR2\*. Not all fields are required.
 
 \*For compatipility with Delly, SVTYPE='TRA' is supported, and info fields 'CHR2' and 'INSLEN' are parsed.
+
+## SVPV Plot Window Sizing and Types
+* Please see the [wiki](https://github.com/VCCRI/SVPV/wiki/SVPV-Plot-Windows)
