@@ -491,7 +491,9 @@ def example(argv):
     run_argv.append('-aln')
     run_argv.append(','.join(samples.values()))
     run_argv.append('-vcf')
-    run_argv.append('delly:' + os.path.join(path, 'delly.vcf') + ',cnvnator:' + os.path.join(path, 'cnvnator.vcf'))
+    run_argv.append('Delly:{},CNVnator:{},Lumpy:{}'.format(os.path.join(path, 'delly.vcf'),
+                                                           os.path.join(path, 'cnvnator.vcf'),
+                                                           os.path.join(path, 'lumpy.vcf')))
     run_argv.append('-ref_vcf')
     run_argv.append('1000G:' + os.path.join(path, '1000G.vcf'))
     run_argv.append('-ref_gene')
