@@ -4,7 +4,7 @@ View predicted structural variant regions from paired-end whole genome sequencin
 differenct structural variant prediction algorithms. Statistics related to structural variants are presented in a form
 that allows users to visually identify false postive calls. Input is a set alignment files (SAM/BAM/CRAM format), and a
 set of structural variant predictions on these alignments (VCF files). Output is a set of pdf files of structural
-variant regions.
+variant regions. Please see the [wiki](https://github.com/VCCRI/SVPV/wiki/Home) for examples.
 
 VCF structural variant types deletion (DEL), duplication (DUP), copy number variation (CNV), inversion (INV),
 insertion (INS) and breakend ('BND') are supported. Delly-style translocations (TRA) are also supported.

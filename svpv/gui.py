@@ -235,7 +235,10 @@ class SVPVGui(tk.Tk):
         dir_options['title'] = 'select existing or type new directory'
         dir_options['mustexist'] = False
         path = tkFileDialog.askdirectory(**dir_options)
-        return path
+        if path == '':
+            return None
+        else:
+            return path
 
     def plot_all(self):
         self.set_info_box()
@@ -243,8 +246,10 @@ class SVPVGui(tk.Tk):
             self.info_box.message.config(text="Error: No Samples Selected")
         else:
             old_path = self.par.run.out_dir
-            self.par.run.out_dir = self.set_plot_all_dir()
-            print(self.par.run.out_dir)
+            new_path = self.set_plot_all_dir()
+            if not new_path:
+                return None
+            self.par.run.out_dir = new_path
             for i, sv in enumerate(self.svs):
                 message = "Plotting %d of %d." % (i+1, len(self.svs))
                 self.info_box.message.config(text=message)

@@ -325,7 +325,7 @@ class RunParams:
         check_file_exists(filepath)
         for line in open(filepath):
             if len(line.split()) > 2:
-                print("Error: %d fields detected in manifest, explected 2.\n" % len(line.split()))
+                print("Error: %d fields detected in manifest, expected 2.\n" % len(line.split()))
                 exit(1)
             elif len(line.split()) < 2:
                 continue
