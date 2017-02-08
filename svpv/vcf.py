@@ -245,7 +245,6 @@ class SV:
                 self.len = self.end - self.pos + 1
             else:
                 self.len = None
-        #print(self.len)
 
         self.GTs = gts
         if gts:

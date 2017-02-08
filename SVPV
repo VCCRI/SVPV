@@ -46,7 +46,7 @@ def main(argv=sys.argv):
                 plot.plot_figure(group=par.plot.grouping)
 
 usage = 'Usage example:\n' \
-        'SVPV -vcf input_svs.vcf -samples sample1,sample2 -aln alignment1.bam,alignment2.sam -o /out/directory/\n'\
+        'SVPV -vcf input_svs.vcf -samples sample1,sample2 -aln alignment1.bam,alignment2.sam\n -o /out/directory/\n'\
         '\nRun args:\n' \
         '[required]\n' \
         '-vcf\t\tPrimary structural variant prediction vcf/bcf file.\n' \
@@ -70,7 +70,8 @@ usage = 'Usage example:\n' \
         '\t\t\tdefault: 100\n' \
         '-exp\t\twindow expansion, proportion of SV len added to each side.\n' \
         '\t\t\tdefault: 1\n' \
-        '-bkpt_win\t\tbreakpoint window, number of read lengths to set windows around breakpoints.\n' \
+        '-bkpt_win\tbreakpoint window, number of read lengths to set windows around\n' \
+        '\t\tbreakpoints.\n' \
         '\t\t\tdefault: 5\n' \
         '-n_bins\t\ttarget number of bins for plot window.\n' \
         '\t\t\tdefault: 100\n' \
@@ -83,7 +84,8 @@ usage = 'Usage example:\n' \
             '\n\t\t\teg \'-gts sample1:0/1,1/1;sample3:1/1\'.\n' \
         '-chrom\t\tRestrict to comma separated list of chromosomes.\n' \
         '-svtype\t\tRestrict to given SV type (DEL/DUP/CNV/INV).\n' \
-        '-rgi\t\tRestrict to SVs that intersect refGenes, \'-ref_gene\' must be supplied.\n' \
+        '-rgi\t\tRestrict to SVs that intersect refGenes, \'-ref_gene\' must be\n' \
+        '\t\tsupplied.\n' \
         '-exonic\t\tRestrict to SVs that intersect exons of refGenes,' \
         '\n\t\t\'-ref_gene\' must be supplied.\n' \
         '\nPlot args:\n' \
@@ -505,5 +507,5 @@ def example(argv):
         print('\nSuccess!\n')
 
 if __name__ == "__main__":
-    print('\n\n{}\n'.format(info))
+    print('\n{}'.format(info))
     main()

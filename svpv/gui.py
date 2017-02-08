@@ -18,7 +18,6 @@ class SVPVGui(tk.Tk):
         tk.Tk.__init__(self)
         self.par = par
         self.option_add("*Font", "arial 10")
-
         self.buttons_1 = None
         self.reset = None
         self.list = None
@@ -41,7 +40,6 @@ class SVPVGui(tk.Tk):
         self.set_sv_chooser()
         self.info_box = None
         self.set_info_box()
-
         self.filename = None
 
     def setup_static_features(self):

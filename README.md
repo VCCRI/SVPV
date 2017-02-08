@@ -1,13 +1,14 @@
 Structural Variant Prediction Viewer  
 ------------------------------------
-View predicted structural variant regions from paired-end whole genome sequencing alignments and compare calls from
-differenct structural variant prediction algorithms. Statistics related to structural variants are presented in a form
-that allows users to visually identify false postive calls. Input is a set alignment files (SAM/BAM/CRAM format), and a
-set of structural variant predictions on these alignments (VCF files). Output is a set of pdf files of structural
-variant regions. Please see the [wiki](https://github.com/VCCRI/SVPV/wiki/Home) for examples.
+SVPV enables visualisation of predicted structural variant regions in paired-end whole genome sequencing alignments, and
+allows comparison of calls from differenct structural variant prediction algorithms. Statistics related to structural
+variants are presented in a form that allows users to visually identify false postive calls. Input is a set alignment
+files (SAM/BAM/CRAM format) along with a set of structural variant predictions on these alignments (VCF files). Output
+is a set of pdf files of structural variant regions. Please see the [wiki](https://github.com/VCCRI/SVPV/wiki/Home) for
+examples of SVPV plots of different structural variant categories.
 
-VCF structural variant types deletion (DEL), duplication (DUP), copy number variation (CNV), inversion (INV),
-insertion (INS) and breakend ('BND') are supported. Delly-style translocations (TRA) are also supported.
+SVPV supports VCF structural variant types deletion (DEL), duplication (DUP), copy number variation (CNV), inversion (INV),
+insertion (INS) and breakend ('BND'). Delly2-style translocations (TRA) are also supported.
 
 ###Requirements
 **Command Line Mode**
@@ -43,7 +44,7 @@ insertion (INS) and breakend ('BND') are supported. Delly-style translocations (
 * all done!
 
 ###Non-linux users
-* The easiest way to get SVPV running 'on' your Windows or Mac is to run a virtual machine in software such as
+* The easiest way to get SVPV running on your Windows or Mac is to run a virtual machine in software such as
  [Oracle VM Virtual Box](https://www.virtualbox.org/).
 * You can download an Ubuntu 16.04 image at [osboxes.org](http://www.osboxes.org/ubuntu/)
 * After your Ubuntu image is running follow the installation instructions above

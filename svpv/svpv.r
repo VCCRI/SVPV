@@ -179,7 +179,7 @@ add_position_axis <- function(params, side) {
         else empty_plot(c(0, n_bins), ylim=c(5,0))
         rect(0:(n_bins-1), 0, 1:n_bins, 1, col=colorRampPalette(c('gray95', 'gray5'))(100)[ceiling(100*gc)], border=NA)
         rect(0, 0, n_bins, 1, border='black', lwd=0.5)
-        #if (i == 1) par(xpd=NA); text(0, 0.5, labels='GC', pos=2, cex=0.85); par(xpd=FALSE)
+        if (i == 1){ par(xpd=NA); text(0, 0.5, labels='GC content', pos=2); par(xpd=FALSE) }
       }
     }
   } else {
@@ -194,7 +194,7 @@ add_position_axis <- function(params, side) {
       else empty_plot(c(0, n_bins), ylim=c(5,0))
       rect(0:(n_bins-1), 0, 1:n_bins, 1, col=colorRampPalette(c('gray95', 'gray5'))(100)[ceiling(100*params$GC$region)], border=NA)
       rect(0, 0, n_bins, 1, border='black', lwd=0.5)
-      text(0, 0.5, labels='GC', pos=2, cex=0.85)
+      par(xpd=NA); text(0, 0.5, labels='GC content', pos=2); par(xpd=FALSE)
     }
   }
 }

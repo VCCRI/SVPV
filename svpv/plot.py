@@ -23,7 +23,7 @@ class Plot:
         self.region_bins = None
         self.bkpt_bins = None
 
-        # half breakpoint windop
+        # half breakpoint window
         h_bkpt_wind = (par.run.bkpt_win * par.run.rd_len) // 2
 
         # show depth over whole region but zoom in on breakpoints if necessary
