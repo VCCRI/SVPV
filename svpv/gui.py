@@ -34,6 +34,8 @@ class SVPVGui(tk.Tk):
         self.set_sample_selector()
         self.genotype_selector = None
         self.set_genotype_selector()
+        self.plot_custom = None
+        self.set_plot_custom()
         self.filters = None
         self.set_filters()
         self.sv_chooser = None
@@ -57,7 +59,7 @@ class SVPVGui(tk.Tk):
             self.list.destroy()
         self.list = tk.Button(self.buttons_1, text="Apply Filters", command=self.apply_filters)
         self.list.grid(row=0, column=1, padx=40, sticky=tk.E)
-        self.buttons_1.grid(row=3, column=0, columnspan=2, sticky=tk.EW, padx=10)
+        self.buttons_1.grid(row=4, column=0, columnspan=2, sticky=tk.EW, padx=10)
 
         if self.buttons_2:
             self.buttons_2.destroy()
@@ -68,7 +70,7 @@ class SVPVGui(tk.Tk):
         self.viewGTs.grid(row=0, column=0, padx=25, sticky=tk.W)
         if self.viewSV:
             self.viewSV.destroy()
-        self.viewSV = tk.Button(self.buttons_2, text="Plot Selected SV", command=self.view_sv)
+        self.viewSV = tk.Button(self.buttons_2, text="Plot Selected SV", command=self.plot_sv)
         self.viewSV.grid(row=0, column=1, padx=25, sticky=tk.W)
         if self.plotAll:
             self.plotAll.destroy()
@@ -80,7 +82,7 @@ class SVPVGui(tk.Tk):
         self.display_cb = tk.Checkbutton(self.buttons_2, text='display plot on creation', variable=self.display_var,
                                          onvalue=1, offvalue=0)
         self.display_cb.grid(row=1, column=1, padx=25, sticky=tk.E)
-        self.buttons_2.grid(row=5, column=0, columnspan=2, sticky=tk.EW, padx=10)
+        self.buttons_2.grid(row=6, column=0, columnspan=2, sticky=tk.EW, padx=10)
 
     def text_size(self, opt):
         if opt == 1:
@@ -112,23 +114,29 @@ class SVPVGui(tk.Tk):
         self.genotype_selector = gw.SampleGenotypeSelector(self, self.current_samples)
         self.genotype_selector.grid(row=1, column=1, sticky=tk.NSEW, padx=10)
 
+    def set_plot_custom(self):
+        if self.plot_custom:
+            self.plot_custom.destroy()
+        self.plot_custom = gw.PlotCustom(self)
+        self.plot_custom.grid(row=2, column=0, columnspan=2, sticky=tk.NSEW, pady=2, padx=10)
+
     def set_filters(self):
         if self.filters:
             self.filters.destroy()
         self.filters = gw.Filters(self)
-        self.filters.grid(row=2, column=0, columnspan=2, sticky=tk.NSEW, pady=2, padx=10)
+        self.filters.grid(row=3, column=0, columnspan=2, sticky=tk.NSEW, pady=2, padx=10)
 
     def set_sv_chooser(self):
         if self.sv_chooser:
             self.sv_chooser.destroy()
         self.sv_chooser = gw.SvChooser(self, self.svs, self.par.run.vcf.count)
-        self.sv_chooser.grid(row=4, column=0, sticky=tk.NSEW, padx=10, columnspan=2)
+        self.sv_chooser.grid(row=5, column=0, sticky=tk.NSEW, padx=10, columnspan=2)
 
     def set_info_box(self, message=''):
         if self.info_box:
             self.info_box.destroy()
         self.info_box = gw.InfoBox(self, message)
-        self.info_box.grid(row=6, column=0, sticky=tk.NSEW, padx=10, columnspan=2)
+        self.info_box.grid(row=7, column=0, sticky=tk.NSEW, padx=10, columnspan=2)
 
     def reset_filters(self):
         self.set_info_box()
@@ -209,14 +217,16 @@ class SVPVGui(tk.Tk):
         self.svs = self.par.run.vcf.filter_svs(self.par.filter)
         self.set_sv_chooser()
 
-    def view_sv(self):
+    def plot_sv(self, sv=None):
         self.set_info_box()
         if not self.current_samples:
             self.info_box.message.config(text="Error: No Samples Selected")
-        elif self.sv_chooser.sv_fl.selected_idx is None:
+        elif self.sv_chooser.sv_fl.selected_idx is None and sv is None:
             self.info_box.message.config(text="Error: No SV Selected")
         else:
-            plot = Plot(self.svs[self.sv_chooser.sv_fl.selected_idx], self.current_samples, self.par)
+            if not sv:
+                sv = self.svs[self.sv_chooser.sv_fl.selected_idx]
+            plot = Plot(sv, self.current_samples, self.par)
             if self.display_var.get():
                 self.filename = plot.plot_figure(group=self.par.plot.grouping, display=self.par.run.display)
             else:

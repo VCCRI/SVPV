@@ -3,6 +3,7 @@
 # author: Jacob Munro, Victor Chang Cardiac Research Institute
 # """
 from __future__ import print_function
+from .vcf import SV
 try:
     import Tkinter as tk
     import tkFileDialog
@@ -61,7 +62,6 @@ class MenuBar(tk.Menu):
     def switch_vcf(self):
         if self.vcf_var.get() != 0:
             self.parent.switch_vcf(self.vcf_var.get()-1)
-
 
 class SampleSelector(tk.LabelFrame):
     def __init__(self, parent, samples):
@@ -139,6 +139,26 @@ class GenotypeSelector(tk.LabelFrame):
                 gts.append(self.gts[i])
         return gts
 
+class PlotCustom(tk.LabelFrame):
+    def __init__(self, parent):
+        tk.LabelFrame.__init__(self, parent, text="Plot Custom Range")
+        self.parent = parent
+        self.lab = tk.Label(self, text='Custom range:')
+        self.rangeVar = tk.StringVar(value='chrX:YYYYYY-ZZZZZZ')
+        self.entry = tk.Entry(self, textvariable=self.rangeVar, width=25)
+        self.setter = tk.Button(self, text="Plot Custom", command=self.do_plot)
+        self.lab.grid(row=0, column=0, sticky=tk.NSEW)
+        self.entry.grid(row=0, column=1, sticky=tk.NSEW)
+        self.setter.grid(row=0, column=2, sticky=tk.NSEW)
+
+    def do_plot(self):
+        try:
+            chrom, pos, end = re.split('[:-]', self.rangeVar.get())[0:3]
+            custom = SV(chrom, pos, end, 'CUSTOM', '.', '.', '.')
+        except ValueError:
+            print("invalid region")
+            return None
+        self.parent.plot_sv(custom)
 
 class Filters(tk.LabelFrame):
     def __init__(self, parent):

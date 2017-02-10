@@ -27,7 +27,7 @@ class Plot:
         h_bkpt_wind = (par.run.bkpt_win * par.run.rd_len) // 2
 
         # show depth over whole region but zoom in on breakpoints if necessary
-        if sv.svtype in ('DEL', 'DUP', 'CNV', 'INV'):
+        if sv.svtype in ('DEL', 'DUP', 'CNV', 'INV', 'CUSTOM'):
             start = sv.pos - par.run.expansion * (sv.end - sv.pos + 1)
             end = sv.end + par.run.expansion * (sv.end - sv.pos + 1)
             self.region_bins = Bins(sv.chrom, start, end, ideal_num_bins=par.run.num_bins)
@@ -163,6 +163,8 @@ class Plot:
                     svs.append(sv)
         if svs:
             SV.print_SVs(svs, svs_file, self.par.run.vcf.name)
+        if self.sv.svtype == 'CUSTOM':
+            SV.print_SVs([self.sv], svs_file, 'CUSTOM')
         # ref vcf
         if self.par.run.ref_vcf:
             svs = []
