@@ -8,6 +8,7 @@ from __future__ import print_function
 import sys
 import os
 import re
+from os.path import expanduser as expu
 from svpv.vcf import VCFManager, BCFtools
 from svpv.sam import SAMtools
 from svpv.refgene import RefgeneManager
@@ -131,9 +132,9 @@ class Params:
                     elif a == '-manifest':
                         if self.run.samples or self.run.bams:
                             print("samples and alignments provided as command line arguments overriden by manifest file\n")
-                        self.run.read_samples_file(args[i + 1])
+                        self.run.read_samples_file(expu(args[i + 1]))
                     elif a == '-o':
-                        self.run.out_dir = args[i + 1]
+                        self.run.out_dir = expu(args[i + 1])
                     elif a == '-gui':
                         self.run.gui = True
                     elif a == '-disp':
@@ -147,15 +148,15 @@ class Params:
                     elif a == '-n_bins':
                         self.run.num_bins = int(args[i + 1])
                     elif a == '-fa':
-                        check_file_exists(args[i + 1])
-                        self.run.fa = args[i + 1]
+                        check_file_exists(expu(args[i + 1]))
+                        self.run.fa = expu(args[i + 1])
                     elif a == '-ref_gene':
                         self.run.ref_genes = RefgeneManager(args[i + 1])
                         self.filter.ref_genes = self.run.ref_genes
                     elif a == '-ref_vcf':
                         if ':' in args[i + 1]:
-                            check_file_exists(args[i + 1].split(':')[1])
-                            self.run.ref_vcf = VCFManager(args[i + 1].split(':')[1], name=args[i + 1].split(':')[0], db_mode=True)
+                            check_file_exists(expu(args[i + 1].split(':')[1]))
+                            self.run.ref_vcf = VCFManager(expu(args[i + 1].split(':')[1]), name=args[i + 1].split(':')[0], db_mode=True)
                         else:
                             check_file_exists(args[i + 1])
                             self.run.ref_vcf = VCFManager(args[i + 1], name='reference', db_mode=True)
@@ -339,8 +340,8 @@ class RunParams:
     def set_vcfs(self, vcfs_arg):
         for sv_vcf in vcfs_arg.split(','):
             if ':' in sv_vcf:
-                check_file_exists(sv_vcf.split(':')[1])
-                vcf = VCFManager(sv_vcf.split(':')[1], name=sv_vcf.split(':')[0])
+                check_file_exists(expu(sv_vcf.split(':')[1]))
+                vcf = VCFManager(expu(sv_vcf.split(':')[1]), name=sv_vcf.split(':')[0])
             else:
                 check_file_exists(sv_vcf)
                 vcf = VCFManager(sv_vcf)

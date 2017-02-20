@@ -333,7 +333,9 @@ get_units <- function(num_bp) {
 # heuristic for avoiding errors when determing insert size upper
 estimate_ylim <- function(ins) {
   sorted <- sort(ins)
-  return(1.1 * sorted[floor(length(sorted) * 0.985)])
+  ylim <- 1.1 * sorted[floor(length(sorted) * 0.985)]
+  if (length(ylim) < 1) { ylim <- 500}
+  return(ylim)
 }
 plot_insert_sizes <- function(params, ins, ylim, num_y_bins=10){
   # organise sensible units for ticks on plot
