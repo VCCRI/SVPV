@@ -50,7 +50,8 @@ usage = 'Usage example:\n' \
         'SVPV -vcf input_svs.vcf -samples sample1,sample2 -aln alignment1.bam,alignment2.sam\n -o /out/directory/\n'\
         '\nRun args:\n' \
         '[required]\n' \
-        '-vcf\t\tPrimary structural variant prediction vcf/bcf file.\n' \
+        '-vcf\t\tComma separated list of Structural variant prediction vcf/bcf files.\n' \
+        '\t\tFirst in list will be used as primary call set.\n' \
         '-aln\t\tComma separated list of alignment files (BAM/CRAM).\n' \
         '-samples\tComma separated list of samples to view,' \
             '\n\t\t\tnames must be the same as in vcf.\n' \
