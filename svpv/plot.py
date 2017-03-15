@@ -31,14 +31,15 @@ class Plot:
             start = sv.pos - par.run.expansion * (sv.end - sv.pos + 1)
             end = sv.end + par.run.expansion * (sv.end - sv.pos + 1)
             self.region_bins = Bins(sv.chrom, start, end, ideal_num_bins=par.run.num_bins)
-            if (end - start) > self.par.run.bkpt_win * self.par.run.rd_len:
-                self.bkpt_bins = (Bins(sv.chrom, sv.pos - h_bkpt_wind, sv.pos + h_bkpt_wind,
+            if (end - start) > par.run.bkpt_win * par.run.rd_len:
+                mid = (sv.pos + sv.end) // 2
+                self.bkpt_bins = (Bins(sv.chrom, sv.pos - h_bkpt_wind, min(sv.pos + h_bkpt_wind, mid),
                                        ideal_num_bins=par.run.num_bins//2),
-                                  Bins(sv.chrom, sv.end - h_bkpt_wind, sv.end + h_bkpt_wind,
+                                  Bins(sv.chrom, max(sv.end - h_bkpt_wind, mid), sv.end + h_bkpt_wind,
                                        ideal_num_bins=par.run.num_bins//2))
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), self.bkpt_bins,
                                                    depth_bins=self.region_bins)
-            elif self.region_bins.length() <  self.par.run.bkpt_win * self.par.run.rd_len:
+            elif self.region_bins.length() < par.run.bkpt_win * par.run.rd_len:
                 mid = (sv.pos + sv.end) // 2
                 self.region_bins = Bins(sv.chrom, mid - h_bkpt_wind, mid + h_bkpt_wind, ideal_num_bins=par.run.num_bins)
                 self.sam_stats = SamStats.get_sam_stats(par.run.get_bams(samples), [self.region_bins])

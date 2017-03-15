@@ -13,8 +13,9 @@ from svpv.vcf import VCFManager, BCFtools
 from svpv.sam import SAMtools
 from svpv.refgene import RefgeneManager
 from svpv.plot import Plot
+from svpv.pedigree import Pedigree
 
-version = "1.00"
+version = "1.01"
 info = ("\t============================================\n"
         "\t||  Structural Variant Prediction Viewer  ||\n"
         "\t||  Version {}                          ||\n"
@@ -63,6 +64,8 @@ usage = 'Usage example:\n' \
         '-manifest\tWhitespace delimited file with first column sample names and' \
             '\n\t\tsecond column alignment files.' \
             '\n\t\toverrides \'-samples\' and \'-aln\' if also given.\n' \
+        '-ped\t\tTab separated pedigree file (GUI only)' \
+            '\n\t\tcolumns: family id, individual id, father id, mother id.\n' \
         '-fa\t\tReference genome Fasta file to add GC content annotation.\n' \
         '-separate_plots\tIndividual plots produced for each sample.\n' \
         '-l_svs\t\tshow SVs extending beyond the current plot area.\n' \
@@ -105,9 +108,12 @@ usage = 'Usage example:\n' \
         '-l\t0/[1]\tforce plot legend on or off.\n'
 
 
-def check_file_exists(path):
+def check_file_exists(path, message = None):
     if not os.path.isfile(path):
-        print("Error: file does not exist!\n'%s'\n" % path)
+        if message:
+            print('Error: {} file does not exist!\n"{}"\n'.format(message, path))
+        else:
+            print('Error: file does not exist!\n"{}"\n'.format(path))
         exit(1)
 
 
@@ -149,17 +155,20 @@ class Params:
                     elif a == '-n_bins':
                         self.run.num_bins = int(args[i + 1])
                     elif a == '-fa':
-                        check_file_exists(expu(args[i + 1]))
+                        check_file_exists(expu(args[i + 1]), message='fasta')
                         self.run.fa = expu(args[i + 1])
+                    elif a == '-ped':
+                        check_file_exists(expu(args[i + 1]), message='pedigree')
+                        self.run.ped = expu(args[i + 1])
                     elif a == '-ref_gene':
                         self.run.ref_genes = RefgeneManager(args[i + 1])
                         self.filter.ref_genes = self.run.ref_genes
                     elif a == '-ref_vcf':
                         if ':' in args[i + 1]:
-                            check_file_exists(expu(args[i + 1].split(':')[1]))
+                            check_file_exists(expu(args[i + 1].split(':')[1]), message='vcf')
                             self.run.ref_vcf = VCFManager(expu(args[i + 1].split(':')[1]), name=args[i + 1].split(':')[0], db_mode=True)
                         else:
-                            check_file_exists(args[i + 1])
+                            check_file_exists(args[i + 1], message='vcf')
                             self.run.ref_vcf = VCFManager(args[i + 1], name='reference', db_mode=True)
 
                 # set filter parameters
@@ -287,7 +296,7 @@ class Params:
 # class to store run parameters
 class RunParams:
     valid = ('-vcf','-aln', '-samples', '-manifest', '-o', '-gui', '-ref_gene', '-ref_vcf', '-fa', '-rd_len',
-             '-exp', '-bkpt_win', '-n_bins', '-disp')
+             '-exp', '-bkpt_win', '-n_bins', '-disp', '-ped')
 
     def __init__(self):
         # path to vcf
@@ -310,6 +319,8 @@ class RunParams:
         self.all = False
         # reference genome fasta file
         self.fa = None
+        # pedigree
+        self.ped = None
 
         # get configurations
         # include defaults in case they are accidentally deleted
@@ -326,7 +337,7 @@ class RunParams:
         return bams
 
     def read_samples_file(self, filepath):
-        check_file_exists(filepath)
+        check_file_exists(filepath, message='manifest')
         for line in open(filepath):
             if len(line.split()) > 2:
                 print("Error: %d fields detected in manifest, expected 2.\n" % len(line.split()))
@@ -335,16 +346,16 @@ class RunParams:
                 continue
             self.samples.append(line.split()[0].strip())
             self.bams.append(line.split()[1].strip())
-            check_file_exists(self.bams[-1])
+            check_file_exists(self.bams[-1], message='bam')
 
     # set up the input vcfs (comma separated list, names included with colons name:file or file)
     def set_vcfs(self, vcfs_arg):
         for sv_vcf in vcfs_arg.split(','):
             if ':' in sv_vcf:
-                check_file_exists(expu(sv_vcf.split(':')[1]))
+                check_file_exists(expu(sv_vcf.split(':')[1]), message='vcf')
                 vcf = VCFManager(expu(sv_vcf.split(':')[1]), name=sv_vcf.split(':')[0])
             else:
-                check_file_exists(sv_vcf)
+                check_file_exists(sv_vcf, message='vcf')
                 vcf = VCFManager(sv_vcf)
             if self.vcf is None:
                 self.vcf = vcf
@@ -374,7 +385,7 @@ class RunParams:
             print("Error:\nRequires same number of samples and alignments")
             exit(1)
         for b in self.bams:
-            check_file_exists(b)
+            check_file_exists(b, message='bam')
         delete = []
         for i, s in enumerate(self.samples):
             if s not in self.vcf.samples:
@@ -383,6 +394,7 @@ class RunParams:
         for i in sorted(delete, reverse=True):
             del self.samples[i]
             del self.bams[i]
+        self.ped = Pedigree(open(self.ped, 'rt'), self.samples)
 
 
 # class to store parameters for filtering SVs from VCF

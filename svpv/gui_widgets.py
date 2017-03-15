@@ -64,25 +64,50 @@ class MenuBar(tk.Menu):
             self.parent.switch_vcf(self.vcf_var.get()-1)
 
 class SampleSelector(tk.LabelFrame):
-    def __init__(self, parent, samples):
+    def __init__(self, parent, samples, ped=None):
         tk.LabelFrame.__init__(self, parent, text="Sample Selection")
         self.parent = parent
         self.samples = samples
-        self.lb = tk.Listbox(self, selectmode=tk.EXTENDED, width=20)
-        for s in self.samples:
-            self.lb.insert(tk.END, s)
-        self.lb.grid(row=0, column=0, padx=10, columnspan=2)
-        self.scroll = tk.Scrollbar(self, orient=tk.VERTICAL)
-        self.scroll.grid(row=0, column=2, sticky=tk.NS)
-        self.lb.config(yscrollcommand=self.scroll.set)
-        self.scroll.config(command=self.lb.yview)
-        self.setter = tk.Button(self, text="Select", command=self.select)
-        self.setter.grid(row=1,column=0, padx=10)
+        self.ped = ped
+        self.families = []
+
+        if self.ped is None:
+            self.flb = FieldedListbox(self, ('Sample',), width=20, selectmode=tk.EXTENDED)
+            for s in self.samples:
+                self.flb.push_entry((s,))
+            self.flb.grid(row=0, column=0, padx=10, columnspan=2)
+        else:
+            self.flb = FieldedListbox(self, ('Sample', 'Family'), width=15, selectmode=tk.EXTENDED)
+            for s in self.samples:
+                if s in ped.families_by_sample:
+                    self.families.append(ped.families_by_sample[s])
+                else:
+                    self.families.append('NA')
+                self.flb.push_entry((s, self.families[-1]))
+                self.flb.grid(row=0, column=0, padx=10, columnspan=3)
+
+        self.select_b = tk.Button(self, text="Select", command=self.select)
+        self.select_b.grid(row=1, column=0, padx=10)
+        c = 1
+        if ped is not None:
+            self.select_fam_b = tk.Button(self, text="Select Family", command=self.select_fam)
+            self.select_fam_b.grid(row=1, column=c, padx=10)
+            c += 1
         self.clear = tk.Button(self, text="Clear", command=self.clear)
-        self.clear.grid(row=1, column=1, padx=10)
+        self.clear.grid(row=1, column=c, padx=10)
 
     def select(self):
-        self.parent.samples_update(self.lb.curselection())
+        if self.flb.sel_idxs:
+            self.parent.samples_update(self.flb.sel_idxs)
+
+    def select_fam(self):
+        idxs = []
+        fam = self.families[self.flb.sel_idxs[0]]
+        for i in range(len(self.families)):
+            if self.families[i] == fam:
+                idxs.append(i)
+        self.flb.select_idxs(idxs)
+        self.select()
 
     def clear(self):
         self.parent.current_samples = []
@@ -327,20 +352,20 @@ class InfoBox(tk.LabelFrame):
 
 # class for multiple listboxes linked by single scroll bar
 class FieldedListbox(tk.Frame):
-    def __init__(self, parent, header):
+    def __init__(self, parent, header, width=10, selectmode=tk.BROWSE):
         tk.Frame.__init__(self, parent)
         self.parent = parent
         self.num_f = len(header)
         self.headers = []
         self.lbs = []
         self.c = 0
-        self.selected_idx = None
+        self.sel_idxs = []
 
         self.scroll = tk.Scrollbar(self, orient=tk.VERTICAL)
         for i in range(0, self.num_f):
             self.headers.append(tk.Label(self, text=header[i]))
             self.headers[-1].grid(row=0, column=self.c, sticky=tk.EW)
-            self.lbs.append(tk.Listbox(self, width=10, yscrollcommand= self.yscroll, bg='white'))
+            self.lbs.append(tk.Listbox(self, width=width, selectmode=selectmode, yscrollcommand=self.yscroll, bg='white'))
             self.lbs[-1].grid(row=1, column=self.c, sticky=tk.EW)
             self.lbs[-1].bind("<<ListboxSelect>>", self.select)
             self.c += 1
@@ -349,13 +374,18 @@ class FieldedListbox(tk.Frame):
         self.scroll.grid(row=1, column=self.c, sticky=tk.NS)
 
     def select(self, val):
-        idx = int(val.widget.curselection()[0])
+        idxs = map(int, val.widget.curselection())
+        self.select_idxs(idxs)
+
+    def select_idxs(self, idxs):
         for lb in self.lbs:
-            if self.selected_idx is not None:
-                lb.itemconfig(self.selected_idx, background='white')
-            lb.activate(idx)
-            lb.itemconfig(idx, background='gray70', selectbackground='gray70')
-        self.selected_idx = idx
+            for i in self.sel_idxs:
+                lb.itemconfig(i, background='white')
+                lb.activate(i)
+            for i in idxs:
+                lb.activate(i)
+                lb.itemconfig(i, background='gray70', selectbackground='gray70')
+        self.sel_idxs = idxs
 
     def yscroll(self, *args):
         self.scroll.set(*args)
@@ -371,4 +401,5 @@ class FieldedListbox(tk.Frame):
 
     # return the index of selection
     def get_selection(self):
-        return int(self.lbs[0].curselection())
+        print(self.lbs[0].curselection())
+        return map(int, self.lbs[0].curselection())
