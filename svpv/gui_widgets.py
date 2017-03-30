@@ -183,7 +183,7 @@ class PlotCustom(tk.LabelFrame):
         except ValueError:
             print("invalid region")
             return None
-        self.parent.plot_sv(custom)
+        self.parent.plot_sv(sv=custom)
 
 class Filters(tk.LabelFrame):
     def __init__(self, parent):

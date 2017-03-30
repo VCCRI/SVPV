@@ -12,17 +12,21 @@ import copy, re
 class VCFManager:
     vcf_count = 1
 
-    def __init__(self, vcf_file, name='VCF ' + str(vcf_count), db_mode=False):
+    def __init__(self, vcf_file, name='VCF ' + str(vcf_count), db_mode=False, samples=None):
         VCFManager.vcf_count += 1
         self.name = name
-        self.samples = BCFtools.get_samples(vcf_file)
+        if not samples:
+            self.samples = BCFtools.get_samples(vcf_file)
+        else:
+            self.samples = samples
         # count of svs in vcf
         self.count = 0
         # dict by chrom of dict by pos of lists of SVs
         self.SVs = {}
         # dict of chr, sorted lists of positions
         self.positions = {}
-        self.set_svs(vcf_file, db_mode)
+        if vcf_file is not None:
+            self.set_svs(vcf_file, db_mode)
 
 
     # read in all SV sites

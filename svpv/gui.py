@@ -221,7 +221,7 @@ class SVPVGui(tk.Tk):
         self.set_info_box()
         if not self.current_samples:
             self.info_box.message.config(text="Error: No Samples Selected")
-        elif (not self.sv_chooser.sv_fl.sel_idxs) and (sv is None):
+        elif (sv is None) and (not self.sv_chooser.sv_fl.sel_idxs):
             self.info_box.message.config(text="Error: No SV Selected")
         else:
             if not sv:

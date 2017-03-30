@@ -364,9 +364,13 @@ class RunParams:
 
     def check(self):
         if not self.vcf:
-            print(usage)
-            print("Error: please specify a VCF file")
-            exit(1)
+            if self.gui:
+                print('No VCF specified\n')
+                self.vcf = VCFManager(None, name='None', samples=self.samples)
+            else:
+                print(usage)
+                print("Error: please specify a VCF file")
+                exit(1)
         if not self.out_dir:
             print(usage)
             print("Error: please specify out directory")
@@ -394,7 +398,8 @@ class RunParams:
         for i in sorted(delete, reverse=True):
             del self.samples[i]
             del self.bams[i]
-        self.ped = Pedigree(open(self.ped, 'rt'), self.samples)
+        if self.ped:
+            self.ped = Pedigree(open(self.ped, 'rt'), self.samples)
 
 
 # class to store parameters for filtering SVs from VCF
