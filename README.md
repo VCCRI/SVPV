@@ -10,7 +10,7 @@ examples of SVPV plots of different structural variant categories.
 SVPV supports VCF structural variant types deletion (DEL), duplication (DUP), copy number variation (CNV), inversion (INV),
 insertion (INS) and breakend ('BND'). Delly2-style translocations (TRA) are also supported.
 
-###Requirements
+### Requirements
 **Command Line Mode**
 * Python 2.7.+ and NumPy
 * R v3.+
@@ -28,7 +28,7 @@ insertion (INS) and breakend ('BND'). Delly2-style translocations (TRA) are also
   * Note: any other X11 capable pdf viewer specified by '-disp' will work
   * alternatively users can navigate to plot directory and open the file with a local pdf viewer
 
-###Installation
+### Installation
 * Navigate to desired install directory and clone this repository.
 
   `git clone https://github.com/VCCRI/SVPV.git SVPV`
@@ -43,14 +43,14 @@ insertion (INS) and breakend ('BND'). Delly2-style translocations (TRA) are also
   `python ./SVPV/SVPV -example -gui`
 * all done!
 
-###Non-linux users
+### Non-linux users
 * The easiest way to get SVPV running on your Windows or Mac is to run a virtual machine in software such as
  [Oracle VM Virtual Box](https://www.virtualbox.org/).
 * You can download an Ubuntu 16.04 image at [osboxes.org](http://www.osboxes.org/ubuntu/)
 * After your Ubuntu image is running follow the installation instructions above
 
 
-###Usage
+### Usage
 Running in GUI mode allows users to select and view individual structural variant calls on some subset of the supplied
 samples. Running in batch mode (i.e. not GUI mode) will generates plots for each call with the suplied set of samples,
 matching the supplied filter arguments.
