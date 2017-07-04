@@ -15,7 +15,7 @@ from svpv.refgene import RefgeneManager
 from svpv.plot import Plot
 from svpv.pedigree import Pedigree
 
-version = "1.01"
+version = "1.02"
 info = ("\t============================================\n"
         "\t||  Structural Variant Prediction Viewer  ||\n"
         "\t||  Version {}                          ||\n"
@@ -66,6 +66,7 @@ usage = 'Usage example:\n' \
             '\n\t\toverrides \'-samples\' and \'-aln\' if also given.\n' \
         '-ped\t\tTab separated pedigree file (GUI only)' \
             '\n\t\tcolumns: family id, individual id, father id, mother id.\n' \
+        '-fam\t\tRestrict to this family id only. Requires -ped.' \
         '-fa\t\tReference genome Fasta file to add GC content annotation.\n' \
         '-separate_plots\tIndividual plots produced for each sample.\n' \
         '-l_svs\t\tshow SVs extending beyond the current plot area.\n' \
@@ -160,6 +161,8 @@ class Params:
                     elif a == '-ped':
                         check_file_exists(expu(args[i + 1]), message='pedigree')
                         self.run.ped = expu(args[i + 1])
+                    elif a == '-fam':
+                        self.run.family = args[i + 1]
                     elif a == '-ref_gene':
                         self.run.ref_genes = RefgeneManager(args[i + 1])
                         self.filter.ref_genes = self.run.ref_genes
@@ -296,7 +299,7 @@ class Params:
 # class to store run parameters
 class RunParams:
     valid = ('-vcf','-aln', '-samples', '-manifest', '-o', '-gui', '-ref_gene', '-ref_vcf', '-fa', '-rd_len',
-             '-exp', '-bkpt_win', '-n_bins', '-disp', '-ped')
+             '-exp', '-bkpt_win', '-n_bins', '-disp', '-ped', '-fam')
 
     def __init__(self):
         # path to vcf
@@ -321,6 +324,8 @@ class RunParams:
         self.fa = None
         # pedigree
         self.ped = None
+        # restrict to family in pedigree
+        self.family = None
 
         # get configurations
         # include defaults in case they are accidentally deleted
@@ -393,13 +398,23 @@ class RunParams:
         delete = []
         for i, s in enumerate(self.samples):
             if s not in self.vcf.samples:
-                print("Sample ID not found in VCF: %s - removing from list" % s)
+                print("Sample ID not found in primary VCF: %s - removing from list" % s)
                 delete.append(i)
         for i in sorted(delete, reverse=True):
             del self.samples[i]
             del self.bams[i]
         if self.ped:
             self.ped = Pedigree(open(self.ped, 'rt'), self.samples)
+            if self.family:
+                if self.family in self.ped.samples_by_family:
+                    samples = self.ped.samples_by_family[self.family]
+                    for i in range(len(self.samples)-1, -1, -1):
+                        if self.samples[i] not in samples:
+                            del self.samples[i]
+                            del self.bams[i]
+                else:
+                    print('Error: family "{}" not in supplied pedigree.\n'.format(self.family))
+                    exit(1)
 
 
 # class to store parameters for filtering SVs from VCF

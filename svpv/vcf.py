@@ -28,7 +28,6 @@ class VCFManager:
         if vcf_file is not None:
             self.set_svs(vcf_file, db_mode)
 
-
     # read in all SV sites
     def set_svs(self, vcf, db_mode):
         p = BCFtools.get_SV_sites(vcf, db_mode)
@@ -120,8 +119,9 @@ class VCFManager:
         if sample is not None:
             delete = []
             for i, sv in enumerate(ret):
-                if '1' not in sv.GTs[self.samples.index(sample)]:
-                    delete.append(i)
+                if sample in self.samples:
+                    if '1' not in sv.GTs[self.samples.index(sample)]:
+                        delete.append(i)
             for i in sorted(delete, reverse=True):
                 del ret[i]
         return ret
@@ -327,7 +327,7 @@ class SV:
             l = str(self.len)
             chr2 = 'NA'
             pos2 = 'NA'
-        return (self.svtype, self.chrom, str(self.pos), chr2, str(pos2), l, ('{0:.2f}'.format(self.AF)))
+        return (self.svtype, self.chrom, str(self.pos), chr2, str(pos2), l, ('{0:.4f}'.format(self.AF)))
 
     # print SVs, either with genotype per sample, or MAF for whole BATCH annotation
     @staticmethod

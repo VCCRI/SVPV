@@ -156,7 +156,7 @@ class SVPVGui(tk.Tk):
 
     def view_gts(self):
         self.set_info_box()
-        self.info_box.genotypes(self.svs[self.sv_chooser.sv_fl.selected_idx[0]], self.par.run.vcf.samples, self.par.run.samples)
+        self.info_box.genotypes(self.svs[self.sv_chooser.sv_fl.sel_idxs[0]], self.par.run.vcf.samples, self.par.run.samples)
 
     def apply_filters(self):
         self.set_info_box()

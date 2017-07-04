@@ -57,7 +57,7 @@ matching the supplied filter arguments.
 
 |Run args:            | Description                                                                | Notes    |
 |---------------------|----------------------------------------------------------------------------|----------|
-|-vcf<sup>1</sup>     | Comma separated list of structural variant prediction VCF/BCF files    | required |
+|-vcf<sup>1</sup>     | Comma separated list of structural variant prediction VCF/BCF files        | required |
 |-o                   | Output directory                                                           | required |
 |-aln                 | Comma separated list of alignment files (indexed BAM/CRAM)                 | required <sup>2</sup>
 |-samples             | Comma separated list of samples to view, names must be the same as in VCF  | required <sup>2</sup>

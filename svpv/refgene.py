@@ -4,11 +4,11 @@
 # """
 from __future__ import print_function
 
-
 class RefgeneManager:
     def __init__(self, ref_genes, keep_all=False):
         # dict by chrom (as with SVs in VCF_Manager)
         self.entries = {}
+        count = 0
         for line in open(ref_genes):
             if line[0] == '#':
                 continue
@@ -21,6 +21,11 @@ class RefgeneManager:
                 self.entries[e.chrom].append(e)
             else:
                 self.entries[e.chrom] = [e]
+            count += 1
+        for chrom in self.entries:
+            self.entries[chrom].sort(key = lambda x: (x.txStart, x.txEnd))
+        print('read {} gene entries\n'.format(count))
+
 
     def get_entries_in_range(self, chrom, start, end):
         entries = []
