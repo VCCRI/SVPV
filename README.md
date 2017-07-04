@@ -66,6 +66,7 @@ matching the supplied filter arguments.
 |-ref_gene            | Refseq genes regene table file for annotation<sup>3</sup>                  | optional |
 |-manifest            | Whitespace delimited file, first column sample names, <br> second column alignment file path. Overrides '-samples' and '-aln' if also given.                                                     | optional |
 |-ped                 | Tab separated pedigree file (GUI only)                                     | optional |
+|-fam                 | Restrict to this family id only. Requires '-ped'.                          | optional |
 |-separate_plots      | Plot each sample separately                                                | optional |
 |-l_svs               | show SVs extending beyond the current plot area.                           | optional |
 |-disp                | PDF viewer command. GUI mode only. Default: "display"                      | optional |
