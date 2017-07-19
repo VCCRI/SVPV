@@ -147,3 +147,6 @@ Please see the [VCF specifications](http://samtools.github.io/hts-specs/VCFv4.3.
 
 ### SVPV Plot Window Sizing and Types
 * Please see the [wiki](https://github.com/VCCRI/SVPV/wiki/SVPV-Plot-Windows)
+
+### Citation
+Jacob E. Munro, Sally L. Dunwoodie, Eleni Giannoulatou; SVPV: a structural variant prediction viewer for paired-end sequencing datasets. Bioinformatics 2017; 33 (13): 2032-2033. doi: 10.1093/bioinformatics/btx117
